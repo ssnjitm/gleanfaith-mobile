@@ -1,8 +1,9 @@
 import 'package:dio/dio.dart';
+import '../services/storage_service.dart';
 import 'api_interceptors.dart';
 
 class DioClient {
-  static Dio create() {
+  static Dio create({StorageService? storageService}) {
     final dio = Dio(
       BaseOptions(
         connectTimeout: const Duration(seconds: 30),
@@ -16,7 +17,7 @@ class DioClient {
     );
 
     dio.interceptors.addAll([
-      AuthInterceptor(),
+      AuthInterceptor(storageService: storageService),
       LoggingInterceptor(),
       ErrorInterceptor(),
     ]);

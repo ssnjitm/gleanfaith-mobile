@@ -16,15 +16,16 @@ final talkerProvider = Provider<Talker>((ref) {
   return talker;
 });
 
+final storageProvider = Provider<StorageService>((ref) {
+  return StorageService(const FlutterSecureStorage());
+});
+
 final dioProvider = Provider<Dio>((ref) {
-  final dio = DioClient.create();
+  final storage = ref.watch(storageProvider);
+  final dio = DioClient.create(storageService: storage);
   final talker = ref.watch(talkerProvider);
   dio.interceptors.add(TalkerDioLogger(talker: talker));
   return dio;
-});
-
-final storageProvider = Provider<StorageService>((ref) {
-  return StorageService(const FlutterSecureStorage());
 });
 
 final connectivityProvider = Provider<Connectivity>((ref) {

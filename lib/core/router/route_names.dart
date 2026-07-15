@@ -3,6 +3,15 @@ class RouteNames {
 
   static const String splash = '/';
   static const String home = '/home';
+
+  // Auth
+  static const String signin = '/auth/signin';
+  static const String signup = '/auth/signup';
+  static const String verifyOtp = '/auth/verify-otp';
+  static const String forgotPassword = '/auth/forgot-password';
+  static const String resetPassword = '/auth/reset-password';
+
+  // Features
   static const String quiz = '/quiz';
   static const String quizDetail = '/quiz/detail';
   static const String leaderboard = '/leaderboard';
