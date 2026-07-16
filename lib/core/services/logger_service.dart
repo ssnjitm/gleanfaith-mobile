@@ -1,21 +1,26 @@
 import 'package:talker/talker.dart';
 
 class LoggerService {
-  static late final Talker _talker;
+  static Talker? _talker;
 
   static void init(Talker talker) {
-    _talker = talker;
+    _talker ??= talker;
   }
 
-  static void info(String message) => _talker.info(message);
+  static Talker get instance {
+    _talker ??= Talker();
+    return _talker!;
+  }
 
-  static void warning(String message) => _talker.warning(message);
+  static void info(String message) => instance.info(message);
+
+  static void warning(String message) => instance.warning(message);
 
   static void error(String message, [dynamic error, StackTrace? stackTrace]) {
-    _talker.error(message, error, stackTrace);
+    instance.error(message, error, stackTrace);
   }
 
-  static void debug(String message) => _talker.debug(message);
+  static void debug(String message) => instance.debug(message);
 
-  static void verbose(String message) => _talker.verbose(message);
+  static void verbose(String message) => instance.verbose(message);
 }

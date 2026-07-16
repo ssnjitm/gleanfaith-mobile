@@ -4,13 +4,13 @@ import '../../domain/entities/user_settings.dart';
 
 class UserSettingsModel extends Equatable {
   final bool notificationsEnabled;
-  final bool darkMode;
+  final String themeMode;
   final String language;
   final int quizReminderInterval;
 
   const UserSettingsModel({
     this.notificationsEnabled = true,
-    this.darkMode = false,
+    this.themeMode = 'system',
     this.language = 'en',
     this.quizReminderInterval = 24,
   });
@@ -18,7 +18,7 @@ class UserSettingsModel extends Equatable {
   factory UserSettingsModel.fromJson(Map<String, dynamic> json) {
     return UserSettingsModel(
       notificationsEnabled: json['notificationsEnabled'] as bool? ?? true,
-      darkMode: json['darkMode'] as bool? ?? false,
+      themeMode: json['themeMode'] as String? ?? 'system',
       language: json['language'] as String? ?? 'en',
       quizReminderInterval: json['quizReminderInterval'] as int? ?? 24,
     );
@@ -27,7 +27,7 @@ class UserSettingsModel extends Equatable {
   Map<String, dynamic> toJson() {
     return {
       'notificationsEnabled': notificationsEnabled,
-      'darkMode': darkMode,
+      'themeMode': themeMode,
       'language': language,
       'quizReminderInterval': quizReminderInterval,
     };
@@ -36,7 +36,10 @@ class UserSettingsModel extends Equatable {
   UserSettings toEntity() {
     return UserSettings(
       notificationsEnabled: notificationsEnabled,
-      darkMode: darkMode,
+      themeMode: AppThemeMode.values.firstWhere(
+        (e) => e.name == themeMode,
+        orElse: () => AppThemeMode.system,
+      ),
       language: language,
       quizReminderInterval: quizReminderInterval,
     );
@@ -45,12 +48,12 @@ class UserSettingsModel extends Equatable {
   factory UserSettingsModel.fromEntity(UserSettings entity) {
     return UserSettingsModel(
       notificationsEnabled: entity.notificationsEnabled,
-      darkMode: entity.darkMode,
+      themeMode: entity.themeMode.name,
       language: entity.language,
       quizReminderInterval: entity.quizReminderInterval,
     );
   }
 
   @override
-  List<Object?> get props => [notificationsEnabled, darkMode, language, quizReminderInterval];
+  List<Object?> get props => [notificationsEnabled, themeMode, language, quizReminderInterval];
 }

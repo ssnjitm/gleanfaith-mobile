@@ -214,4 +214,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void clearMessage() {
     state = state.copyWith(message: null);
   }
+
+  void setError(String message) {
+    state = state.copyWith(status: AuthStatus.error, message: message);
+  }
 }

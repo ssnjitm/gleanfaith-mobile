@@ -14,7 +14,8 @@ Failure handleError(dynamic error) {
         return const NetworkFailure();
       case DioExceptionType.badResponse:
         final statusCode = error.response?.statusCode;
-        final message = error.response?.data?['message'] as String? ?? 'Server error';
+        final data = error.response?.data;
+        final message = (data is Map ? data['message'] as String? : null) ?? 'Server error';
         if (statusCode == 401 || statusCode == 403) {
           return AuthFailure(message: message, statusCode: statusCode);
         }
