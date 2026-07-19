@@ -140,7 +140,7 @@ class _DrawerHeader extends StatelessWidget {
             radius: 28,
             backgroundColor: Colors.white.withValues(alpha: 0.2),
             child: Text(
-              (userName ?? 'U').substring(0, 1).toUpperCase(),
+              (userName?.isNotEmpty == true) ? userName!.substring(0, 1).toUpperCase() : 'U',
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.w700,

@@ -1,9 +1,7 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:go_router/go_router.dart';
 
-import '../../../../../router/route_names.dart';
 import '../../../../../../features/auth/presentation/providers/auth_provider.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
@@ -61,16 +59,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(milliseconds: 2800));
     if (!mounted) return;
-
-    await ref.read(authProvider.notifier).checkAuth();
-    if (!mounted) return;
-
-    final authState = ref.read(authProvider);
-    if (authState.status == AuthStatus.authenticated) {
-      context.go(RouteNames.home);
-    } else {
-      context.go(RouteNames.signin);
-    }
+    ref.read(authProvider.notifier).checkAuth();
   }
 
   @override
@@ -85,8 +74,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
       body: GestureDetector(
         onTap: () {
           if (!mounted) return;
-          final s = ref.read(authProvider);
-          context.go(s.status == AuthStatus.authenticated ? RouteNames.home : RouteNames.signin);
+          ref.read(authProvider.notifier).checkAuth();
         },
         child: AnimatedBuilder(
           animation: _controller,

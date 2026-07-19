@@ -6,6 +6,6 @@ import 'bootstrap.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  runApp(ProviderScope(child: const App()));
   await AppBootstrap.init();
-  runApp(ProviderScope(child: App()));
 }

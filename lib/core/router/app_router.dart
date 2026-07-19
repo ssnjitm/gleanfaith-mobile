@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/auth/presentation/providers/auth_provider.dart';
 import '../../features/auth/presentation/pages/signin_page.dart';
 import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/auth/presentation/pages/verify_otp_page.dart';
@@ -10,10 +12,56 @@ import '../common/features/home/presentation/pages/home_page.dart';
 import '../common/features/splash/presentation/pages/splash_page.dart';
 import 'route_names.dart';
 
+class _AuthRedirect extends ChangeNotifier {
+  AuthStatus status = AuthStatus.initial;
+
+  void update(AuthStatus s) {
+    if (s != status) {
+      status = s;
+      notifyListeners();
+    }
+  }
+}
+
 class AppRouter {
+  static _AuthRedirect? _authRedirect;
+
+  static _AuthRedirect get redirectNotifier {
+    _authRedirect ??= _AuthRedirect();
+    return _authRedirect!;
+  }
+
   static GoRouter create() {
     return GoRouter(
       initialLocation: RouteNames.splash,
+      refreshListenable: redirectNotifier,
+      redirect: (context, state) {
+        final authStatus = redirectNotifier.status;
+        final location = state.matchedLocation;
+
+        if (authStatus == AuthStatus.initial) {
+          if (location != RouteNames.splash) {
+            return RouteNames.splash;
+          }
+          return null;
+        }
+
+        if (authStatus == AuthStatus.authenticated) {
+          if (location == RouteNames.splash || location == RouteNames.signin) {
+            return RouteNames.home;
+          }
+          return null;
+        }
+
+        if (authStatus == AuthStatus.unauthenticated || authStatus == AuthStatus.error) {
+          if (location == RouteNames.splash || location == RouteNames.home) {
+            return RouteNames.signin;
+          }
+          return null;
+        }
+
+        return null;
+      },
       routes: [
         GoRoute(
           path: RouteNames.splash,

@@ -7,13 +7,12 @@ class AuthRemoteDataSource {
 
   AuthRemoteDataSource(this._dio);
 
-  Future<UserModel> login(String email, String password) async {
+  Future<Map<String, dynamic>> login(String email, String password) async {
     final response = await _dio.post(
       ApiConstants.login,
       data: {'email': email, 'password': password},
     );
-    final data = response.data['data'] as Map<String, dynamic>? ?? response.data;
-    return UserModel.fromJson(data);
+    return response.data as Map<String, dynamic>;
   }
 
   Future<void> registerRequest({
@@ -77,6 +76,7 @@ class AuthRemoteDataSource {
   Future<UserModel> getCurrentUser() async {
     final response = await _dio.get(ApiConstants.userMe);
     final data = response.data['data'] as Map<String, dynamic>? ?? response.data;
-    return UserModel.fromJson(data);
+    final userData = data['user'] as Map<String, dynamic>? ?? data;
+    return UserModel.fromJson(userData);
   }
 }

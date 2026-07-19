@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/common/providers/core_providers.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../data/datasources/auth_remote_datasource.dart';
 import '../../data/repositories/auth_repository_impl.dart';
 import '../../domain/entities/user.dart';
@@ -199,7 +200,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   Future<void> checkAuth() async {
-    final hasToken = await _ref.read(storageProvider).containsKey('auth_token');
+    final hasToken = await _ref.read(storageProvider).containsKey(AppConstants.tokenKey);
     if (hasToken) {
       final result = await _ref.read(getCurrentUserUseCaseProvider).call().run();
       result.fold(

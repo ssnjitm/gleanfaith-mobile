@@ -114,18 +114,31 @@ class _AuthCardState extends State<AuthCard> with TickerProviderStateMixin {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
+      borderRadius: BorderRadius.circular(24),
       child: BackdropFilter(
-        filter: isDark
-            ? ImageFilter.blur(sigmaX: 24, sigmaY: 24)
-            : ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        filter: ImageFilter.blur(sigmaX: 40, sigmaY: 40),
         child: Container(
           decoration: BoxDecoration(
-            color: (isDark ? const Color(0xFF1E293B) : Colors.white).withValues(alpha: isDark ? 0.6 : 0.7),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: (isDark ? const Color(0xFF2563EB) : const Color(0xFF3B82F6)).withValues(alpha: isDark ? 0.15 : 0.10),
+                blurRadius: 32,
+                spreadRadius: -4,
+                offset: const Offset(0, 8),
+              ),
+            ],
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                (isDark ? const Color(0xFF1E293B) : Colors.white).withValues(alpha: isDark ? 0.25 : 0.35),
+                (isDark ? const Color(0xFF0F172A) : const Color(0xFFF8FAFC)).withValues(alpha: isDark ? 0.20 : 0.30),
+              ],
+            ),
             border: Border.all(
-              color: (isDark ? Colors.white : Colors.white).withValues(alpha: 0.15),
-              width: 1.2,
+              color: (isDark ? Colors.white : Colors.white).withValues(alpha: isDark ? 0.25 : 0.40),
+              width: 1.5,
             ),
           ),
           padding: const EdgeInsets.all(32),
@@ -243,12 +256,12 @@ class _Blob extends StatelessWidget {
 
     final colors = index % 2 == 0
         ? [
-            const Color(0xFF2563EB).withValues(alpha: isDark ? 0.15 : 0.10),
-            const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.08 : 0.04),
+            const Color(0xFF2563EB).withValues(alpha: isDark ? 0.40 : 0.30),
+            const Color(0xFF3B82F6).withValues(alpha: isDark ? 0.20 : 0.12),
           ]
         : [
-            const Color(0xFFD97706).withValues(alpha: isDark ? 0.12 : 0.08),
-            const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.06 : 0.03),
+            const Color(0xFFD97706).withValues(alpha: isDark ? 0.35 : 0.25),
+            const Color(0xFFF59E0B).withValues(alpha: isDark ? 0.18 : 0.10),
           ];
 
     return Positioned(
@@ -262,9 +275,9 @@ class _Blob extends StatelessWidget {
           gradient: RadialGradient(colors: colors),
           boxShadow: [
             BoxShadow(
-              color: colors[0].withValues(alpha: isDark ? 0.2 : 0.08),
-              blurRadius: isDark ? 60 : 40,
-              spreadRadius: isDark ? 10 : 5,
+              color: colors[0].withValues(alpha: isDark ? 0.4 : 0.20),
+              blurRadius: isDark ? 80 : 60,
+              spreadRadius: isDark ? 15 : 8,
             ),
           ],
         ),

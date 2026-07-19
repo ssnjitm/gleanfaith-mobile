@@ -22,10 +22,11 @@ final storageProvider = Provider<StorageService>((ref) {
 
 final dioProvider = Provider<Dio>((ref) {
   final storage = ref.watch(storageProvider);
-  final dio = DioClient.create(storageService: storage);
+  final result = DioClient.create(storageService: storage);
   final talker = ref.watch(talkerProvider);
-  dio.interceptors.add(TalkerDioLogger(talker: talker));
-  return dio;
+  result.dio.interceptors.add(TalkerDioLogger(talker: talker));
+  ref.onDispose(() => result.dio.close());
+  return result.dio;
 });
 
 final connectivityProvider = Provider<Connectivity>((ref) {

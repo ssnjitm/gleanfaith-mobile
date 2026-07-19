@@ -1,11 +1,15 @@
 import 'package:dio/dio.dart';
+import '../constants/api_constants.dart';
 import '../services/storage_service.dart';
 import 'api_interceptors.dart';
 
 class DioClient {
-  static Dio create({StorageService? storageService}) {
+  static ({Dio dio, TokenRefreshInterceptor refreshInterceptor}) create({
+    required StorageService storageService,
+  }) {
     final dio = Dio(
       BaseOptions(
+        baseUrl: ApiConstants.baseUrl,
         connectTimeout: const Duration(seconds: 30),
         receiveTimeout: const Duration(seconds: 30),
         sendTimeout: const Duration(seconds: 30),
@@ -16,12 +20,17 @@ class DioClient {
       ),
     );
 
+    final tokenRefreshInterceptor = TokenRefreshInterceptor(
+      dio: dio,
+      storageService: storageService,
+    );
+
     dio.interceptors.addAll([
       AuthInterceptor(storageService: storageService),
       LoggingInterceptor(),
-      ErrorInterceptor(),
+      tokenRefreshInterceptor,
     ]);
 
-    return dio;
+    return (dio: dio, refreshInterceptor: tokenRefreshInterceptor);
   }
 }

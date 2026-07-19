@@ -7,6 +7,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../domain/entities/user.dart';
 import '../../domain/repositories/auth_repository.dart';
 import '../datasources/auth_remote_datasource.dart';
+import '../models/user_model.dart';
 
 class AuthRepositoryImpl implements AuthRepository {
   final AuthRemoteDataSource _remoteDataSource;
@@ -18,8 +19,19 @@ class AuthRepositoryImpl implements AuthRepository {
   TaskEither<Failure, User> login(String email, String password) {
     return TaskEither.tryCatch(
       () async {
-        final userModel = await _remoteDataSource.login(email, password);
-        await _storageService.write(AppConstants.tokenKey, 'authenticated');
+        final response = await _remoteDataSource.login(email, password);
+        final data = response['data'] as Map<String, dynamic>? ?? response;
+        final userData = data['user'] as Map<String, dynamic>? ?? data;
+        final accessToken = data['accessToken'] as String? ?? '';
+        final refreshToken = data['refreshToken'] as String? ?? '';
+
+        final userModel = UserModel.fromJson(userData);
+        if (accessToken.isNotEmpty) {
+          await _storageService.write(AppConstants.tokenKey, accessToken);
+        }
+        if (refreshToken.isNotEmpty) {
+          await _storageService.write(AppConstants.refreshTokenKey, refreshToken);
+        }
         if (userModel.id.isNotEmpty) {
           await _storageService.write(AppConstants.userIdKey, userModel.id);
         }
