@@ -7,8 +7,8 @@ import '../../features/auth/presentation/pages/signup_page.dart';
 import '../../features/auth/presentation/pages/verify_otp_page.dart';
 import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/reset_password_page.dart';
+import '../features/home/presentation/pages/main_shell.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
-import '../common/features/home/presentation/pages/home_page.dart';
 import '../common/features/splash/presentation/pages/splash_page.dart';
 import 'route_names.dart';
 
@@ -89,7 +89,7 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.home,
-          builder: (context, state) => const HomePage(),
+          builder: (context, state) => const MainShell(),
         ),
         GoRoute(
           path: RouteNames.settings,
