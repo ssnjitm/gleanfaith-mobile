@@ -46,3 +46,4 @@ app.*.map.json
 AGENT.md
 documentation.md
 .env
+context.md

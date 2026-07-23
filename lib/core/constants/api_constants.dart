@@ -2,7 +2,7 @@ class ApiConstants {
   ApiConstants._();
 
   // static const String baseUrl = 'http://192.168.1.78:8000/api/v1';
-  static const String baseUrl = 'http://localhost:8000/api/v1';
+  static const String baseUrl = 'https://glean-faith-temp-backend-production.up.railway.app/api/v1';
 
 
   // Auth
