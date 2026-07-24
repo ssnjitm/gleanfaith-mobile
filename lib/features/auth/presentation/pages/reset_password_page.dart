@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/common/widgets/auth_card.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
+import '../../../../core/theme/dimensions.dart';
 import '../providers/auth_provider.dart';
 
 class ResetPasswordPage extends ConsumerStatefulWidget {
@@ -39,8 +41,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   String get _otp => _otpControllers.map((c) => c.text).join();
 
   void _onOtpChange(int index, String value) {
-    if (value.isNotEmpty && index < 5) {
-      _focusNodes[index + 1].requestFocus();
+    if (value.isNotEmpty) {
+      if (index < 5) {
+        _focusNodes[index + 1].requestFocus();
+      }
+    } else if (index > 0) {
+      _focusNodes[index - 1].requestFocus();
     }
   }
 
@@ -140,34 +146,51 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
 
           if (_isOtpStep) ...[
             Row(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(6, (i) {
-                return Padding(
-                  padding: EdgeInsets.only(right: i < 5 ? 8 : 0),
-                  child: SizedBox(
-                    width: 48,
-                    height: 56,
-                    child: TextField(
-                      controller: _otpControllers[i],
-                      focusNode: _focusNodes[i],
-                      textAlign: TextAlign.center,
-                      keyboardType: TextInputType.number,
-                      maxLength: 1,
-                      style: AuthTextStyles.otpDigit,
-                      decoration: InputDecoration(
-                        counterText: '',
-                        filled: true,
-                        fillColor: isDark ? const Color(0xFF334155) : AppColors.bgWhite,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.otpBorder),
-                        ),
-                        focusedBorder: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(8),
-                          borderSide: const BorderSide(color: AppColors.otpFocusBorder, width: 2),
+                return Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.only(right: i < 5 ? 6 : 0),
+                    child: SizedBox(
+                      height: 52,
+                      child: Focus(
+                        onKeyEvent: (node, event) {
+                          if (event.logicalKey == LogicalKeyboardKey.backspace &&
+                              _otpControllers[i].text.isEmpty &&
+                              i > 0) {
+                            _focusNodes[i - 1].requestFocus();
+                            return KeyEventResult.handled;
+                          }
+                          return KeyEventResult.ignored;
+                        },
+                        child: TextField(
+                          controller: _otpControllers[i],
+                          focusNode: _focusNodes[i],
+                          textAlign: TextAlign.center,
+                          keyboardType: TextInputType.number,
+                          maxLength: 1,
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? Colors.white : AppColors.textPrimary,
+                          ),
+                          decoration: InputDecoration(
+                            counterText: '',
+                            isDense: true,
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 14),
+                            filled: true,
+                            fillColor: isDark ? const Color(0xFF334155) : AppColors.bgWhite,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                              borderSide: const BorderSide(color: AppColors.otpBorder),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+                              borderSide: const BorderSide(color: AppColors.otpFocusBorder, width: 2),
+                            ),
+                          ),
+                          onChanged: (v) => _onOtpChange(i, v),
                         ),
                       ),
-                      onChanged: (v) => _onOtpChange(i, v),
                     ),
                   ),
                 );
