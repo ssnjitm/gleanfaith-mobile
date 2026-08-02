@@ -46,6 +46,7 @@ class _AuthCardState extends State<AuthCard> with TickerProviderStateMixin {
     )..repeat();
 
     _verseController = AnimationController(
+      
       vsync: this,
       duration: const Duration(milliseconds: 600),
     );
