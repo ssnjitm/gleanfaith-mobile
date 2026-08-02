@@ -17,17 +17,21 @@ class ContentRemoteDataSource {
       },
     );
     final data = response.data;
-    final items = data is Map<String, dynamic>
-        ? (data['data'] as List<dynamic>?)?.toList() ??
-            (data['items'] as List<dynamic>?)?.toList() ??
-            const []
-        : (data as List<dynamic>? ?? const []);
+    final items = _asContentList(data);
     return items
-        .map((e) => e is Map<String, dynamic>
-            ? _toContentItem(e)
-            : ContentItem(id: '', title: '', body: '', type: 'written'))
-        .where((c) => c.id.isNotEmpty)
+        .map((e) => e is Map<String, dynamic> ? _toContentItem(e) : null)
+        .whereType<ContentItem>()
         .toList();
+  }
+
+  List<dynamic> _asContentList(dynamic data) {
+    if (data is Map<String, dynamic>) {
+      final inner = data['data'] ?? data['items'];
+      if (inner is List) return inner;
+      return const [];
+    }
+    if (data is List) return data;
+    return const [];
   }
 
   ContentItem _toContentItem(Map<String, dynamic> json) {
@@ -41,9 +45,16 @@ class ContentRemoteDataSource {
       videoUrl: json['videoUrl'] as String?,
       bibleBook: json['bibleBook'] as String?,
       bibleChapter: _toInt(json['bibleChapter']),
-      tags: (json['tags'] as List<dynamic>? ?? const []).map((e) => e.toString()).toList(),
+      tags: _asListOfStrings(json['tags']),
       readTimeMinutes: _toInt(json['readTimeMinutes']),
     );
+  }
+
+  List<String> _asListOfStrings(dynamic value) {
+    if (value is List) {
+      return value.map((e) => e.toString()).toList();
+    }
+    return const [];
   }
 
   int? _toInt(dynamic value) {

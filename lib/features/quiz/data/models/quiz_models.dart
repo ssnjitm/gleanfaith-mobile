@@ -1,5 +1,11 @@
 import '../../domain/entities/quiz_entities.dart';
 
+List<dynamic> _asList(dynamic value) {
+  if (value is List) return value;
+  if (value is Map) return value.values.toList();
+  return const [];
+}
+
 class QuizScheduleModel {
   final String id;
   final String title;
@@ -31,7 +37,9 @@ class QuizScheduleModel {
       endDateTime: _parseDate(json['endDateTime'] ?? json['endsAt']),
       durationMinutes: json['durationMinutes'] as int? ?? json['duration'] as int? ?? 0,
       totalQuestions: (json['totalQuestions'] as int?) ??
-          (json['quizSet'] is Map ? (json['quizSet']['questions'] as List?)?.length ?? 0 : 0),
+          (json['quizSet'] is Map
+              ? _asList(json['quizSet']!['questions']).length
+              : 0),
       allowRetry: json['allowRetry'] as bool? ?? false,
       maxRetries: json['maxRetries'] as int? ?? 1,
       status: json['status'] as String? ?? '',
@@ -73,9 +81,7 @@ class QuizQuestionModel {
   factory QuizQuestionModel.fromJson(Map<String, dynamic> json) {
     return QuizQuestionModel(
       text: json['text'] as String? ?? json['question'] as String? ?? '',
-      options: (json['options'] as List<dynamic>? ?? const [])
-          .map((e) => e.toString())
-          .toList(),
+      options: _asList(json['options']).map((e) => e.toString()).toList(),
       questionIndex: json['questionIndex'] as int? ?? 0,
     );
   }
@@ -101,7 +107,7 @@ class ActiveQuizModel {
   });
 
   factory ActiveQuizModel.fromJson(Map<String, dynamic> json) {
-    final questions = (json['questions'] as List<dynamic>? ?? const [])
+    final questions = _asList(json['questions'])
         .map((e) => QuizQuestionModel.fromJson(e as Map<String, dynamic>).toEntity())
         .toList();
     return ActiveQuizModel(
