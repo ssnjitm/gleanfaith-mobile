@@ -9,6 +9,10 @@ import '../../features/auth/presentation/pages/forgot_password_page.dart';
 import '../../features/auth/presentation/pages/reset_password_page.dart';
 import '../features/home/presentation/pages/main_shell.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
+import '../../features/quiz/presentation/pages/quiz_detail_page.dart';
+import '../../features/quiz/presentation/pages/quiz_play_page.dart';
+import '../../features/quiz/presentation/pages/quiz_result_page.dart';
+import '../features/library/presentation/pages/library_page.dart';
 import '../common/features/splash/presentation/pages/splash_page.dart';
 import 'route_names.dart';
 
@@ -94,6 +98,26 @@ class AppRouter {
         GoRoute(
           path: RouteNames.settings,
           builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: RouteNames.quizDetail,
+          builder: (context, state) =>
+              QuizDetailPage(quizScheduleId: state.extra as String? ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.quizPlay,
+          builder: (context, state) =>
+              QuizPlayPage(sessionId: state.extra as String? ?? ''),
+        ),
+        GoRoute(
+          path: RouteNames.quizResult,
+          builder: (context, state) => QuizResultPage(
+            result: state.extra == null ? null : state.extra as dynamic,
+          ),
+        ),
+        GoRoute(
+          path: RouteNames.library,
+          builder: (context, state) => const LibraryPage(),
         ),
       ],
     );

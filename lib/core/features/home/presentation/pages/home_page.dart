@@ -7,7 +7,8 @@ import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/home_data.dart';
-import '../widgets/stats_card.dart';
+import '../widgets/promo_carousel.dart';
+import '../widgets/verse_of_the_day_card.dart';
 import '../widgets/upcoming_quiz_card.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/quick_action_grid.dart';
@@ -32,24 +33,22 @@ class HomePage extends ConsumerWidget {
         children: [
           _buildGreeting(context, user?.fullName, isDark),
           const SizedBox(height: AppDimensions.paddingMd),
-          StatsCard(
-            level: mockData.stats.level,
-            totalPoints: mockData.stats.totalPoints,
-            currentLevelPoints: mockData.stats.currentLevelPoints,
-            nextLevelPoints: mockData.stats.nextLevelPoints,
-            pointsToNextLevel: mockData.stats.pointsToNextLevel,
-            badge: mockData.stats.badge,
-            weeklyRank: mockData.stats.weeklyRank,
-            quizzesCompleted: mockData.stats.quizzesCompleted,
+          PromoCarousel(slides: _promoSides(context)),
+          const SizedBox(height: AppDimensions.paddingMd),
+          const VerseOfTheDayCard(
+            text: 'For I know the plans I have for you, declares the Lord, '
+                'plans to prosper you and not to harm you, plans to give you '
+                'hope and a future.',
+            reference: 'Jeremiah 29:11',
           ),
-          const SizedBox(height: AppDimensions.paddingLg),
-          _buildSectionHeader(context, 'Upcoming Quizzes', isDark),
-          const SizedBox(height: AppDimensions.paddingSm),
-          _buildUpcomingQuizzes(context, mockData.upcomingQuizzes),
           const SizedBox(height: AppDimensions.paddingLg),
           _buildSectionHeader(context, 'Quick Actions', isDark),
           const SizedBox(height: AppDimensions.paddingSm),
           QuickActionGrid(actions: _quickActions(context)),
+          const SizedBox(height: AppDimensions.paddingLg),
+          _buildSectionHeader(context, 'Upcoming Quizzes', isDark),
+          const SizedBox(height: AppDimensions.paddingSm),
+          _buildUpcomingQuizzes(context, mockData.upcomingQuizzes),
           const SizedBox(height: AppDimensions.paddingLg),
           _buildSectionHeader(context, 'Recent Activity', isDark),
           const SizedBox(height: AppDimensions.paddingSm),
@@ -57,6 +56,29 @@ class HomePage extends ConsumerWidget {
         ],
       ),
     );
+  }
+
+  List<PromoSlide> _promoSides(BuildContext context) {
+    return [
+      PromoSlide(
+        title: 'Daily Quiz Challenge',
+        subtitle: 'Grow in faith and win points every day.',
+        icon: Icons.emoji_events_rounded,
+        onTap: () => context.go(RouteNames.quiz),
+      ),
+      PromoSlide(
+        title: 'Bible Study Library',
+        subtitle: 'Explore articles, videos and podcasts.',
+        icon: Icons.auto_stories_rounded,
+        onTap: () => context.go(RouteNames.profile),
+      ),
+      PromoSlide(
+        title: 'Join the Leaderboard',
+        subtitle: 'Compete with the community this week.',
+        icon: Icons.leaderboard_rounded,
+        onTap: () => context.go(RouteNames.leaderboard),
+      ),
+    ];
   }
 
   Widget _buildGreeting(BuildContext context, String? fullName, bool isDark) {
@@ -268,18 +290,18 @@ class HomePage extends ConsumerWidget {
         onTap: () => context.go(RouteNames.quiz),
       ),
       QuickAction(
-        icon: Icons.leaderboard_rounded,
-        label: 'Leaderboard',
+        icon: Icons.menu_book_rounded,
+        label: 'Bible Learning',
         color: AppColors.primaryAmber,
         bgColor: AppColors.primaryAmber.withValues(alpha: 0.1),
-        onTap: () => context.go(RouteNames.leaderboard),
+        onTap: () => context.push(RouteNames.library),
       ),
       QuickAction(
         icon: Icons.auto_stories_rounded,
         label: 'Library',
         color: const Color(0xFF7C3AED),
         bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
-        onTap: () {},
+        onTap: () => context.push(RouteNames.library),
       ),
       QuickAction(
         icon: Icons.person_rounded,
@@ -293,16 +315,7 @@ class HomePage extends ConsumerWidget {
 
   HomeData _mockHomeData() {
     return HomeData(
-      stats: const UserStats(
-        totalPoints: 1250,
-        level: 3,
-        currentLevelPoints: 250,
-        nextLevelPoints: 500,
-        pointsToNextLevel: 250,
-        badge: 'bronze',
-        weeklyRank: 12,
-        quizzesCompleted: 8,
-      ),
+      stats: const UserStats(),
       upcomingQuizzes: [
         UpcomingQuiz(
           id: '1',

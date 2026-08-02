@@ -19,6 +19,24 @@ class ApiConstants {
   // User
   static const String userMe = '/user/me';
   static const String userProfile = '/user/profile';
+  static const String userStats = '/user/stats';
+
+  // Quiz Sets (admin only — not used for user-facing quiz list)
+  static const String quizSetsAll = '/quiz-sets/all-quizes';
+
+  // Quiz Schedule & Sessions
+  static const String quizScheduleUpcoming = '/quiz-schedule/upcoming';
+  static const String quizScheduleStart = '/quiz-schedule/';
+  static const String quizSessionAnswer = '/quiz-schedule/session/';
+  static const String quizSessionComplete = '/quiz-schedule/session/';
+
+  // Content Library
+  static const String content = '/content';
+  static const String contentCategories = '/content/categories';
+
+  // Leaderboard
+  static const String leaderboard = '/leaderboard';
+  static const String leaderboardMe = '/leaderboard/me';
 
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);

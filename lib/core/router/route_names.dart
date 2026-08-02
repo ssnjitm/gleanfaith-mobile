@@ -14,7 +14,11 @@ class RouteNames {
   // Features
   static const String quiz = '/quiz';
   static const String quizDetail = '/quiz/detail';
+  static const String quizPlay = '/quiz/play';
+  static const String quizResult = '/quiz/result';
   static const String leaderboard = '/leaderboard';
+  static const String library = '/library';
+  static const String libraryDetail = '/library/detail';
   static const String blog = '/blog';
   static const String blogDetail = '/blog/detail';
   static const String video = '/video';

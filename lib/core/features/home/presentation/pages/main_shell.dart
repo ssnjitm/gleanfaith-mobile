@@ -6,6 +6,7 @@ import 'home_page.dart';
 import '../../../quiz/presentation/pages/quiz_home_page.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_home_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
+import '../../../profile/presentation/widgets/profile_drawer.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -29,6 +30,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      drawer: const ProfileDrawer(),
       body: IndexedStack(
         index: _currentIndex,
         children: _pages,
