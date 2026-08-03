@@ -1,4 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:glean_faith_app/features/bible/presentation/pages/bible_search_page.dart';
+import 'package:glean_faith_app/features/bible/presentation/pages/bible_topic_detail_page.dart';
+import 'package:glean_faith_app/features/bible/presentation/pages/bible_verse_detail_page.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -119,6 +122,33 @@ class AppRouter {
           path: RouteNames.library,
           builder: (context, state) => const LibraryPage(),
         ),
+        GoRoute(
+    path: RouteNames.bibleSearch,
+    name: RouteNames.bibleSearch,
+    builder: (context, state) => const BibleSearchPage(),
+  ),
+  GoRoute(
+    path: RouteNames.bibleTopicDetail,
+    name: RouteNames.bibleTopicDetail,
+    builder: (context, state) {
+      final topic = state.pathParameters['topic']!;
+      return BibleTopicDetailPage(topicName: topic);
+    },
+  ),
+  GoRoute(
+    path: RouteNames.bibleVerseDetail,
+    name: RouteNames.bibleVerseDetail,
+    builder: (context, state) {
+      final book = state.pathParameters['book']!;
+      final chapter = int.parse(state.pathParameters['chapter']!);
+      final verse = int.parse(state.pathParameters['verse']!);
+      return BibleVerseDetailPage(
+        book: book,
+        chapter: chapter,
+        verse: verse,
+      );
+    },
+  ),
       ],
     );
   }

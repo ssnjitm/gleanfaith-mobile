@@ -27,4 +27,9 @@ class RouteNames {
   static const String article = '/article';
   static const String profile = '/profile';
   static const String settings = '/settings';
+
+  //bible 
+  static const String bibleSearch = '/bible/search';
+  static const String bibleTopicDetail = '/bible/topic/:topic';
+  static const String bibleVerseDetail = '/bible/verse/:book/:chapter/:verse';
 }
