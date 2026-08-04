@@ -24,114 +24,209 @@ class DatabaseService {
 
     try {
       if (!kIsWeb) {
-        // 1. Initialize Bible SQLite database
         await _initBibleDatabase();
         _isInitialized = true;
         LoggerService.info('✅ Database services initialized successfully');
       } else {
-        // Web support - use fallback or IndexedDB
         _isFallbackMode = true;
         LoggerService.warning('🌐 Web platform - Bible database not available');
       }
     } catch (e) {
       LoggerService.error('❌ Failed to initialize database services: $e');
-      // In production, fallback gracefully
       _isFallbackMode = true;
       _isInitialized = true;
       LoggerService.warning('⚠️ Running in fallback mode - Bible features disabled');
     }
   }
 
-  Future<void> _initBibleDatabase() async {
-    try {
-      // Get documents directory
-      final documentsDir = await getApplicationDocumentsDirectory();
-      final dbPath = join(documentsDir.path, 'topical_bible.db');
+  // Future<void> _initBibleDatabase() async {
+  //   try {
+  //     final documentsDir = await getApplicationDocumentsDirectory();
+  //     final dbPath = join(documentsDir.path, 'topical_bible.db');
       
-      final dbFile = File(dbPath);
+  //     LoggerService.info('📁 Database path: $dbPath');
       
-      // Check if database exists in documents directory
-      if (!await dbFile.exists()) {
-        // Copy from assets
-        try {
-          final assetData = await rootBundle.load('assets/databases/topical_bible.db');
-          await dbFile.writeAsBytes(assetData.buffer.asUint8List());
-          LoggerService.info('📦 Copied topical_bible.db from assets (${assetData.lengthInBytes} bytes)');
-        } catch (e) {
-          LoggerService.error('Failed to copy database from assets: $e');
-          throw Exception('Could not load Bible database: $e');
-        }
-      } else {
-        // Check if file is valid (not corrupted)
-        final fileSize = await dbFile.length();
-        if (fileSize == 0) {
-          LoggerService.warning('Database file is empty (0 bytes), re-copying...');
-          await dbFile.delete();
-          final assetData = await rootBundle.load('assets/databases/topical_bible.db');
-          await dbFile.writeAsBytes(assetData.buffer.asUint8List());
-        }
-        LoggerService.info('📁 Using existing database (${fileSize} bytes)');
-      }
+  //     final dbFile = File(dbPath);
       
-      // Verify database file exists and has content
-      if (!await dbFile.exists()) {
-        throw Exception('Database file does not exist at: $dbPath');
-      }
+  //     // Check if database exists in documents directory
+  //     if (!await dbFile.exists()) {
+  //       LoggerService.info('📦 Database not found, copying from assets...');
+        
+  //       try {
+  //         final assetData = await rootBundle.load('assets/databases/topical_bible.db');
+  //         LoggerService.info('✅ Asset found! Size: ${assetData.lengthInBytes} bytes');
+  //         await dbFile.writeAsBytes(assetData.buffer.asUint8List());
+  //         LoggerService.info('✅ Database copied successfully');
+  //       } catch (e) {
+  //         LoggerService.error('Failed to copy database from assets: $e');
+  //         throw Exception('Could not load Bible database: $e');
+  //       }
+  //     } else {
+  //       final fileSize = await dbFile.length();
+  //       LoggerService.info('📁 Existing database found: ${fileSize} bytes');
+        
+  //       if (fileSize == 0) {
+  //         LoggerService.warning('⚠️ Database file is empty (0 bytes), re-copying...');
+  //         await dbFile.delete();
+  //         final assetData = await rootBundle.load('assets/databases/topical_bible.db');
+  //         await dbFile.writeAsBytes(assetData.buffer.asUint8List());
+  //         LoggerService.info('✅ Database re-copied');
+  //       }
+  //     }
       
-      // Open database with proper configuration
-      _bibleDatabase = await openDatabase(
-        dbPath,
-        readOnly: true,
-        version: 1, // Add version for future migrations
-        onConfigure: (db) async {
-          // Enable WAL mode for better concurrent reads
-          await db.execute('PRAGMA journal_mode=WAL');
-          await db.execute('PRAGMA synchronous=NORMAL');
-          await db.execute('PRAGMA cache_size=10000');
-          await db.execute('PRAGMA temp_store=MEMORY');
-        },
-        onOpen: (db) async {
-          // Verify database is valid
-          try {
-            // Check if tables exist
-            final tables = await db.rawQuery(
-              "SELECT name FROM sqlite_master WHERE type='table' AND name IN ('bible_verses', 'topics', 'topical_verses')"
-            );
+  //     // Verify file exists and has content before opening
+  //     if (!await dbFile.exists()) {
+  //       throw Exception('Database file does not exist at: $dbPath');
+  //     }
+      
+  //     final finalSize = await dbFile.length();
+  //     LoggerService.info('📊 Final database size: $finalSize bytes');
+      
+  //     // Open database
+  //     _bibleDatabase = await openDatabase(
+  //       dbPath,
+  //       readOnly: true,
+  //       onConfigure: (db) async {
+  //         await db.execute('PRAGMA journal_mode=WAL');
+  //         await db.execute('PRAGMA synchronous=NORMAL');
+  //         await db.execute('PRAGMA cache_size=10000');
+  //       },
+  //       onOpen: (db) async {
+  //         try {
+  //           // Check tables exist
+  //           final tables = await db.rawQuery(
+  //             "SELECT name FROM sqlite_master WHERE type='table'"
+  //           );
+  //           final tableNames = tables.map((t) => t['name'] as String).join(', ');
+  //           LoggerService.info('📋 Tables found: $tableNames');
             
-            if (tables.length < 3) {
-              throw Exception('Database missing required tables');
-            }
+  //           // Check topics count
+  //           final topicResult = await db.rawQuery('SELECT COUNT(*) as count FROM topics');
+  //           final topicCount = topicResult.first['count'] as int? ?? 0;
+  //           LoggerService.info('📚 Topics count: $topicCount');
             
-            // Get verse count
-            final result = await db.rawQuery('SELECT COUNT(*) as count FROM bible_verses');
-            if (result.isNotEmpty) {
-              final count = result.first['count'] as int? ?? 0;
-              if (count == 0) {
-                throw Exception('bible_verses table is empty');
-              }
-              LoggerService.info('📖 Bible database loaded with $count verses');
-            }
+  //           // Check verses count
+  //           final versesResult = await db.rawQuery('SELECT COUNT(*) as count FROM bible_verses');
+  //           final versesCount = versesResult.first['count'] as int? ?? 0;
+  //           LoggerService.info('📖 Verses count: $versesCount');
             
-            // Get topic count
-            final topicResult = await db.rawQuery('SELECT COUNT(*) as count FROM topics');
-            final topicCount = topicResult.first['count'] as int? ?? 0;
-            LoggerService.info('📚 Loaded $topicCount topics');
+  //           // Get sample topics
+  //           if (topicCount > 0) {
+  //             final sampleTopics = await db.rawQuery('SELECT topic_name FROM topics LIMIT 5');
+  //             final samples = sampleTopics.map((t) => t['topic_name'] as String).join(', ');
+  //             LoggerService.info('📝 Sample topics: $samples');
+  //           }
             
-          } catch (e) {
-            LoggerService.warning('⚠️ Could not verify Bible database: $e');
-            rethrow;
-          }
-        },
-      );
+  //           if (topicCount == 0 || versesCount == 0) {
+  //             throw Exception('Database tables are empty! Topics: $topicCount, Verses: $versesCount');
+  //           }
+            
+  //         } catch (e) {
+  //           LoggerService.error('❌ Database verification failed: $e');
+  //           rethrow;
+  //         }
+  //       },
+  //     );
       
-      LoggerService.info('✅ Bible database opened successfully');
+  //     LoggerService.info('✅ Bible database opened successfully');
       
-    } catch (e) {
-      LoggerService.error('❌ Failed to initialize Bible database: $e');
-      rethrow;
-    }
-  }
+  //   } catch (e) {
+  //     LoggerService.error('❌ Failed to initialize Bible database: $e');
+  //     rethrow;
+  //   }
+  // }
 
+Future<void> _initBibleDatabase() async {
+  try {
+    final documentsDir = await getApplicationDocumentsDirectory();
+    final dbPath = join(documentsDir.path, 'topical_bible.db');
+    
+    LoggerService.info('📁 Database path: $dbPath');
+    
+    final dbFile = File(dbPath);
+    
+    // Check if database exists in documents directory
+    if (!await dbFile.exists()) {
+      LoggerService.info('📦 Database not found, copying from assets...');
+      
+      try {
+        final assetData = await rootBundle.load('assets/databases/topical_bible.db');
+        LoggerService.info('✅ Asset found! Size: ${assetData.lengthInBytes} bytes');
+        await dbFile.writeAsBytes(assetData.buffer.asUint8List());
+        LoggerService.info('✅ Database copied successfully');
+      } catch (e) {
+        LoggerService.error('Failed to copy database from assets: $e');
+        throw Exception('Could not load Bible database: $e');
+      }
+    } else {
+      final fileSize = await dbFile.length();
+      LoggerService.info('📁 Existing database found: ${fileSize} bytes');
+      
+      if (fileSize == 0) {
+        LoggerService.warning('⚠️ Database file is empty (0 bytes), re-copying...');
+        await dbFile.delete();
+        final assetData = await rootBundle.load('assets/databases/topical_bible.db');
+        await dbFile.writeAsBytes(assetData.buffer.asUint8List());
+        LoggerService.info('✅ Database re-copied');
+      }
+    }
+    
+    // Verify file exists and has content before opening
+    if (!await dbFile.exists()) {
+      throw Exception('Database file does not exist at: $dbPath');
+    }
+    
+    final finalSize = await dbFile.length();
+    LoggerService.info('📊 Final database size: $finalSize bytes');
+    
+    // Open database WITHOUT onConfigure (the PRAGMA statements are not needed for read-only)
+    _bibleDatabase = await openDatabase(
+      dbPath,
+      readOnly: true,
+      onOpen: (db) async {
+        try {
+          // Check tables exist
+          final tables = await db.rawQuery(
+            "SELECT name FROM sqlite_master WHERE type='table'"
+          );
+          final tableNames = tables.map((t) => t['name'] as String).join(', ');
+          LoggerService.info('📋 Tables found: $tableNames');
+          
+          // Check topics count
+          final topicResult = await db.rawQuery('SELECT COUNT(*) as count FROM topics');
+          final topicCount = topicResult.first['count'] as int? ?? 0;
+          LoggerService.info('📚 Topics count: $topicCount');
+          
+          // Check verses count
+          final versesResult = await db.rawQuery('SELECT COUNT(*) as count FROM bible_verses');
+          final versesCount = versesResult.first['count'] as int? ?? 0;
+          LoggerService.info('📖 Verses count: $versesCount');
+          
+          // Get sample topics
+          if (topicCount > 0) {
+            final sampleTopics = await db.rawQuery('SELECT topic_name FROM topics LIMIT 5');
+            final samples = sampleTopics.map((t) => t['topic_name'] as String).join(', ');
+            LoggerService.info('📝 Sample topics: $samples');
+          }
+          
+          if (topicCount == 0 || versesCount == 0) {
+            throw Exception('Database tables are empty! Topics: $topicCount, Verses: $versesCount');
+          }
+          
+        } catch (e) {
+          LoggerService.error('❌ Database verification failed: $e');
+          rethrow;
+        }
+      },
+    );
+    
+    LoggerService.info('✅ Bible database opened successfully');
+    
+  } catch (e) {
+    LoggerService.error('❌ Failed to initialize Bible database: $e');
+    rethrow;
+  }
+}
   /// Get the Bible database instance
   Future<Database> get bibleDatabase async {
     if (_isFallbackMode) {
@@ -173,7 +268,7 @@ class DatabaseService {
           COUNT(tv.id) as verse_count
         FROM topics t
         JOIN topical_verses tv ON t.id = tv.topic_id
-        WHERE t.topic_name LIKE ?
+        WHERE t.topic_name LIKE ? COLLATE NOCASE
         GROUP BY t.id
         ORDER BY t.topic_name
         LIMIT 50
@@ -229,7 +324,7 @@ class DatabaseService {
           verse,
           text
         FROM bible_verses
-        WHERE text LIKE ?
+        WHERE text LIKE ? COLLATE NOCASE
         LIMIT 100
       ''', ['%$query%']);
     } catch (e) {
@@ -240,10 +335,16 @@ class DatabaseService {
 
   /// Get popular topics (by vote count and verse count)
   Future<List<Map<String, dynamic>>> getPopularTopics({int limit = 20}) async {
-    if (!isBibleAvailable) return [];
+    if (!isBibleAvailable) {
+      LoggerService.warning('⚠️ Bible database not available');
+      return [];
+    }
+    
     try {
       final db = await bibleDatabase;
-      return await db.rawQuery('''
+      LoggerService.info('🔍 Running getPopularTopics query...');
+      
+      final results = await db.rawQuery('''
         SELECT 
           t.topic_name,
           COUNT(tv.id) as verse_count,
@@ -255,8 +356,15 @@ class DatabaseService {
         ORDER BY total_votes DESC, verse_count DESC
         LIMIT ?
       ''', [limit]);
+      
+      LoggerService.info('✅ getPopularTopics returned ${results.length} results');
+      if (results.isNotEmpty) {
+        LoggerService.info('📝 First result: ${results.first['topic_name']}');
+      }
+      
+      return results;
     } catch (e) {
-      LoggerService.error('getPopularTopics failed: $e');
+      LoggerService.error('❌ getPopularTopics failed: $e');
       return [];
     }
   }
