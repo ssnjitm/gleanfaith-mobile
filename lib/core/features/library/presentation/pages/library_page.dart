@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
+import '../../../../router/route_names.dart';
 import '../../../../../features/library/presentation/providers/library_provider.dart';
 import '../../../../../features/library/domain/entities/content_item.dart';
 
@@ -146,59 +148,69 @@ class _ContentCard extends StatelessWidget {
           color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
         ),
       ),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-            ),
-            child: Icon(icon, color: AppColors.primaryBlue, size: 24),
-          ),
-          const SizedBox(width: AppDimensions.paddingMd),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          onTap: () => context.push(RouteNames.libraryDetail, extra: item),
+          child: Padding(
+            padding: const EdgeInsets.all(AppDimensions.paddingSm),
+            child: Row(
               children: [
-                Text(
-                  item.title,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? Colors.white : AppColors.textPrimary,
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                   ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
+                  child: Icon(icon, color: AppColors.primaryBlue, size: 24),
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  _typeLabel(item.type),
-                  style: const TextStyle(
-                    fontSize: 12,
-                    color: AppColors.primaryAmber,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(width: AppDimensions.paddingMd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        item.title,
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        _typeLabel(item.type),
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: AppColors.primaryAmber,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      if (item.readTimeMinutes != null) ...[
+                        const SizedBox(height: 2),
+                        Text(
+                          '${item.readTimeMinutes} min read',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: isDark ? Colors.grey[500] : AppColors.textLight,
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
-                if (item.readTimeMinutes != null) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    '${item.readTimeMinutes} min read',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: isDark ? Colors.grey[500] : AppColors.textLight,
-                    ),
-                  ),
-                ],
+                Icon(
+                  Icons.chevron_right,
+                  color: isDark ? Colors.grey[600] : AppColors.textLight,
+                ),
               ],
             ),
           ),
-          Icon(
-            Icons.chevron_right,
-            color: isDark ? Colors.grey[600] : AppColors.textLight,
-          ),
-        ],
+        ),
       ),
     );
   }

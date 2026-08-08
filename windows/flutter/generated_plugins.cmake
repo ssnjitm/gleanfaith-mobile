@@ -6,6 +6,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   connectivity_plus
   flutter_secure_storage_windows
   objectbox_flutter_libs
+  pdfx
   share_plus
   url_launcher_windows
 )

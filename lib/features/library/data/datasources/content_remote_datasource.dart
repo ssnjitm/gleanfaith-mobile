@@ -25,12 +25,18 @@ class ContentRemoteDataSource {
   }
 
   List<dynamic> _asContentList(dynamic data) {
+    if (data is List) return data;
     if (data is Map<String, dynamic>) {
-      final inner = data['data'] ?? data['items'];
-      if (inner is List) return inner;
+      final wrapped = data['data'];
+      if (wrapped is List) return wrapped;
+      if (wrapped is Map<String, dynamic>) {
+        final inner = wrapped['items'] ?? wrapped['content'] ?? wrapped['results'];
+        if (inner is List) return inner;
+      }
+      final direct = data['items'] ?? data['content'] ?? data['results'];
+      if (direct is List) return direct;
       return const [];
     }
-    if (data is List) return data;
     return const [];
   }
 

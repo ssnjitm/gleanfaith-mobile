@@ -43,6 +43,10 @@ dependencies:
   freezed_annotation: ^2.4.4
   sqflite: ^2.4.2+1
   path: ^1.9.1
+  video_player: ^2.11.1
+  chewie: ^1.14.1
+  just_audio: ^0.10.6
+  pdfx: ^2.9.2
 
 dev_dependencies:
   flutter_test:

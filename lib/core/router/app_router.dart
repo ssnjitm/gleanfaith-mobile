@@ -16,6 +16,8 @@ import '../../features/quiz/presentation/pages/quiz_detail_page.dart';
 import '../../features/quiz/presentation/pages/quiz_play_page.dart';
 import '../../features/quiz/presentation/pages/quiz_result_page.dart';
 import '../features/library/presentation/pages/library_page.dart';
+import '../../features/library/presentation/pages/library_detail_page.dart';
+import '../../features/library/domain/entities/content_item.dart';
 import '../common/features/splash/presentation/pages/splash_page.dart';
 import 'route_names.dart';
 
@@ -121,6 +123,19 @@ class AppRouter {
         GoRoute(
           path: RouteNames.library,
           builder: (context, state) => const LibraryPage(),
+        ),
+        GoRoute(
+          path: RouteNames.libraryDetail,
+          builder: (context, state) => LibraryDetailPage(
+            item: state.extra is ContentItem
+                ? state.extra! as ContentItem
+                : const ContentItem(
+                    id: '',
+                    title: 'Content',
+                    body: '',
+                    type: 'written',
+                  ),
+          ),
         ),
         GoRoute(
     path: RouteNames.bibleSearch,
