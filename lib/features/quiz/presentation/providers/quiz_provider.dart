@@ -12,6 +12,8 @@ import '../../domain/usecases/submit_answer.dart';
 
 enum QuizStatus { initial, loading, success, error }
 
+enum QuizBlockReason { none, alreadyCompleted }
+
 final quizRepositoryProvider = Provider<QuizRepository>((ref) {
   final dio = ref.watch(dioProvider);
   return QuizRepositoryImpl(QuizRemoteDataSource(dio));
@@ -38,12 +40,14 @@ class QuizState {
   final List<QuizSchedule> upcomingQuizzes;
   final ActiveQuiz? activeQuiz;
   final String? message;
+  final QuizBlockReason blockReason;
 
   const QuizState({
     this.status = QuizStatus.initial,
     this.upcomingQuizzes = const [],
     this.activeQuiz,
     this.message,
+    this.blockReason = QuizBlockReason.none,
   });
 
   QuizState copyWith({
@@ -51,12 +55,14 @@ class QuizState {
     List<QuizSchedule>? upcomingQuizzes,
     ActiveQuiz? activeQuiz,
     String? message,
+    QuizBlockReason? blockReason,
   }) {
     return QuizState(
       status: status ?? this.status,
       upcomingQuizzes: upcomingQuizzes ?? this.upcomingQuizzes,
       activeQuiz: activeQuiz ?? this.activeQuiz,
       message: message,
+      blockReason: blockReason ?? this.blockReason,
     );
   }
 }
@@ -89,11 +95,26 @@ class QuizNotifier extends StateNotifier<QuizState> {
     final result = await _ref.read(startQuizUseCaseProvider)(quizScheduleId).run();
     return result.fold(
       (failure) {
-        state = state.copyWith(message: failure.message);
+        final lower = failure.message.toLowerCase();
+        final alreadyCompleted = lower.contains('already completed') ||
+            lower.contains('already taken') ||
+            lower.contains('already attempted') ||
+            (failure.statusCode == 400 || failure.statusCode == 409) &&
+                lower.contains('complete');
+        state = state.copyWith(
+          message: failure.message,
+          blockReason: alreadyCompleted
+              ? QuizBlockReason.alreadyCompleted
+              : QuizBlockReason.none,
+        );
         return null;
       },
       (quiz) {
-        state = state.copyWith(activeQuiz: quiz, message: null);
+        state = state.copyWith(
+          activeQuiz: quiz,
+          message: null,
+          blockReason: QuizBlockReason.none,
+        );
         return quiz;
       },
     );
@@ -132,6 +153,17 @@ class QuizNotifier extends StateNotifier<QuizState> {
   }
 
   void clearActiveQuiz() {
-    state = state.copyWith(activeQuiz: null, message: null);
+    state = state.copyWith(
+      activeQuiz: null,
+      message: null,
+      blockReason: QuizBlockReason.none,
+    );
+  }
+
+  void clearBlockReason() {
+    state = state.copyWith(
+      blockReason: QuizBlockReason.none,
+      message: null,
+    );
   }
 }
