@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glean_faith_app/features/bible/domain/usecases/get_popular_topics.dart';
 import 'package:glean_faith_app/features/bible/domain/usecases/get_topic_verses.dart';
 import 'package:glean_faith_app/features/bible/domain/usecases/search_bible_text.dart';
+import 'package:glean_faith_app/features/bible/domain/usecases/search_by_reference.dart';
 import 'package:glean_faith_app/features/bible/domain/usecases/search_topics.dart';
 import '../../domain/entities/topic.dart';
 import '../../domain/entities/topic_verse.dart';
@@ -17,7 +18,6 @@ class BibleSearchState {
   final List<Topic> popularTopics;
   final String? errorMessage;
   final String currentQuery;
-  final bool hasMoreResults;
 
   const BibleSearchState({
     this.isLoading = false,
@@ -27,7 +27,6 @@ class BibleSearchState {
     this.popularTopics = const [],
     this.errorMessage,
     this.currentQuery = '',
-    this.hasMoreResults = false,
   });
 
   BibleSearchState copyWith({
@@ -38,7 +37,6 @@ class BibleSearchState {
     List<Topic>? popularTopics,
     String? errorMessage,
     String? currentQuery,
-    bool? hasMoreResults,
   }) {
     return BibleSearchState(
       isLoading: isLoading ?? this.isLoading,
@@ -48,7 +46,6 @@ class BibleSearchState {
       popularTopics: popularTopics ?? this.popularTopics,
       errorMessage: errorMessage ?? this.errorMessage,
       currentQuery: currentQuery ?? this.currentQuery,
-      hasMoreResults: hasMoreResults ?? this.hasMoreResults,
     );
   }
 }
@@ -58,12 +55,14 @@ class BibleSearchNotifier extends StateNotifier<BibleSearchState> {
   final SearchTopicsUseCase _searchTopicsUseCase;
   final GetTopicVersesUseCase _getTopicVersesUseCase;
   final SearchBibleTextUseCase _searchBibleTextUseCase;
+  final SearchByReferenceUseCase _searchByReferenceUseCase;
   final GetPopularTopicsUseCase _getPopularTopicsUseCase;
 
   BibleSearchNotifier(
     this._searchTopicsUseCase,
     this._getTopicVersesUseCase,
     this._searchBibleTextUseCase,
+    this._searchByReferenceUseCase,
     this._getPopularTopicsUseCase,
   ) : super(const BibleSearchState()) {
     _loadPopularTopics();
@@ -80,6 +79,60 @@ class BibleSearchNotifier extends StateNotifier<BibleSearchState> {
         popularTopics: topics,
         errorMessage: null,
       ),
+    );
+  }
+
+  /// Unified search: looks up topics, Bible text and references together.
+  Future<void> searchAll(String query) async {
+    final trimmed = query.trim();
+    if (trimmed.isEmpty) {
+      clearSearch();
+      return;
+    }
+
+    state = state.copyWith(
+      isLoading: true,
+      currentQuery: trimmed,
+      errorMessage: null,
+    );
+
+    // Run topic and reference searches concurrently for speed.
+    final topicsFuture = _searchTopicsUseCase.call(trimmed).run();
+    final referenceFuture = _searchByReferenceUseCase.call(trimmed).run();
+
+    List<Topic> topics = const [];
+    List<Verse> referenceVerses = const [];
+    String? error;
+
+    (await topicsFuture).fold(
+      (failure) => error ??= failure.message,
+      (value) => topics = value,
+    );
+    (await referenceFuture).fold(
+      (failure) => error ??= failure.message,
+      (value) => referenceVerses = value,
+    );
+
+    List<Verse> searchResults;
+    if (referenceVerses.isNotEmpty) {
+      // The user typed a reference (e.g. "John 3:16"), so show exact
+      // matches instead of a broad keyword search.
+      searchResults = referenceVerses;
+    } else {
+      final versesFuture = _searchBibleTextUseCase.call(trimmed).run();
+      List<Verse> textVerses = const [];
+      (await versesFuture).fold(
+        (failure) => error ??= failure.message,
+        (value) => textVerses = value,
+      );
+      searchResults = textVerses;
+    }
+
+    state = state.copyWith(
+      isLoading: false,
+      topics: topics,
+      searchResults: searchResults,
+      errorMessage: error,
     );
   }
 
@@ -190,6 +243,7 @@ final bibleSearchProvider = StateNotifierProvider<BibleSearchNotifier, BibleSear
     ref.watch(searchTopicsUseCaseProvider),
     ref.watch(getTopicVersesUseCaseProvider),
     ref.watch(searchBibleTextUseCaseProvider),
+    ref.watch(searchByReferenceUseCaseProvider),
     ref.watch(getPopularTopicsUseCaseProvider),
   );
 });

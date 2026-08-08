@@ -64,6 +64,39 @@ class BibleRepositoryImpl implements BibleRepository {
   }
 
   @override
+  TaskEither<Failure, List<Verse>> searchByReference(String query) {
+    return TaskEither.tryCatch(
+      () async {
+        final results = await _databaseService.searchByReference(query);
+        return results.map((row) => Verse(
+          book: row['book'] as String,
+          chapter: row['chapter'] as int,
+          verse: row['verse'] as int,
+          text: row['text'] as String,
+        )).toList();
+      },
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  @override
+  TaskEither<Failure, Verse?> getVerseOfTheDay() {
+    return TaskEither.tryCatch(
+      () async {
+        final row = await _databaseService.getVerseOfTheDay();
+        if (row == null) return null;
+        return Verse(
+          book: row['book'] as String,
+          chapter: row['chapter'] as int,
+          verse: row['verse'] as int,
+          text: row['text'] as String,
+        );
+      },
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  @override
   TaskEither<Failure, List<Topic>> getPopularTopics({int limit = 20}) {
     return TaskEither.tryCatch(
       () async {

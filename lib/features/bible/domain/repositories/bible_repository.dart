@@ -8,6 +8,8 @@ abstract class BibleRepository {
   TaskEither<Failure, List<Topic>> searchTopics(String query);
   TaskEither<Failure, List<TopicVerse>> getTopicVerses(String topicName, {int limit});
   TaskEither<Failure, List<Verse>> searchBibleText(String query);
+  TaskEither<Failure, List<Verse>> searchByReference(String query);
+  TaskEither<Failure, Verse?> getVerseOfTheDay();
   TaskEither<Failure, List<Topic>> getPopularTopics({int limit});
   TaskEither<Failure, List<Topic>> getTopicsByBook(String book);
   TaskEither<Failure, List<Verse>> getVerseContext({

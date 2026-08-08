@@ -312,11 +312,85 @@ Future<void> _initBibleDatabase() async {
     }
   }
 
-  /// Search Bible text for verses containing keywords
+  /// Search Bible text for verses containing keywords.
+  ///
+  /// Uses an AND match across all meaningful words for precision first,
+  /// then falls back to an OR match ranked by relevance if nothing is found.
+  /// Results are ranked by how early the phrase appears in the verse.
   Future<List<Map<String, dynamic>>> searchBibleText(String query) async {
     if (!isBibleAvailable) return [];
     try {
       final db = await bibleDatabase;
+      final words = query
+          .split(RegExp(r'\s+'))
+          .map((w) => w.trim())
+          .where((w) => w.isNotEmpty && w.length >= 2)
+          .toList();
+      if (words.isEmpty) return [];
+
+      // Precise: all words must appear (best for phrases).
+      final andConditions = words.map((_) => 'text LIKE ? COLLATE NOCASE').join(' AND ');
+      final andArgs = <Object>[...words.map((w) => '%$w%'), query.toLowerCase()];
+      var results = await db.rawQuery('''
+        SELECT 
+          book,
+          chapter,
+          verse,
+          text
+        FROM bible_verses
+        WHERE $andConditions
+        ORDER BY instr(lower(text), lower(?)) ASC, length(text) ASC, chapter, verse
+        LIMIT 100
+      ''', andArgs);
+
+      // Fallback: any word matches (best for keyword lists).
+      if (results.isEmpty && words.length > 1) {
+        final orConditions = words.map((_) => 'text LIKE ? COLLATE NOCASE').join(' OR ');
+        final orArgs = <Object>[...words.map((w) => '%$w%'), query.toLowerCase()];
+        results = await db.rawQuery('''
+          SELECT 
+            book,
+            chapter,
+            verse,
+            text
+          FROM bible_verses
+          WHERE $orConditions
+          ORDER BY instr(lower(text), lower(?)) ASC, length(text) ASC, chapter, verse
+          LIMIT 100
+        ''', orArgs);
+      }
+      return results;
+    } catch (e) {
+      LoggerService.error('searchBibleText failed: $e');
+      return [];
+    }
+  }
+
+  /// Search by a Bible reference such as "John 3:16", "Psalm 23",
+  /// "1 Cor 13:4-7" or "Matthew 5:3-11".
+  Future<List<Map<String, dynamic>>> searchByReference(String query) async {
+    if (!isBibleAvailable) return [];
+    try {
+      final reference = _parseReference(query);
+      if (reference == null) return [];
+
+      final db = await bibleDatabase;
+
+      if (reference.verse != null) {
+        final verseEnd = reference.verseEnd ?? reference.verse;
+        return await db.rawQuery('''
+          SELECT 
+            book,
+            chapter,
+            verse,
+            text
+          FROM bible_verses
+          WHERE book = ? AND chapter = ? AND verse BETWEEN ? AND ?
+          ORDER BY verse
+          LIMIT 100
+        ''', [reference.book, reference.chapter, reference.verse, verseEnd]);
+      }
+
       return await db.rawQuery('''
         SELECT 
           book,
@@ -324,12 +398,42 @@ Future<void> _initBibleDatabase() async {
           verse,
           text
         FROM bible_verses
-        WHERE text LIKE ? COLLATE NOCASE
+        WHERE book = ? AND chapter = ?
+        ORDER BY verse
         LIMIT 100
-      ''', ['%$query%']);
+      ''', [reference.book, reference.chapter]);
     } catch (e) {
-      LoggerService.error('searchBibleText failed: $e');
+      LoggerService.error('searchByReference failed: $e');
       return [];
+    }
+  }
+
+  /// Get a deterministic verse of the day based on the current date.
+  Future<Map<String, dynamic>?> getVerseOfTheDay() async {
+    if (!isBibleAvailable) return null;
+    try {
+      final db = await bibleDatabase;
+      final countResult = await db.rawQuery('SELECT COUNT(*) AS count FROM bible_verses');
+      final count = countResult.first['count'] as int? ?? 0;
+      if (count == 0) return null;
+
+      final now = DateTime.now();
+      final dayOfYear = now.difference(DateTime(now.year)).inDays;
+      final offset = dayOfYear % count;
+
+      final results = await db.rawQuery('''
+        SELECT 
+          book,
+          chapter,
+          verse,
+          text
+        FROM bible_verses
+        LIMIT 1 OFFSET ?
+      ''', [offset]);
+      return results.isNotEmpty ? results.first : null;
+    } catch (e) {
+      LoggerService.error('getVerseOfTheDay failed: $e');
+      return null;
     }
   }
 
@@ -500,4 +604,219 @@ class DatabaseUnavailableException implements Exception {
   DatabaseUnavailableException(this.message);
   @override
   String toString() => 'DatabaseUnavailableException: $message';
+}
+
+/// A parsed Bible reference (e.g. "John 3:16-18").
+class BibleReference {
+  final String book;
+  final int chapter;
+  final int? verse;
+  final int? verseEnd;
+
+  const BibleReference({
+    required this.book,
+    required this.chapter,
+    this.verse,
+    this.verseEnd,
+  });
+}
+
+const List<String> _kjvBooks = [
+  'Genesis', 'Exodus', 'Leviticus', 'Numbers', 'Deuteronomy',
+  'Joshua', 'Judges', 'Ruth',
+  '1 Samuel', '2 Samuel', '1 Kings', '2 Kings', '1 Chronicles',
+  '2 Chronicles', 'Ezra', 'Nehemiah', 'Esther',
+  'Job', 'Psalms', 'Proverbs', 'Ecclesiastes', 'Song of Solomon',
+  'Isaiah', 'Jeremiah', 'Lamentations', 'Ezekiel', 'Daniel',
+  'Hosea', 'Joel', 'Amos', 'Obadiah', 'Jonah', 'Micah', 'Nahum',
+  'Habakkuk', 'Zephaniah', 'Haggai', 'Zechariah', 'Malachi',
+  'Matthew', 'Mark', 'Luke', 'John', 'Acts',
+  'Romans', '1 Corinthians', '2 Corinthians', 'Galatians',
+  'Ephesians', 'Philippians', 'Colossians', '1 Thessalonians',
+  '2 Thessalonians', '1 Timothy', '2 Timothy', 'Titus', 'Philemon',
+  'Hebrews', 'James', '1 Peter', '2 Peter', '1 John', '2 John',
+  '3 John', 'Jude', 'Revelation',
+];
+
+const Map<String, String> _bookAbbreviations = {
+  'gen': 'Genesis',
+  'genesis': 'Genesis',
+  'exo': 'Exodus',
+  'exod': 'Exodus',
+  'exodus': 'Exodus',
+  'lev': 'Leviticus',
+  'leviticus': 'Leviticus',
+  'num': 'Numbers',
+  'numbers': 'Numbers',
+  'deu': 'Deuteronomy',
+  'deut': 'Deuteronomy',
+  'deuteronomy': 'Deuteronomy',
+  'josh': 'Joshua',
+  'joshua': 'Joshua',
+  'judg': 'Judges',
+  'judges': 'Judges',
+  'ruth': 'Ruth',
+  '1 sam': '1 Samuel',
+  '1 samuel': '1 Samuel',
+  '2 sam': '2 Samuel',
+  '2 samuel': '2 Samuel',
+  '1 kin': '1 Kings',
+  '1 kgs': '1 Kings',
+  '1 kings': '1 Kings',
+  '2 kin': '2 Kings',
+  '2 kgs': '2 Kings',
+  '2 kings': '2 Kings',
+  '1 chr': '1 Chronicles',
+  '1 chron': '1 Chronicles',
+  '1 chronicles': '1 Chronicles',
+  '2 chr': '2 Chronicles',
+  '2 chron': '2 Chronicles',
+  '2 chronicles': '2 Chronicles',
+  'ezra': 'Ezra',
+  'neh': 'Nehemiah',
+  'nehemiah': 'Nehemiah',
+  'est': 'Esther',
+  'esther': 'Esther',
+  'job': 'Job',
+  'ps': 'Psalms',
+  'psa': 'Psalms',
+  'psalm': 'Psalms',
+  'psalms': 'Psalms',
+  'prov': 'Proverbs',
+  'proverbs': 'Proverbs',
+  'eccl': 'Ecclesiastes',
+  'ecclesiastes': 'Ecclesiastes',
+  'song': 'Song of Solomon',
+  'sos': 'Song of Solomon',
+  'song of solomon': 'Song of Solomon',
+  'song of songs': 'Song of Solomon',
+  'isa': 'Isaiah',
+  'isiah': 'Isaiah',
+  'isaiah': 'Isaiah',
+  'jer': 'Jeremiah',
+  'jeremiah': 'Jeremiah',
+  'lam': 'Lamentations',
+  'lamentations': 'Lamentations',
+  'ezek': 'Ezekiel',
+  'eze': 'Ezekiel',
+  'ezekiel': 'Ezekiel',
+  'dan': 'Daniel',
+  'daniel': 'Daniel',
+  'hos': 'Hosea',
+  'hosea': 'Hosea',
+  'joel': 'Joel',
+  'amos': 'Amos',
+  'obad': 'Obadiah',
+  'obadiah': 'Obadiah',
+  'jonah': 'Jonah',
+  'mic': 'Micah',
+  'micah': 'Micah',
+  'nahum': 'Nahum',
+  'nah': 'Nahum',
+  'hab': 'Habakkuk',
+  'habakkuk': 'Habakkuk',
+  'zeph': 'Zephaniah',
+  'zephaniah': 'Zephaniah',
+  'hag': 'Haggai',
+  'haggai': 'Haggai',
+  'zech': 'Zechariah',
+  'zechariah': 'Zechariah',
+  'mal': 'Malachi',
+  'malachi': 'Malachi',
+  'matt': 'Matthew',
+  'matthew': 'Matthew',
+  'mark': 'Mark',
+  'luke': 'Luke',
+  'john': 'John',
+  'acts': 'Acts',
+  'rom': 'Romans',
+  'romans': 'Romans',
+  '1 cor': '1 Corinthians',
+  '1 corinthians': '1 Corinthians',
+  '2 cor': '2 Corinthians',
+  '2 corinthians': '2 Corinthians',
+  'gal': 'Galatians',
+  'galatians': 'Galatians',
+  'eph': 'Ephesians',
+  'ephesians': 'Ephesians',
+  'phil': 'Philippians',
+  'philippians': 'Philippians',
+  'col': 'Colossians',
+  'colossians': 'Colossians',
+  '1 thess': '1 Thessalonians',
+  '1 thessalonians': '1 Thessalonians',
+  '2 thess': '2 Thessalonians',
+  '2 thessalonians': '2 Thessalonians',
+  '1 tim': '1 Timothy',
+  '1 timothy': '1 Timothy',
+  '2 tim': '2 Timothy',
+  '2 timothy': '2 Timothy',
+  'titus': 'Titus',
+  'philemon': 'Philemon',
+  'phm': 'Philemon',
+  'heb': 'Hebrews',
+  'hebrews': 'Hebrews',
+  'jas': 'James',
+  'james': 'James',
+  '1 pet': '1 Peter',
+  '1 peter': '1 Peter',
+  '2 pet': '2 Peter',
+  '2 peter': '2 Peter',
+  '1 jn': '1 John',
+  '1 john': '1 John',
+  '2 jn': '2 John',
+  '2 john': '2 John',
+  '3 jn': '3 John',
+  '3 john': '3 John',
+  'jude': 'Jude',
+  'rev': 'Revelation',
+  'revelation': 'Revelation',
+};
+
+/// Normalize a book name (handles abbreviations and partial names).
+String? _normalizeBook(String input) {
+  final lower = input.toLowerCase().trim();
+  if (lower.isEmpty) return null;
+  if (_bookAbbreviations.containsKey(lower)) return _bookAbbreviations[lower];
+
+  final matches =
+      _kjvBooks.where((b) => b.toLowerCase().startsWith(lower)).toList();
+  if (matches.length == 1) return matches.first;
+  return null;
+}
+
+/// Parse a free-text query into a structured [BibleReference].
+BibleReference? _parseReference(String query) {
+  final trimmed = query.trim();
+  if (trimmed.isEmpty) return null;
+
+  // "Book C:V" or "Book C:V-V2"
+  final refMatch =
+      RegExp(r'^(.+?)\s+(\d+):(\d+)(?:-(\d+))?$').firstMatch(trimmed);
+  if (refMatch != null) {
+    final book = _normalizeBook(refMatch.group(1)!);
+    if (book != null) {
+      final verseEnd = refMatch.group(4);
+      return BibleReference(
+        book: book,
+        chapter: int.parse(refMatch.group(2)!),
+        verse: int.parse(refMatch.group(3)!),
+        verseEnd: verseEnd != null ? int.parse(verseEnd) : null,
+      );
+    }
+  }
+
+  // "Book C"
+  final chapterMatch = RegExp(r'^(.+?)\s+(\d+)$').firstMatch(trimmed);
+  if (chapterMatch != null) {
+    final book = _normalizeBook(chapterMatch.group(1)!);
+    if (book != null) {
+      return BibleReference(
+        book: book,
+        chapter: int.parse(chapterMatch.group(2)!),
+      );
+    }
+  }
+
+  return null;
 }

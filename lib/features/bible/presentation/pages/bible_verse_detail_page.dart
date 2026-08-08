@@ -135,7 +135,7 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.error_outline,
                           size: 64,
                           color: AppColors.error,
@@ -262,7 +262,7 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                               children: [
                                 Text(
                                   '${_verseData?['book']} ${_verseData?['chapter']}:${_verseData?['verse']}',
-                                  style: TextStyle(
+                                  style:const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w700,
                                     color: AppColors.primaryBlue,

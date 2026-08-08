@@ -8,7 +8,7 @@ import '../../../../router/route_names.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../domain/entities/home_data.dart';
 import '../widgets/promo_carousel.dart';
-import '../widgets/verse_of_the_day_card.dart';
+import '../widgets/home_verse_of_the_day.dart';
 import '../widgets/upcoming_quiz_card.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/quick_action_grid.dart';
@@ -35,12 +35,7 @@ class HomePage extends ConsumerWidget {
           const SizedBox(height: AppDimensions.paddingMd),
           PromoCarousel(slides: _promoSides(context)),
           const SizedBox(height: AppDimensions.paddingMd),
-          const VerseOfTheDayCard(
-            text: 'For I know the plans I have for you, declares the Lord, '
-                'plans to prosper you and not to harm you, plans to give you '
-                'hope and a future.',
-            reference: 'Jeremiah 29:11',
-          ),
+          const HomeVerseOfTheDay(),
           const SizedBox(height: AppDimensions.paddingLg),
           _buildSectionHeader(context, 'Quick Actions', isDark),
           const SizedBox(height: AppDimensions.paddingSm),
