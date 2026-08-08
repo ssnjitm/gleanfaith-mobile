@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/router/route_names.dart';
@@ -26,7 +27,13 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
         .startQuiz(widget.quizScheduleId);
     if (!mounted) return;
     setState(() => _loading = false);
-    if (activeQuiz == null) return;
+    if (activeQuiz == null) {
+      final message = ref.read(quizProvider).message;
+      if (message != null && message.isNotEmpty) {
+        AlertWidget.showError(context, message);
+      }
+      return;
+    }
     context.pushReplacement(RouteNames.quizPlay, extra: activeQuiz.sessionId);
   }
 

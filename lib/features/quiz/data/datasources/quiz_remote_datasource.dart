@@ -51,8 +51,14 @@ class QuizRemoteDataSource {
 
   List<dynamic> _extractList(dynamic response) {
     if (response is Map<String, dynamic>) {
-      final data = response['data'] ?? response['quizzes'] ?? const [];
+      final data = response['data'];
       if (data is List) return data;
+      if (data is Map<String, dynamic>) {
+        final inner = data['quizzes'] ?? data['items'] ?? data['results'];
+        if (inner is List) return inner;
+      }
+      final direct = response['quizzes'] ?? response['items'];
+      if (direct is List) return direct;
       return const [];
     }
     if (response is List) return response;

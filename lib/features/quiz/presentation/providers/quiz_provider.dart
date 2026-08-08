@@ -71,10 +71,17 @@ class QuizNotifier extends StateNotifier<QuizState> {
   QuizNotifier(this._ref) : super(const QuizState());
 
   Future<void> loadUpcomingQuizzes() async {
+    state = state.copyWith(status: QuizStatus.loading, message: null);
     final result = await _ref.read(getUpcomingQuizzesUseCaseProvider)().run();
     result.fold(
-      (failure) => state = state.copyWith(message: failure.message),
-      (quizzes) => state = state.copyWith(upcomingQuizzes: quizzes),
+      (failure) => state = state.copyWith(
+        status: QuizStatus.error,
+        message: failure.message,
+      ),
+      (quizzes) => state = state.copyWith(
+        status: QuizStatus.success,
+        upcomingQuizzes: quizzes,
+      ),
     );
   }
 
