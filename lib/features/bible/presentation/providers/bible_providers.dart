@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/services/database_service.dart';
 import '../../data/repositories/bible_repository_impl.dart';
@@ -45,8 +47,19 @@ final getTopicsByBookUseCaseProvider = Provider<GetTopicsByBookUseCase>((ref) {
   return GetTopicsByBookUseCase(ref.watch(bibleRepositoryProvider));
 });
 
+/// Emits the current date and self-invalidates at the next local midnight,
+/// causing any provider that watches it to recompute automatically the next day.
+final currentDateProvider = Provider<DateTime>((ref) {
+  final now = DateTime.now();
+  final tomorrow = DateTime(now.year, now.month, now.day + 1);
+  final timer = Timer(tomorrow.difference(now), () => ref.invalidateSelf());
+  ref.onDispose(timer.cancel);
+  return now;
+});
+
 /// Verse of the day loaded from the Bible database.
 final verseOfTheDayProvider = FutureProvider<Verse>((ref) async {
+  ref.watch(currentDateProvider);
   final result = await ref.watch(getVerseOfTheDayUseCaseProvider).call().run();
   return result.fold(
     (failure) => throw failure,
