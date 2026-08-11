@@ -1,0 +1,5362 @@
+{
+  "metadata": {
+    "title": "Bible Crossword Puzzle Master Dataset",
+    "total_sets": 50,
+    "questions_per_set": 10,
+    "total_questions": 500,
+    "version": "1.0",
+    "description": "50 levels/sets of Bible trivia questions formatted as crossword clues for direct game app integration."
+  },
+  "sets": [
+    {
+      "set_id": 1,
+      "level": 1,
+      "title": "Level 1",
+      "questions": [
+        {
+          "id": 1,
+          "number_in_level": 1,
+          "clue": "First man created by God",
+          "answer": "ADAM",
+          "length": 4,
+          "reference": "Genesis 2:7",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 2,
+          "number_in_level": 2,
+          "clue": "First woman created by God",
+          "answer": "EVE",
+          "length": 3,
+          "reference": "Genesis 3:20",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 3,
+          "number_in_level": 3,
+          "clue": "Garden where Adam and Eve lived",
+          "answer": "EDEN",
+          "length": 4,
+          "reference": "Genesis 2:8",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 4,
+          "number_in_level": 4,
+          "clue": "Built the Ark to survive the Flood",
+          "answer": "NOAH",
+          "length": 4,
+          "reference": "Genesis 6:14",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 5,
+          "number_in_level": 5,
+          "clue": "City where Jesus was born",
+          "answer": "BETHLEHEM",
+          "length": 9,
+          "reference": "Matthew 2:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 6,
+          "number_in_level": 6,
+          "clue": "City where Jesus grew up",
+          "answer": "NAZARETH",
+          "length": 8,
+          "reference": "Luke 2:39",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 7,
+          "number_in_level": 7,
+          "clue": "River where Jesus was baptized",
+          "answer": "JORDAN",
+          "length": 6,
+          "reference": "Matthew 3:13",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 8,
+          "number_in_level": 8,
+          "clue": "Mother of Jesus",
+          "answer": "MARY",
+          "length": 4,
+          "reference": "Luke 1:27",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 9,
+          "number_in_level": 9,
+          "clue": "Earthly father / guardian of Jesus",
+          "answer": "JOSEPH",
+          "length": 6,
+          "reference": "Matthew 1:19",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 10,
+          "number_in_level": 10,
+          "clue": "First book of the Bible",
+          "answer": "GENESIS",
+          "length": 7,
+          "reference": "Genesis 1:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 2,
+      "level": 2,
+      "title": "Level 2",
+      "questions": [
+        {
+          "id": 11,
+          "number_in_level": 1,
+          "clue": "Last book of the Bible",
+          "answer": "REVELATION",
+          "length": 10,
+          "reference": "Revelation 1:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 12,
+          "number_in_level": 2,
+          "clue": "Led the Israelites out of Egypt",
+          "answer": "MOSES",
+          "length": 5,
+          "reference": "Exodus 3:10",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 13,
+          "number_in_level": 3,
+          "clue": "Brother of Moses and first High Priest",
+          "answer": "AARON",
+          "length": 5,
+          "reference": "Exodus 4:14",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 14,
+          "number_in_level": 4,
+          "clue": "Sea split by Moses",
+          "answer": "REDSEA",
+          "length": 6,
+          "reference": "Exodus 14:21",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 15,
+          "number_in_level": 5,
+          "clue": "Mountain where Moses received the Ten Commandments",
+          "answer": "SINAI",
+          "length": 5,
+          "reference": "Exodus 19:20",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 16,
+          "number_in_level": 6,
+          "clue": "Young boy who defeated Goliath",
+          "answer": "DAVID",
+          "length": 5,
+          "reference": "1 Samuel 17:50",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 17,
+          "number_in_level": 7,
+          "clue": "Giant slain by David",
+          "answer": "GOLIATH",
+          "length": 7,
+          "reference": "1 Samuel 17:4",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 18,
+          "number_in_level": 8,
+          "clue": "Weapon David used against Goliath",
+          "answer": "SLING",
+          "length": 5,
+          "reference": "1 Samuel 17:40",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 19,
+          "number_in_level": 9,
+          "clue": "King known for his great wisdom",
+          "answer": "SOLOMON",
+          "length": 7,
+          "reference": "1 Kings 3:12",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 20,
+          "number_in_level": 10,
+          "clue": "Strongman whose power was in his hair",
+          "answer": "SAMSON",
+          "length": 6,
+          "reference": "Judges 16:17",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 3,
+      "level": 3,
+      "title": "Level 3",
+      "questions": [
+        {
+          "id": 21,
+          "number_in_level": 1,
+          "clue": "Woman who betrayed Samson to the Philistines",
+          "answer": "DELILAH",
+          "length": 7,
+          "reference": "Judges 16:4",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 22,
+          "number_in_level": 2,
+          "clue": "Prophet thrown into the lions' den",
+          "answer": "DANIEL",
+          "length": 6,
+          "reference": "Daniel 6:16",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 23,
+          "number_in_level": 3,
+          "clue": "Prophet swallowed by a great fish",
+          "answer": "JONAH",
+          "length": 5,
+          "reference": "Jonah 1:17",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 24,
+          "number_in_level": 4,
+          "clue": "City Jonah was sent to preach to",
+          "answer": "NINEVEH",
+          "length": 7,
+          "reference": "Jonah 1:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 25,
+          "number_in_level": 5,
+          "clue": "Man who suffered loss but remained faithful to God",
+          "answer": "JOB",
+          "length": 3,
+          "reference": "Job 1:21",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 26,
+          "number_in_level": 6,
+          "clue": "Sold into slavery by his brothers in Egypt",
+          "answer": "JOSEPH",
+          "length": 6,
+          "reference": "Genesis 37:28",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 27,
+          "number_in_level": 7,
+          "clue": "Youngest brother of Joseph",
+          "answer": "BENJAMIN",
+          "length": 8,
+          "reference": "Genesis 35:18",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 28,
+          "number_in_level": 8,
+          "clue": "Coat given to Joseph by his father Jacob",
+          "answer": "COLORED",
+          "length": 7,
+          "reference": "Genesis 37:3",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 29,
+          "number_in_level": 9,
+          "clue": "Wife of Abraham and mother of Isaac",
+          "answer": "SARAH",
+          "length": 5,
+          "reference": "Genesis 17:15",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 30,
+          "number_in_level": 10,
+          "clue": "Son of Abraham offered as a sacrifice on Mount Moriah",
+          "answer": "ISAAC",
+          "length": 5,
+          "reference": "Genesis 22:9",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 4,
+      "level": 4,
+      "title": "Level 4",
+      "questions": [
+        {
+          "id": 31,
+          "number_in_level": 1,
+          "clue": "Twin brother of Jacob who sold his birthright",
+          "answer": "ESAU",
+          "length": 4,
+          "reference": "Genesis 25:25",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 32,
+          "number_in_level": 2,
+          "clue": "Jacob's name was changed to this after wrestling with God",
+          "answer": "ISRAEL",
+          "length": 6,
+          "reference": "Genesis 32:28",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 33,
+          "number_in_level": 3,
+          "clue": "Loyal Moabitess who said 'Where you go I will go'",
+          "answer": "RUTH",
+          "length": 4,
+          "reference": "Ruth 1:16",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 34,
+          "number_in_level": 4,
+          "clue": "Kinsman-redeemer who married Ruth",
+          "answer": "BOAZ",
+          "length": 4,
+          "reference": "Ruth 4:10",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 35,
+          "number_in_level": 5,
+          "clue": "Mother-in-law of Ruth",
+          "answer": "NAOMI",
+          "length": 5,
+          "reference": "Ruth 1:22",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 36,
+          "number_in_level": 6,
+          "clue": "First king of Israel",
+          "answer": "SAUL",
+          "length": 4,
+          "reference": "1 Samuel 10:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 37,
+          "number_in_level": 7,
+          "clue": "Prophet who anointed David as king",
+          "answer": "SAMUEL",
+          "length": 6,
+          "reference": "1 Samuel 16:13",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 38,
+          "number_in_level": 8,
+          "clue": "Mother of Samuel who prayed fervently for a child",
+          "answer": "HANNAH",
+          "length": 6,
+          "reference": "1 Samuel 1:20",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 39,
+          "number_in_level": 9,
+          "clue": "Prophet taken up to heaven in a whirlwind",
+          "answer": "ELIJAHS",
+          "length": 7,
+          "reference": "2 Kings 2:11",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 40,
+          "number_in_level": 10,
+          "clue": "Prophet who succeeded Elijah and asked for a double portion",
+          "answer": "ELISHA",
+          "length": 6,
+          "reference": "2 Kings 2:9",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 5,
+      "level": 5,
+      "title": "Level 5",
+      "questions": [
+        {
+          "id": 41,
+          "number_in_level": 1,
+          "clue": "Queen who saved her Jewish people from Haman",
+          "answer": "ESTHER",
+          "length": 6,
+          "reference": "Esther 8:3",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 42,
+          "number_in_level": 2,
+          "clue": "Cousin and guardian of Queen Esther",
+          "answer": "MORDECAI",
+          "length": 8,
+          "reference": "Esther 2:7",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 43,
+          "number_in_level": 3,
+          "clue": "Wicked official who plotted against the Jews in Persia",
+          "answer": "HAMAN",
+          "length": 5,
+          "reference": "Esther 3:6",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 44,
+          "number_in_level": 4,
+          "clue": "Persian king who married Esther",
+          "answer": "XERXES",
+          "length": 6,
+          "reference": "Esther 2:16",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 45,
+          "number_in_level": 5,
+          "clue": "Cupbearer who rebuilt the walls of Jerusalem",
+          "answer": "NEHEMIAH",
+          "length": 8,
+          "reference": "Nehemiah 2:11",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 46,
+          "number_in_level": 6,
+          "clue": "Scribe and priest who taught the Law after the exile",
+          "answer": "EZRA",
+          "length": 4,
+          "reference": "Ezra 7:10",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 47,
+          "number_in_level": 7,
+          "clue": "City whose walls collapsed after Israel marched around it",
+          "answer": "JERICHO",
+          "length": 7,
+          "reference": "Joshua 6:20",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 48,
+          "number_in_level": 8,
+          "clue": "Successor of Moses who led Israel into Canaan",
+          "answer": "JOSHUA",
+          "length": 6,
+          "reference": "Joshua 1:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 49,
+          "number_in_level": 9,
+          "clue": "Woman in Jericho who hid the two spies",
+          "answer": "RAHAB",
+          "length": 5,
+          "reference": "Joshua 2:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 50,
+          "number_in_level": 10,
+          "clue": "Promised Land flowing with milk and...",
+          "answer": "HONEY",
+          "length": 5,
+          "reference": "Exodus 3:8",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 6,
+      "level": 6,
+      "title": "Level 6",
+      "questions": [
+        {
+          "id": 51,
+          "number_in_level": 1,
+          "clue": "Baptized Jesus in the Jordan River",
+          "answer": "JOHN",
+          "length": 4,
+          "reference": "Matthew 3:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 52,
+          "number_in_level": 2,
+          "clue": "Disciple known as the 'Rock'",
+          "answer": "PETER",
+          "length": 5,
+          "reference": "Matthew 16:18",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 53,
+          "number_in_level": 3,
+          "clue": "Disciple who betrayed Jesus for 30 pieces of silver",
+          "answer": "JUDAS",
+          "length": 5,
+          "reference": "Matthew 26:15",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 54,
+          "number_in_level": 4,
+          "clue": "Disciple who doubted the resurrection until seeing Jesus",
+          "answer": "THOMAS",
+          "length": 6,
+          "reference": "John 20:25",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 55,
+          "number_in_level": 5,
+          "clue": "Apostle formerly known as Saul of Tarsus",
+          "answer": "PAUL",
+          "length": 4,
+          "reference": "Acts 13:9",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 56,
+          "number_in_level": 6,
+          "clue": "Tax collector who climbed a sycamore tree to see Jesus",
+          "answer": "ZACCHAEUS",
+          "length": 9,
+          "reference": "Luke 19:4",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 57,
+          "number_in_level": 7,
+          "clue": "Man raised from the dead by Jesus after four days",
+          "answer": "LAZARUS",
+          "length": 7,
+          "reference": "John 11:43",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 58,
+          "number_in_level": 8,
+          "clue": "Sister of Lazarus who sat at Jesus' feet",
+          "answer": "MARY",
+          "length": 4,
+          "reference": "Luke 10:39",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 59,
+          "number_in_level": 9,
+          "clue": "Sister of Lazarus who was busy preparing food",
+          "answer": "MARTHA",
+          "length": 6,
+          "reference": "Luke 10:40",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 60,
+          "number_in_level": 10,
+          "clue": "Roman governor who condemned Jesus to be crucified",
+          "answer": "PILATE",
+          "length": 6,
+          "reference": "Matthew 27:26",
+          "category": "New Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 7,
+      "level": 7,
+      "title": "Level 7",
+      "questions": [
+        {
+          "id": 61,
+          "number_in_level": 1,
+          "clue": "Place where Jesus was crucified (Place of the Skull)",
+          "answer": "CALVARY",
+          "length": 7,
+          "reference": "Luke 23:33",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 62,
+          "number_in_level": 2,
+          "clue": "Garden where Jesus prayed before his arrest",
+          "answer": "GETHSEMANE",
+          "length": 10,
+          "reference": "Matthew 26:36",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 63,
+          "number_in_level": 3,
+          "clue": "Holy City where the Temple stood",
+          "answer": "JERUSALEM",
+          "length": 9,
+          "reference": "Matthew 5:35",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 64,
+          "number_in_level": 4,
+          "clue": "Sea on which Jesus walked during a storm",
+          "answer": "GALILEE",
+          "length": 7,
+          "reference": "Matthew 14:25",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 65,
+          "number_in_level": 5,
+          "clue": "Feast celebrated when the Holy Spirit descended on the disciples",
+          "answer": "PENTECOST",
+          "length": 9,
+          "reference": "Acts 2:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 66,
+          "number_in_level": 6,
+          "clue": "Pharisee who came to Jesus at night",
+          "answer": "NICODEMUS",
+          "length": 9,
+          "reference": "John 3:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 67,
+          "number_in_level": 7,
+          "clue": "First Christian martyr stoned for his faith",
+          "answer": "STEPHEN",
+          "length": 7,
+          "reference": "Acts 7:59",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 68,
+          "number_in_level": 8,
+          "clue": "Companion of Paul on his first missionary journey",
+          "answer": "BARNABAS",
+          "length": 8,
+          "reference": "Acts 13:2",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 69,
+          "number_in_level": 9,
+          "clue": "Young prot\u00e9g\u00e9 and spiritual son of the Apostle Paul",
+          "answer": "TIMOTHY",
+          "length": 7,
+          "reference": "1 Timothy 1:2",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 70,
+          "number_in_level": 10,
+          "clue": "Author of the third Gospel and the Book of Acts",
+          "answer": "LUKE",
+          "length": 4,
+          "reference": "Colossians 4:14",
+          "category": "New Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 8,
+      "level": 8,
+      "title": "Level 8",
+      "questions": [
+        {
+          "id": 71,
+          "number_in_level": 1,
+          "clue": "Gospel author who was a former tax collector (Levi)",
+          "answer": "MATTHEW",
+          "length": 7,
+          "reference": "Matthew 9:9",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 72,
+          "number_in_level": 2,
+          "clue": "Shortest Gospel in the New Testament",
+          "answer": "MARK",
+          "length": 4,
+          "reference": "Mark 1:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 73,
+          "number_in_level": 3,
+          "clue": "Gospel known as the 'Beloved Disciple' Gospel",
+          "answer": "JOHN",
+          "length": 4,
+          "reference": "John 21:24",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 74,
+          "number_in_level": 4,
+          "clue": "Number of disciples chosen by Jesus",
+          "answer": "TWELVE",
+          "length": 6,
+          "reference": "Matthew 10:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 75,
+          "number_in_level": 5,
+          "clue": "Number of days and nights it rained during Noah's flood",
+          "answer": "FORTY",
+          "length": 5,
+          "reference": "Genesis 7:12",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 76,
+          "number_in_level": 6,
+          "clue": "Number of commandments given to Moses on Mount Sinai",
+          "answer": "TEN",
+          "length": 3,
+          "reference": "Exodus 34:28",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 77,
+          "number_in_level": 7,
+          "clue": "Number of days Jesus fasted in the wilderness",
+          "answer": "FORTY",
+          "length": 5,
+          "reference": "Matthew 4:2",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 78,
+          "number_in_level": 8,
+          "clue": "Bread from heaven that fed Israelites in the desert",
+          "answer": "MANNA",
+          "length": 5,
+          "reference": "Exodus 16:31",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 79,
+          "number_in_level": 9,
+          "clue": "Ark containing the tablets of the Covenant",
+          "answer": "COVENANT",
+          "length": 8,
+          "reference": "Exodus 25:10",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 80,
+          "number_in_level": 10,
+          "clue": "Sign of God's covenant with Noah after the flood",
+          "answer": "RAINBOW",
+          "length": 7,
+          "reference": "Genesis 9:13",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 9,
+      "level": 9,
+      "title": "Level 9",
+      "questions": [
+        {
+          "id": 81,
+          "number_in_level": 1,
+          "clue": "Fruit eaten by Adam and Eve off the forbidden...",
+          "answer": "TREE",
+          "length": 4,
+          "reference": "Genesis 3:3",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 82,
+          "number_in_level": 2,
+          "clue": "Angel who announced Jesus' birth to Mary",
+          "answer": "GABRIEL",
+          "length": 7,
+          "reference": "Luke 1:26",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 83,
+          "number_in_level": 3,
+          "clue": "Archangel who fought against the dragon in Revelation",
+          "answer": "MICHAEL",
+          "length": 7,
+          "reference": "Revelation 12:7",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 84,
+          "number_in_level": 4,
+          "clue": "King of Judea who ordered the Massacre of the Innocents",
+          "answer": "HEROD",
+          "length": 5,
+          "reference": "Matthew 2:16",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 85,
+          "number_in_level": 5,
+          "clue": "Pharisee doctor of the law who taught Paul",
+          "answer": "GAMALIEL",
+          "length": 8,
+          "reference": "Acts 22:3",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 86,
+          "number_in_level": 6,
+          "clue": "City where believers were first called 'Christians'",
+          "answer": "ANTIOCH",
+          "length": 7,
+          "reference": "Acts 11:26",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 87,
+          "number_in_level": 7,
+          "clue": "Island where John wrote the Book of Revelation",
+          "answer": "PATMOS",
+          "length": 6,
+          "reference": "Revelation 1:9",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 88,
+          "number_in_level": 8,
+          "clue": "Road on which two disciples met the risen Jesus",
+          "answer": "EMMAUS",
+          "length": 6,
+          "reference": "Luke 24:13",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 89,
+          "number_in_level": 9,
+          "clue": "City on the road to which Saul had a vision of Jesus",
+          "answer": "DAMASCUS",
+          "length": 8,
+          "reference": "Acts 9:3",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 90,
+          "number_in_level": 10,
+          "clue": "Roman centurion who was among the first Gentile converts",
+          "answer": "CORNELIUS",
+          "length": 9,
+          "reference": "Acts 10:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 10,
+      "level": 10,
+      "title": "Level 10",
+      "questions": [
+        {
+          "id": 91,
+          "number_in_level": 1,
+          "clue": "Judge of Israel who defeated Midianites with 300 men",
+          "answer": "GIDEON",
+          "length": 6,
+          "reference": "Judges 7:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 92,
+          "number_in_level": 2,
+          "clue": "Female judge and prophetess who led Israel to victory",
+          "answer": "DEBORAH",
+          "length": 7,
+          "reference": "Judges 4:4",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 93,
+          "number_in_level": 3,
+          "clue": "General who fought alongside Deborah",
+          "answer": "BARAK",
+          "length": 5,
+          "reference": "Judges 4:6",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 94,
+          "number_in_level": 4,
+          "clue": "Woman who drove a tent peg through Sisera's temple",
+          "answer": "JAEL",
+          "length": 4,
+          "reference": "Judges 4:21",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 95,
+          "number_in_level": 5,
+          "clue": "Oldest man recorded in the Bible living 969 years",
+          "answer": "METHUSELAH",
+          "length": 10,
+          "reference": "Genesis 5:27",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 96,
+          "number_in_level": 6,
+          "clue": "Man who walked with God and was taken without dying",
+          "answer": "ENOCH",
+          "length": 5,
+          "reference": "Genesis 5:24",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 97,
+          "number_in_level": 7,
+          "clue": "First son of Adam and Eve who killed his brother",
+          "answer": "CAIN",
+          "length": 4,
+          "reference": "Genesis 4:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 98,
+          "number_in_level": 8,
+          "clue": "Second son of Adam and Eve murdered by Cain",
+          "answer": "ABEL",
+          "length": 4,
+          "reference": "Genesis 4:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 99,
+          "number_in_level": 9,
+          "clue": "Third son of Adam and Eve born after Abel's death",
+          "answer": "SETH",
+          "length": 4,
+          "reference": "Genesis 4:25",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 100,
+          "number_in_level": 10,
+          "clue": "Son of Abraham born to Hagar",
+          "answer": "ISHMAEL",
+          "length": 7,
+          "reference": "Genesis 16:15",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 11,
+      "level": 11,
+      "title": "Level 11",
+      "questions": [
+        {
+          "id": 101,
+          "number_in_level": 1,
+          "clue": "Egyptian maidservant of Sarah and mother of Ishmael",
+          "answer": "HAGAR",
+          "length": 5,
+          "reference": "Genesis 16:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 102,
+          "number_in_level": 2,
+          "clue": "Wife of Isaac and mother of Jacob and Esau",
+          "answer": "REBEKAH",
+          "length": 7,
+          "reference": "Genesis 24:67",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 103,
+          "number_in_level": 3,
+          "clue": "First wife of Jacob, older sister of Rachel",
+          "answer": "LEAH",
+          "length": 4,
+          "reference": "Genesis 29:16",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 104,
+          "number_in_level": 4,
+          "clue": "Beloved wife of Jacob and mother of Joseph and Benjamin",
+          "answer": "RACHEL",
+          "length": 6,
+          "reference": "Genesis 29:18",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 105,
+          "number_in_level": 5,
+          "clue": "Father of Rachel and Leah who tricked Jacob",
+          "answer": "LABAN",
+          "length": 5,
+          "reference": "Genesis 29:19",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 106,
+          "number_in_level": 6,
+          "clue": "Eldest son of Jacob who prevented Joseph's murder",
+          "answer": "REUBEN",
+          "length": 6,
+          "reference": "Genesis 37:21",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 107,
+          "number_in_level": 7,
+          "clue": "Son of Jacob from whose lineage the Messiah came",
+          "answer": "JUDAH",
+          "length": 5,
+          "reference": "Genesis 49:10",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 108,
+          "number_in_level": 8,
+          "clue": "High Priest who raised the young boy Samuel",
+          "answer": "ELI",
+          "length": 3,
+          "reference": "1 Samuel 1:9",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 109,
+          "number_in_level": 9,
+          "clue": "Son of King Saul and close friend of David",
+          "answer": "JONATHAN",
+          "length": 8,
+          "reference": "1 Samuel 18:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 110,
+          "number_in_level": 10,
+          "clue": "Daughter of Saul who became David's first wife",
+          "answer": "MICHAL",
+          "length": 6,
+          "reference": "1 Samuel 18:20",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 12,
+      "level": 12,
+      "title": "Level 12",
+      "questions": [
+        {
+          "id": 111,
+          "number_in_level": 1,
+          "clue": "Wise woman who became David's wife after Nabal died",
+          "answer": "ABIGAIL",
+          "length": 7,
+          "reference": "1 Samuel 25:3",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 112,
+          "number_in_level": 2,
+          "clue": "Wife of Uriah with whom King David committed adultery",
+          "answer": "BATHSHEBA",
+          "length": 9,
+          "reference": "2 Samuel 11:3",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 113,
+          "number_in_level": 3,
+          "clue": "Hittite soldier and husband of Bathsheba killed in battle",
+          "answer": "URIAH",
+          "length": 5,
+          "reference": "2 Samuel 11:15",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 114,
+          "number_in_level": 4,
+          "clue": "Prophet who confronted King David about his sin with Bathsheba",
+          "answer": "NATHAN",
+          "length": 6,
+          "reference": "2 Samuel 12:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 115,
+          "number_in_level": 5,
+          "clue": "Rebellious son of David who hung by his hair in an oak tree",
+          "answer": "ABSALOM",
+          "length": 7,
+          "reference": "2 Samuel 18:9",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 116,
+          "number_in_level": 6,
+          "clue": "Commander of King David's army",
+          "answer": "JOAB",
+          "length": 4,
+          "reference": "2 Samuel 8:16",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 117,
+          "number_in_level": 7,
+          "clue": "Crippled son of Jonathan to whom David showed kindness",
+          "answer": "MEPHIBOSHETH",
+          "length": 12,
+          "reference": "2 Samuel 9:6",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 118,
+          "number_in_level": 8,
+          "clue": "King of Tyre who sent cedar logs to build Solomon's temple",
+          "answer": "HIRAM",
+          "length": 5,
+          "reference": "1 Kings 5:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 119,
+          "number_in_level": 9,
+          "clue": "Queen who visited Solomon to test his wisdom",
+          "answer": "SHEBA",
+          "length": 5,
+          "reference": "1 Kings 10:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 120,
+          "number_in_level": 10,
+          "clue": "First king of the northern kingdom of Israel after split",
+          "answer": "JEROBOAM",
+          "length": 8,
+          "reference": "1 Kings 12:20",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 13,
+      "level": 13,
+      "title": "Level 13",
+      "questions": [
+        {
+          "id": 121,
+          "number_in_level": 1,
+          "clue": "First king of the southern kingdom of Judah, son of Solomon",
+          "answer": "REHOBOAM",
+          "length": 8,
+          "reference": "1 Kings 12:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 122,
+          "number_in_level": 2,
+          "clue": "Wicked king of Israel who married Jezebel",
+          "answer": "AHAB",
+          "length": 4,
+          "reference": "1 Kings 16:30",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 123,
+          "number_in_level": 3,
+          "clue": "Pagan queen of Israel who persecuted the Lord's prophets",
+          "answer": "JEZEBEL",
+          "length": 7,
+          "reference": "1 Kings 21:5",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 124,
+          "number_in_level": 4,
+          "clue": "Mountain where Elijah confronted 450 prophets of Baal",
+          "answer": "CARMEL",
+          "length": 6,
+          "reference": "1 Kings 18:19",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 125,
+          "number_in_level": 5,
+          "clue": "Owner of the vineyard stolen by Ahab and Jezebel",
+          "answer": "NABOTH",
+          "length": 6,
+          "reference": "1 Kings 21:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 126,
+          "number_in_level": 6,
+          "clue": "King of Judah who purged idols and prayed when Assyria attacked",
+          "answer": "HEZEKIAH",
+          "length": 8,
+          "reference": "2 Kings 18:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 127,
+          "number_in_level": 7,
+          "clue": "Young king of Judah who repaired the Temple and found the Law",
+          "answer": "JOSIAH",
+          "length": 6,
+          "reference": "2 Kings 22:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 128,
+          "number_in_level": 8,
+          "clue": "Babylonian king who destroyed Jerusalem and exiled Judah",
+          "answer": "NEBUCHADNEZZAR",
+          "length": 14,
+          "reference": "2 Kings 25:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 129,
+          "number_in_level": 9,
+          "clue": "Prophet known as the 'Weeping Prophet'",
+          "answer": "JEREMIAH",
+          "length": 8,
+          "reference": "Jeremiah 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 130,
+          "number_in_level": 10,
+          "clue": "Prophet who saw a vision of a valley of dry bones",
+          "answer": "EZEKIEL",
+          "length": 7,
+          "reference": "Ezekiel 37:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 14,
+      "level": 14,
+      "title": "Level 14",
+      "questions": [
+        {
+          "id": 131,
+          "number_in_level": 1,
+          "clue": "Babylonian name given to Daniel's friend Hananiah",
+          "answer": "SHADRACH",
+          "length": 8,
+          "reference": "Daniel 1:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 132,
+          "number_in_level": 2,
+          "clue": "Babylonian name given to Daniel's friend Mishael",
+          "answer": "MESHACH",
+          "length": 7,
+          "reference": "Daniel 1:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 133,
+          "number_in_level": 3,
+          "clue": "Babylonian name given to Daniel's friend Azariah",
+          "answer": "ABEDNEGO",
+          "length": 8,
+          "reference": "Daniel 1:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 134,
+          "number_in_level": 4,
+          "clue": "Persian king who saw writing on the wall during his feast",
+          "answer": "BELSHAZZAR",
+          "length": 10,
+          "reference": "Daniel 5:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 135,
+          "number_in_level": 5,
+          "clue": "Persian king who released the Jews to return and rebuild",
+          "answer": "CYRUS",
+          "length": 5,
+          "reference": "Ezra 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 136,
+          "number_in_level": 6,
+          "clue": "Prophet who married an unfaithful woman named Gomer",
+          "answer": "HOSEA",
+          "length": 5,
+          "reference": "Hosea 1:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 137,
+          "number_in_level": 7,
+          "clue": "Prophet who foretold the locust plague and Pentecost spirit",
+          "answer": "JOEL",
+          "length": 4,
+          "reference": "Joel 2:28",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 138,
+          "number_in_level": 8,
+          "clue": "Herdsman and fig dresser called to be a prophet",
+          "answer": "AMOS",
+          "length": 4,
+          "reference": "Amos 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 139,
+          "number_in_level": 9,
+          "clue": "Shortest book in the Old Testament predicting Edom's fall",
+          "answer": "OBADIAH",
+          "length": 7,
+          "reference": "Obadiah 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 140,
+          "number_in_level": 10,
+          "clue": "Prophet who foretold Jesus would be born in Bethlehem",
+          "answer": "MICAH",
+          "length": 5,
+          "reference": "Micah 5:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 15,
+      "level": 15,
+      "title": "Level 15",
+      "questions": [
+        {
+          "id": 141,
+          "number_in_level": 1,
+          "clue": "Prophet who prophesied the fall and destruction of Nineveh",
+          "answer": "NAHUM",
+          "length": 5,
+          "reference": "Nahum 1:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 142,
+          "number_in_level": 2,
+          "clue": "Prophet who questioned God's justice regarding Babylon",
+          "answer": "HABAKKUK",
+          "length": 8,
+          "reference": "Habakkuk 1:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 143,
+          "number_in_level": 3,
+          "clue": "Prophet during King Josiah's reign warning of the Day of the Lord",
+          "answer": "ZEPHANIAH",
+          "length": 9,
+          "reference": "Zephaniah 1:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 144,
+          "number_in_level": 4,
+          "clue": "Post-exilic prophet who urged the rebuilding of the Temple",
+          "answer": "HAGGAI",
+          "length": 6,
+          "reference": "Haggai 1:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 145,
+          "number_in_level": 5,
+          "clue": "Prophet who saw visions of a man on a red horse and golden lampstand",
+          "answer": "ZECHARIAH",
+          "length": 9,
+          "reference": "Zechariah 1:8",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 146,
+          "number_in_level": 6,
+          "clue": "Last book and prophet of the Old Testament",
+          "answer": "MALACHI",
+          "length": 7,
+          "reference": "Malachi 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 147,
+          "number_in_level": 7,
+          "clue": "Husband of Elizabeth and father of John the Baptist",
+          "answer": "ZECHARIAH",
+          "length": 9,
+          "reference": "Luke 1:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 148,
+          "number_in_level": 8,
+          "clue": "Mother of John the Baptist and cousin of Mary",
+          "answer": "ELIZABETH",
+          "length": 9,
+          "reference": "Luke 1:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 149,
+          "number_in_level": 9,
+          "clue": "Aged prophetess who praised God when seeing infant Jesus",
+          "answer": "ANNA",
+          "length": 4,
+          "reference": "Luke 2:36",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 150,
+          "number_in_level": 10,
+          "clue": "Aged devout man promised he would not die before seeing the Messiah",
+          "answer": "SIMEON",
+          "length": 6,
+          "reference": "Luke 2:25",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 16,
+      "level": 16,
+      "title": "Level 16",
+      "questions": [
+        {
+          "id": 151,
+          "number_in_level": 1,
+          "clue": "Hometown of Mary, Joseph, and Jesus",
+          "answer": "NAZARETH",
+          "length": 8,
+          "reference": "Luke 1:26",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 152,
+          "number_in_level": 2,
+          "clue": "Village near Jerusalem where Lazarus, Mary, and Martha lived",
+          "answer": "BETHANY",
+          "length": 7,
+          "reference": "John 11:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 153,
+          "number_in_level": 3,
+          "clue": "City of David where Jesus was born in a manger",
+          "answer": "BETHLEHEM",
+          "length": 9,
+          "reference": "Luke 2:4",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 154,
+          "number_in_level": 4,
+          "clue": "Lake town that served as the home base for Jesus' ministry",
+          "answer": "CAPERNAUM",
+          "length": 9,
+          "reference": "Matthew 4:13",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 155,
+          "number_in_level": 5,
+          "clue": "Town where Jesus performed his first miracle at a wedding",
+          "answer": "CANA",
+          "length": 4,
+          "reference": "John 2:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 156,
+          "number_in_level": 6,
+          "clue": "First miracle of Jesus: turning water into...",
+          "answer": "WINE",
+          "length": 4,
+          "reference": "John 2:9",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 157,
+          "number_in_level": 7,
+          "clue": "Well where Jesus met the Samaritan woman",
+          "answer": "JACOB",
+          "length": 5,
+          "reference": "John 4:6",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 158,
+          "number_in_level": 8,
+          "clue": "Pool in Jerusalem where Jesus healed a man sick for 38 years",
+          "answer": "BETHESDA",
+          "length": 8,
+          "reference": "John 5:2",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 159,
+          "number_in_level": 9,
+          "clue": "Pool where Jesus sent the blind man to wash his eyes",
+          "answer": "SILOAM",
+          "length": 6,
+          "reference": "John 9:7",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 160,
+          "number_in_level": 10,
+          "clue": "Hill in Jerusalem where the Temple was built",
+          "answer": "ZION",
+          "length": 4,
+          "reference": "Psalm 132:13",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 17,
+      "level": 17,
+      "title": "Level 17",
+      "questions": [
+        {
+          "id": 161,
+          "number_in_level": 1,
+          "clue": "Bread of Life, Light of the World, Good Shepherd",
+          "answer": "JESUS",
+          "length": 5,
+          "reference": "John 8:12",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 162,
+          "number_in_level": 2,
+          "clue": "Title meaning 'Anointed One' in Greek",
+          "answer": "CHRIST",
+          "length": 6,
+          "reference": "Matthew 16:16",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 163,
+          "number_in_level": 3,
+          "clue": "Title meaning 'Anointed One' in Hebrew",
+          "answer": "MESSIAH",
+          "length": 7,
+          "reference": "John 1:41",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 164,
+          "number_in_level": 4,
+          "clue": "Name of God given to Moses: 'I AM WHO...'",
+          "answer": "IAM",
+          "length": 3,
+          "reference": "Exodus 3:14",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 165,
+          "number_in_level": 5,
+          "clue": "Hebrew name meaning 'God with us'",
+          "answer": "IMMANUEL",
+          "length": 8,
+          "reference": "Matthew 1:23",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 166,
+          "number_in_level": 6,
+          "clue": "Sacred mountain where Moses saw the burning bush",
+          "answer": "HOREB",
+          "length": 5,
+          "reference": "Exodus 3:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 167,
+          "number_in_level": 7,
+          "clue": "Bush that burned with fire but was not consumed",
+          "answer": "BURNING",
+          "length": 7,
+          "reference": "Exodus 3:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 168,
+          "number_in_level": 8,
+          "clue": "Staff of Moses that turned into a serpent",
+          "answer": "ROD",
+          "length": 3,
+          "reference": "Exodus 4:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 169,
+          "number_in_level": 9,
+          "clue": "First of the ten plagues of Egypt: water turned into...",
+          "answer": "BLOOD",
+          "length": 5,
+          "reference": "Exodus 7:17",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 170,
+          "number_in_level": 10,
+          "clue": "Last plague on Egypt: death of the...",
+          "answer": "FIRSTBORN",
+          "length": 9,
+          "reference": "Exodus 12:29",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 18,
+      "level": 18,
+      "title": "Level 18",
+      "questions": [
+        {
+          "id": 171,
+          "number_in_level": 1,
+          "clue": "Feast commemorating the deliverance of Israel's firstborn in Egypt",
+          "answer": "PASSOVER",
+          "length": 8,
+          "reference": "Exodus 12:11",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 172,
+          "number_in_level": 2,
+          "clue": "Unleavened bread eaten during Passover",
+          "answer": "MATZOH",
+          "length": 6,
+          "reference": "Exodus 12:15",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 173,
+          "number_in_level": 3,
+          "clue": "Pillar that guided Israel by day in the wilderness",
+          "answer": "CLOUD",
+          "length": 5,
+          "reference": "Exodus 13:21",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 174,
+          "number_in_level": 4,
+          "clue": "Pillar that guided Israel by night in the wilderness",
+          "answer": "FIRE",
+          "length": 4,
+          "reference": "Exodus 13:21",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 175,
+          "number_in_level": 5,
+          "clue": "Birds sent by God to provide meat for Israel",
+          "answer": "QUAIL",
+          "length": 5,
+          "reference": "Exodus 16:13",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 176,
+          "number_in_level": 6,
+          "clue": "Rock at Horeb struck by Moses to yield...",
+          "answer": "WATER",
+          "length": 5,
+          "reference": "Exodus 17:6",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 177,
+          "number_in_level": 7,
+          "clue": "Nations Israel fought immediately after crossing the Red Sea",
+          "answer": "AMALEKITES",
+          "length": 10,
+          "reference": "Exodus 17:8",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 178,
+          "number_in_level": 8,
+          "clue": "Father-in-law of Moses who advised him to appoint judges",
+          "answer": "JETHRO",
+          "length": 6,
+          "reference": "Exodus 18:14",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 179,
+          "number_in_level": 9,
+          "clue": "Chest containing the Ten Commandments overlaid with gold",
+          "answer": "ARK",
+          "length": 3,
+          "reference": "Exodus 25:10",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 180,
+          "number_in_level": 10,
+          "clue": "Cover of the Ark of the Covenant with golden cherubim",
+          "answer": "MERCYSEAT",
+          "length": 9,
+          "reference": "Exodus 25:17",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 19,
+      "level": 19,
+      "title": "Level 19",
+      "questions": [
+        {
+          "id": 181,
+          "number_in_level": 1,
+          "clue": "Golden object built by Aaron when Moses was on Sinai",
+          "answer": "CALF",
+          "length": 4,
+          "reference": "Exodus 32:4",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 182,
+          "number_in_level": 2,
+          "clue": "Portable sanctuary used by Israel in the wilderness",
+          "answer": "TABERNACLE",
+          "length": 10,
+          "reference": "Exodus 25:9",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 183,
+          "number_in_level": 3,
+          "clue": "Priestly tribe of Israel descended from Levi",
+          "answer": "LEVITES",
+          "length": 7,
+          "reference": "Numbers 3:6",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 184,
+          "number_in_level": 4,
+          "clue": "High Priest's breastplate had this many precious stones",
+          "answer": "TWELVE",
+          "length": 6,
+          "reference": "Exodus 28:21",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 185,
+          "number_in_level": 5,
+          "clue": "Sacred lot or stones used by priests to determine God's will",
+          "answer": "URIM",
+          "length": 4,
+          "reference": "Exodus 28:30",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 186,
+          "number_in_level": 6,
+          "clue": "Companion lot to Urim used by High Priest",
+          "answer": "THUMMIM",
+          "length": 7,
+          "reference": "Exodus 28:30",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 187,
+          "number_in_level": 7,
+          "clue": "Book of the Bible named for the census of Israel",
+          "answer": "NUMBERS",
+          "length": 7,
+          "reference": "Numbers 1:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 188,
+          "number_in_level": 8,
+          "clue": "Faithful spy along with Joshua who brought a good report",
+          "answer": "CALEB",
+          "length": 5,
+          "reference": "Numbers 13:30",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 189,
+          "number_in_level": 9,
+          "clue": "Pagan prophet whose donkey spoke to him",
+          "answer": "BALAAM",
+          "length": 6,
+          "reference": "Numbers 22:28",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 190,
+          "number_in_level": 10,
+          "clue": "Bronze object raised by Moses on a pole to heal snake bites",
+          "answer": "SERPENT",
+          "length": 7,
+          "reference": "Numbers 21:9",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 20,
+      "level": 20,
+      "title": "Level 20",
+      "questions": [
+        {
+          "id": 191,
+          "number_in_level": 1,
+          "clue": "Fifth book of the Law meaning 'Second Law'",
+          "answer": "DEUTERONOMY",
+          "length": 11,
+          "reference": "Deuteronomy 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 192,
+          "number_in_level": 2,
+          "clue": "Great Jewish confession: 'Hear, O Israel: The Lord our God...'",
+          "answer": "SHEMA",
+          "length": 5,
+          "reference": "Deuteronomy 6:4",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 193,
+          "number_in_level": 3,
+          "clue": "Mountain from which Moses viewed the Promised Land before dying",
+          "answer": "NEBO",
+          "length": 4,
+          "reference": "Deuteronomy 34:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 194,
+          "number_in_level": 4,
+          "clue": "River Israel crossed on dry ground to enter Canaan",
+          "answer": "JORDAN",
+          "length": 6,
+          "reference": "Joshua 3:17",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 195,
+          "number_in_level": 5,
+          "clue": "Memorial stones setup after crossing the Jordan",
+          "answer": "TWELVE",
+          "length": 6,
+          "reference": "Joshua 4:9",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 196,
+          "number_in_level": 6,
+          "clue": "Man whose sin caused Israel's defeat at Ai",
+          "answer": "ACHAN",
+          "length": 5,
+          "reference": "Joshua 7:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 197,
+          "number_in_level": 7,
+          "clue": "Sun stood still over this valley during Joshua's battle",
+          "answer": "GIBEON",
+          "length": 6,
+          "reference": "Joshua 10:12",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 198,
+          "number_in_level": 8,
+          "clue": "Covenant city where Joshua challenged Israel to serve the Lord",
+          "answer": "SHECHEM",
+          "length": 7,
+          "reference": "Joshua 24:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 199,
+          "number_in_level": 9,
+          "clue": "Canaanite commander defeated by Deborah and Barak",
+          "answer": "SISERA",
+          "length": 6,
+          "reference": "Judges 4:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 200,
+          "number_in_level": 10,
+          "clue": "Moabite king killed by the left-handed judge Ehud",
+          "answer": "EGLON",
+          "length": 5,
+          "reference": "Judges 3:14",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 21,
+      "level": 21,
+      "title": "Level 21",
+      "questions": [
+        {
+          "id": 201,
+          "number_in_level": 1,
+          "clue": "Left-handed judge of Israel who assassinated King Eglon",
+          "answer": "EHUD",
+          "length": 4,
+          "reference": "Judges 3:15",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 202,
+          "number_in_level": 2,
+          "clue": "Judge who killed 600 Philistines with an oxgoad",
+          "answer": "SHAMGAR",
+          "length": 7,
+          "reference": "Judges 3:31",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 203,
+          "number_in_level": 3,
+          "clue": "Judge who made a rash vow involving his daughter",
+          "answer": "JEPHTHAH",
+          "length": 8,
+          "reference": "Judges 11:30",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 204,
+          "number_in_level": 4,
+          "clue": "Philistine god whose temple Samson pulled down",
+          "answer": "DAGON",
+          "length": 5,
+          "reference": "Judges 16:23",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 205,
+          "number_in_level": 5,
+          "clue": "Great-grandmother of King David born in Moab",
+          "answer": "RUTH",
+          "length": 4,
+          "reference": "Ruth 4:17",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 206,
+          "number_in_level": 6,
+          "clue": "Father of King David",
+          "answer": "JESSE",
+          "length": 5,
+          "reference": "1 Samuel 16:11",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 207,
+          "number_in_level": 7,
+          "clue": "Great-grandfather of King David, husband of Ruth",
+          "answer": "BOAZ",
+          "length": 4,
+          "reference": "Ruth 4:13",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 208,
+          "number_in_level": 8,
+          "clue": "Priest at Shiloh whose wicked sons were Hophni and Phinehas",
+          "answer": "ELI",
+          "length": 3,
+          "reference": "1 Samuel 2:12",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 209,
+          "number_in_level": 9,
+          "clue": "City where the Tabernacle and Ark were placed in Eli's time",
+          "answer": "SHILOH",
+          "length": 6,
+          "reference": "1 Samuel 1:3",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 210,
+          "number_in_level": 10,
+          "clue": "Town where David was anointed king by Samuel",
+          "answer": "BETHLEHEM",
+          "length": 9,
+          "reference": "1 Samuel 16:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 22,
+      "level": 22,
+      "title": "Level 22",
+      "questions": [
+        {
+          "id": 211,
+          "number_in_level": 1,
+          "clue": "City David conquered and made his capital city",
+          "answer": "JERUSALEM",
+          "length": 9,
+          "reference": "2 Samuel 5:7",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 212,
+          "number_in_level": 2,
+          "clue": "Fortress hill inside Jerusalem conquered by David",
+          "answer": "ZION",
+          "length": 4,
+          "reference": "2 Samuel 5:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 213,
+          "number_in_level": 3,
+          "clue": "Man who touched the Ark of the Covenant and died",
+          "answer": "UZZA",
+          "length": 4,
+          "reference": "2 Samuel 6:6",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 214,
+          "number_in_level": 4,
+          "clue": "Prophet who revealed God's promise of an everlasting throne to David",
+          "answer": "NATHAN",
+          "length": 6,
+          "reference": "2 Samuel 7:4",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 215,
+          "number_in_level": 5,
+          "clue": "David's eldest son who raped his half-sister Tamar",
+          "answer": "AMNON",
+          "length": 5,
+          "reference": "2 Samuel 13:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 216,
+          "number_in_level": 6,
+          "clue": "Adviser to David who joined Absalom's rebellion and hanged himself",
+          "answer": "AHITHOPHEL",
+          "length": 10,
+          "reference": "2 Samuel 17:23",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 217,
+          "number_in_level": 7,
+          "clue": "Son of David who tried to seize the throne in David's old age",
+          "answer": "ADONIJAH",
+          "length": 8,
+          "reference": "1 Kings 1:5",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 218,
+          "number_in_level": 8,
+          "clue": "High Priest who anointed Solomon king of Israel",
+          "answer": "ZADOK",
+          "length": 5,
+          "reference": "1 Kings 1:39",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 219,
+          "number_in_level": 9,
+          "clue": "Gift requested by King Solomon from God in a dream",
+          "answer": "WISDOM",
+          "length": 6,
+          "reference": "1 Kings 3:9",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 220,
+          "number_in_level": 10,
+          "clue": "Building erected by Solomon in 7 years using cedars of Lebanon",
+          "answer": "TEMPLE",
+          "length": 6,
+          "reference": "1 Kings 6:38",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 23,
+      "level": 23,
+      "title": "Level 23",
+      "questions": [
+        {
+          "id": 221,
+          "number_in_level": 1,
+          "clue": "Prophet who tore his coat into 12 pieces to predict Israel's split",
+          "answer": "AHIJAH",
+          "length": 6,
+          "reference": "1 Kings 11:29",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 222,
+          "number_in_level": 2,
+          "clue": "Ravens brought food to this prophet at the Kerith Ravine",
+          "answer": "ELIJAH",
+          "length": 6,
+          "reference": "1 Kings 17:4",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 223,
+          "number_in_level": 3,
+          "clue": "Widow's town where Elijah raised her son and multiplied oil and flour",
+          "answer": "ZAREPHATH",
+          "length": 9,
+          "reference": "1 Kings 17:9",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 224,
+          "number_in_level": 4,
+          "clue": "False god of storm and fertility worshiped by Ahab and Jezebel",
+          "answer": "BAAL",
+          "length": 4,
+          "reference": "1 Kings 18:21",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 225,
+          "number_in_level": 5,
+          "clue": "Quiet, small voice in which God appeared to Elijah on Horeb",
+          "answer": "STILL",
+          "length": 5,
+          "reference": "1 Kings 19:12",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 226,
+          "number_in_level": 6,
+          "clue": "Commander of Syrian army healed of leprosy by dipping in Jordan",
+          "answer": "NAAMAN",
+          "length": 6,
+          "reference": "2 Kings 5:10",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 227,
+          "number_in_level": 7,
+          "clue": "Servant of Elisha struck with leprosy for his greed",
+          "answer": "GEHAZI",
+          "length": 6,
+          "reference": "2 Kings 5:20",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 228,
+          "number_in_level": 8,
+          "clue": "Army officer anointed king to destroy the house of Ahab",
+          "answer": "JEHU",
+          "length": 4,
+          "reference": "2 Kings 9:6",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 229,
+          "number_in_level": 9,
+          "clue": "Wicked queen mother of Judah who killed royal heirs to seize power",
+          "answer": "ATHALIAH",
+          "length": 8,
+          "reference": "2 Kings 11:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 230,
+          "number_in_level": 10,
+          "clue": "Boy king hidden in the Temple 6 years before becoming king at 7",
+          "answer": "JOASH",
+          "length": 5,
+          "reference": "2 Kings 11:21",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 24,
+      "level": 24,
+      "title": "Level 24",
+      "questions": [
+        {
+          "id": 231,
+          "number_in_level": 1,
+          "clue": "Assyrian king who besieged Jerusalem during Hezekiah's reign",
+          "answer": "SENNACHERIB",
+          "length": 11,
+          "reference": "2 Kings 18:13",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 232,
+          "number_in_level": 2,
+          "clue": "Prophet who advised King Hezekiah and foretold the Messiah's birth",
+          "answer": "ISAIAH",
+          "length": 6,
+          "reference": "2 Kings 19:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 233,
+          "number_in_level": 3,
+          "clue": "Shadow on the sundial moved back this many steps for Hezekiah",
+          "answer": "TEN",
+          "length": 3,
+          "reference": "2 Kings 20:11",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 234,
+          "number_in_level": 4,
+          "clue": "Most wicked king of Judah who repented in captivity",
+          "answer": "MANASSEH",
+          "length": 8,
+          "reference": "2 Kings 21:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 235,
+          "number_in_level": 5,
+          "clue": "High Priest who found the Book of the Law during Josiah's reign",
+          "answer": "HILKIAH",
+          "length": 7,
+          "reference": "2 Kings 22:8",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 236,
+          "number_in_level": 6,
+          "clue": "Prophetess consulted by King Josiah regarding the found Law",
+          "answer": "HULDAH",
+          "length": 6,
+          "reference": "2 Kings 22:14",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 237,
+          "number_in_level": 7,
+          "clue": "Last king of Judah whose eyes were put out by Nebuchadnezzar",
+          "answer": "ZEDEKIAH",
+          "length": 8,
+          "reference": "2 Kings 25:7",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 238,
+          "number_in_level": 8,
+          "clue": "Governor appointed over Judah by Nebuchadnezzar after destruction",
+          "answer": "GEDALIAH",
+          "length": 8,
+          "reference": "2 Kings 25:22",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 239,
+          "number_in_level": 9,
+          "clue": "Capital city of Assyria destroyed as prophesied by Nahum",
+          "answer": "NINEVEH",
+          "length": 7,
+          "reference": "Nahum 3:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 240,
+          "number_in_level": 10,
+          "clue": "Capital city of Babylonia that held Jewish exiles 70 years",
+          "answer": "BABYLON",
+          "length": 7,
+          "reference": "Jeremiah 25:11",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 25,
+      "level": 25,
+      "title": "Level 25",
+      "questions": [
+        {
+          "id": 241,
+          "number_in_level": 1,
+          "clue": "Jewish leader who led the first group of exiles back to Jerusalem",
+          "answer": "ZERUBBABEL",
+          "length": 10,
+          "reference": "Ezra 3:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 242,
+          "number_in_level": 2,
+          "clue": "Persian king who authorized Nehemiah to rebuild Jerusalem walls",
+          "answer": "ARTAXERXES",
+          "length": 10,
+          "reference": "Nehemiah 2:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 243,
+          "number_in_level": 3,
+          "clue": "Enemy of Nehemiah who opposed rebuilding Jerusalem's walls",
+          "answer": "SANBALLAT",
+          "length": 9,
+          "reference": "Nehemiah 2:10",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 244,
+          "number_in_level": 4,
+          "clue": "Ammonite official who mocked the rebuilt wall saying a fox could break it",
+          "answer": "TOBIAH",
+          "length": 6,
+          "reference": "Nehemiah 4:3",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 245,
+          "number_in_level": 5,
+          "clue": "Number of days it took Nehemiah to rebuild Jerusalem's walls",
+          "answer": "FIFTYTWO",
+          "length": 8,
+          "reference": "Nehemiah 6:15",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 246,
+          "number_in_level": 6,
+          "clue": "Persian capital city where Esther lived and Nehemiah was cupbearer",
+          "answer": "SUSA",
+          "length": 4,
+          "reference": "Esther 1:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 247,
+          "number_in_level": 7,
+          "clue": "Queen dethroned by King Xerxes for refusing his command",
+          "answer": "VASHTI",
+          "length": 6,
+          "reference": "Esther 1:12",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 248,
+          "number_in_level": 8,
+          "clue": "Jewish feast instituted to celebrate deliverance from Haman's plot",
+          "answer": "PURIM",
+          "length": 5,
+          "reference": "Esther 9:26",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 249,
+          "number_in_level": 9,
+          "clue": "Land where Job lived",
+          "answer": "UZ",
+          "length": 2,
+          "reference": "Job 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 250,
+          "number_in_level": 10,
+          "clue": "Job's three friends: Eliphaz, Bildad, and...",
+          "answer": "ZOPHAR",
+          "length": 6,
+          "reference": "Job 2:11",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 26,
+      "level": 26,
+      "title": "Level 26",
+      "questions": [
+        {
+          "id": 251,
+          "number_in_level": 1,
+          "clue": "Young friend who spoke last to Job and defended God's justice",
+          "answer": "ELIHU",
+          "length": 5,
+          "reference": "Job 32:2",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 252,
+          "number_in_level": 2,
+          "clue": "Author of many Psalms and Shepherd King of Israel",
+          "answer": "DAVID",
+          "length": 5,
+          "reference": "Psalm 23:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 253,
+          "number_in_level": 3,
+          "clue": "Psalm 23 famous first line: 'The Lord is my...'",
+          "answer": "SHEPHERD",
+          "length": 8,
+          "reference": "Psalm 23:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 254,
+          "number_in_level": 4,
+          "clue": "Book of wisdom proverbs written largely by King Solomon",
+          "answer": "PROVERBS",
+          "length": 8,
+          "reference": "Proverbs 1:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 255,
+          "number_in_level": 5,
+          "clue": "Book written by the 'Teacher' saying 'Vanity of vanities, all is vanity'",
+          "answer": "ECCLESIASTES",
+          "length": 12,
+          "reference": "Ecclesiastes 1:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 256,
+          "number_in_level": 6,
+          "clue": "Love poem book in Old Testament celebrating marital love",
+          "answer": "SONGOFSONGS",
+          "length": 11,
+          "reference": "Song of Solomon 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 257,
+          "number_in_level": 7,
+          "clue": "Prophet who saw God high and lifted up in the Temple",
+          "answer": "ISAIAH",
+          "length": 6,
+          "reference": "Isaiah 6:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 258,
+          "number_in_level": 8,
+          "clue": "Six-winged angels seen by Isaiah praising 'Holy, Holy, Holy'",
+          "answer": "SERAPHIM",
+          "length": 8,
+          "reference": "Isaiah 6:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 259,
+          "number_in_level": 9,
+          "clue": "Messianic prophecy name: 'Wonderful Counselor, Mighty...'",
+          "answer": "GOD",
+          "length": 3,
+          "reference": "Isaiah 9:6",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 260,
+          "number_in_level": 10,
+          "clue": "Prophetic figure in Isaiah who 'was wounded for our transgressions'",
+          "answer": "SERVANT",
+          "length": 7,
+          "reference": "Isaiah 53:5",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 27,
+      "level": 27,
+      "title": "Level 27",
+      "questions": [
+        {
+          "id": 261,
+          "number_in_level": 1,
+          "clue": "Prophet whose message was written on a scroll burned by King Jehoiakim",
+          "answer": "JEREMIAH",
+          "length": 8,
+          "reference": "Jeremiah 36:23",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 262,
+          "number_in_level": 2,
+          "clue": "Scribe who wrote down the prophecies of Jeremiah",
+          "answer": "BARUCH",
+          "length": 6,
+          "reference": "Jeremiah 36:4",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 263,
+          "number_in_level": 3,
+          "clue": "Book of mournful poems weeping over Jerusalem's fall",
+          "answer": "LAMENTATIONS",
+          "length": 12,
+          "reference": "Lamentations 1:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 264,
+          "number_in_level": 4,
+          "clue": "River in Babylon where Ezekiel saw heavenly visions",
+          "answer": "KEBAR",
+          "length": 5,
+          "reference": "Ezekiel 1:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 265,
+          "number_in_level": 5,
+          "clue": "Four-faced angelic creatures supporting God's throne in Ezekiel",
+          "answer": "CHERUBIM",
+          "length": 8,
+          "reference": "Ezekiel 10:20",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 266,
+          "number_in_level": 6,
+          "clue": "Four kingdoms represented by gold, silver, bronze, and iron in Daniel",
+          "answer": "STATUE",
+          "length": 6,
+          "reference": "Daniel 2:31",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 267,
+          "number_in_level": 7,
+          "clue": "Fiery furnace heated this many times hotter for Daniel's friends",
+          "answer": "SEVEN",
+          "length": 5,
+          "reference": "Daniel 3:19",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 268,
+          "number_in_level": 8,
+          "clue": "King converted after living like a wild beast for 7 periods",
+          "answer": "NEBUCHADNEZZAR",
+          "length": 14,
+          "reference": "Daniel 4:33",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 269,
+          "number_in_level": 9,
+          "clue": "Handwriting on wall: Mene, Mene, Tekel,...",
+          "answer": "PARSIN",
+          "length": 6,
+          "reference": "Daniel 5:25",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 270,
+          "number_in_level": 10,
+          "clue": "Persian king who cast Daniel into the lions' den unwillingly",
+          "answer": "DARIUS",
+          "length": 6,
+          "reference": "Daniel 6:14",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 28,
+      "level": 28,
+      "title": "Level 28",
+      "questions": [
+        {
+          "id": 271,
+          "number_in_level": 1,
+          "clue": "Angel who explained visions to Daniel and announced births in Gospel",
+          "answer": "GABRIEL",
+          "length": 7,
+          "reference": "Daniel 8:16",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 272,
+          "number_in_level": 2,
+          "clue": "Smallest seed used by Jesus as an illustration of faith",
+          "answer": "MUSTARD",
+          "length": 7,
+          "reference": "Matthew 13:31",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 273,
+          "number_in_level": 3,
+          "clue": "Short story taught by Jesus to convey spiritual lessons",
+          "answer": "PARABLE",
+          "length": 7,
+          "reference": "Matthew 13:3",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 274,
+          "number_in_level": 4,
+          "clue": "Sermon given by Jesus on a mountain teaching Beatitudes",
+          "answer": "MOUNT",
+          "length": 5,
+          "reference": "Matthew 5:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 275,
+          "number_in_level": 5,
+          "clue": "Prayer taught by Jesus beginning 'Our Father in heaven'",
+          "answer": "LORDS",
+          "length": 5,
+          "reference": "Matthew 6:9",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 276,
+          "number_in_level": 6,
+          "clue": "City where Jesus entered riding on a donkey on Palm Sunday",
+          "answer": "JERUSALEM",
+          "length": 9,
+          "reference": "Matthew 21:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 277,
+          "number_in_level": 7,
+          "clue": "Tree cursed by Jesus because it had leaves but no fruit",
+          "answer": "FIG",
+          "length": 3,
+          "reference": "Matthew 21:19",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 278,
+          "number_in_level": 8,
+          "clue": "Meal Jesus shared with his disciples the night before crucifixion",
+          "answer": "LASTSUPPER",
+          "length": 10,
+          "reference": "Matthew 26:20",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 279,
+          "number_in_level": 9,
+          "clue": "Disciple who cut off the ear of the High Priest's servant",
+          "answer": "PETER",
+          "length": 5,
+          "reference": "John 18:10",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 280,
+          "number_in_level": 10,
+          "clue": "High Priest's servant whose ear was healed by Jesus",
+          "answer": "MALCHUS",
+          "length": 7,
+          "reference": "John 18:10",
+          "category": "New Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 29,
+      "level": 29,
+      "title": "Level 29",
+      "questions": [
+        {
+          "id": 281,
+          "number_in_level": 1,
+          "clue": "High Priest who presided over the trial of Jesus",
+          "answer": "CAIAPHAS",
+          "length": 8,
+          "reference": "Matthew 26:57",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 282,
+          "number_in_level": 2,
+          "clue": "Former High Priest and father-in-law of Caiaphas who questioned Jesus",
+          "answer": "ANNAS",
+          "length": 5,
+          "reference": "John 18:13",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 283,
+          "number_in_level": 3,
+          "clue": "Prisoner released by Pilate instead of Jesus",
+          "answer": "BARABBAS",
+          "length": 8,
+          "reference": "Matthew 27:26",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 284,
+          "number_in_level": 4,
+          "clue": "Man from Cyrene forced to carry Jesus' cross",
+          "answer": "SIMON",
+          "length": 5,
+          "reference": "Matthew 27:32",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 285,
+          "number_in_level": 5,
+          "clue": "Wealthy man from Arimathea who gave his own tomb for Jesus",
+          "answer": "JOSEPH",
+          "length": 6,
+          "reference": "Matthew 27:57",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 286,
+          "number_in_level": 6,
+          "clue": "First person to see the risen Jesus on Easter morning",
+          "answer": "MARYMAGDALENE",
+          "length": 13,
+          "reference": "John 20:14",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 287,
+          "number_in_level": 7,
+          "clue": "Day of the week on which Jesus rose from the dead",
+          "answer": "SUNDAY",
+          "length": 6,
+          "reference": "Matthew 28:1",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 288,
+          "number_in_level": 8,
+          "clue": "Mount from which Jesus ascended into heaven",
+          "answer": "OLIVES",
+          "length": 6,
+          "reference": "Acts 1:12",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 289,
+          "number_in_level": 9,
+          "clue": "Apostle chosen by lot to replace Judas Iscariot",
+          "answer": "MATTHIAS",
+          "length": 8,
+          "reference": "Acts 1:26",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 290,
+          "number_in_level": 10,
+          "clue": "Sound heard when the Holy Spirit arrived at Pentecost",
+          "answer": "WIND",
+          "length": 4,
+          "reference": "Acts 2:2",
+          "category": "New Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 30,
+      "level": 30,
+      "title": "Level 30",
+      "questions": [
+        {
+          "id": 291,
+          "number_in_level": 1,
+          "clue": "Visible manifestation of Holy Spirit appearing on disciples at Pentecost",
+          "answer": "FIRE",
+          "length": 4,
+          "reference": "Acts 2:3",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 292,
+          "number_in_level": 2,
+          "clue": "Language phenomenon where believers spoke in other tongues at Pentecost",
+          "answer": "TONGUES",
+          "length": 7,
+          "reference": "Acts 2:4",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 293,
+          "number_in_level": 3,
+          "clue": "Man who lied to the Holy Spirit about land proceeds and dropped dead",
+          "answer": "ANANIAS",
+          "length": 7,
+          "reference": "Acts 5:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 294,
+          "number_in_level": 4,
+          "clue": "Wife of Ananias who also lied and died immediately",
+          "answer": "SAPPHIRA",
+          "length": 8,
+          "reference": "Acts 5:10",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 295,
+          "number_in_level": 5,
+          "clue": "Ethiopian official baptized by Philip after reading Isaiah",
+          "answer": "EUNUCH",
+          "length": 6,
+          "reference": "Acts 8:38",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 296,
+          "number_in_level": 6,
+          "clue": "Disciple who restored Saul's sight in Damascus",
+          "answer": "ANANIAS",
+          "length": 7,
+          "reference": "Acts 9:17",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 297,
+          "number_in_level": 7,
+          "clue": "Christian woman in Joppa raised from the dead by Peter",
+          "answer": "DORCAS",
+          "length": 6,
+          "reference": "Acts 9:36",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 298,
+          "number_in_level": 8,
+          "clue": "City where Peter had a vision of a sheet with clean and unclean animals",
+          "answer": "JOPPA",
+          "length": 5,
+          "reference": "Acts 10:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 299,
+          "number_in_level": 9,
+          "clue": "Angel freed Peter from prison overnight in this king's reign",
+          "answer": "HEROD",
+          "length": 5,
+          "reference": "Acts 12:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 300,
+          "number_in_level": 10,
+          "clue": "Servant girl who was so excited Peter was at the door she forgot to open it",
+          "answer": "RHODA",
+          "length": 5,
+          "reference": "Acts 12:13",
+          "category": "New Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 31,
+      "level": 31,
+      "title": "Level 31",
+      "questions": [
+        {
+          "id": 301,
+          "number_in_level": 1,
+          "clue": "Sorcerer blinded by Paul on the island of Cyprus",
+          "answer": "ELYMAS",
+          "length": 6,
+          "reference": "Acts 13:8",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 302,
+          "number_in_level": 2,
+          "clue": "City in Asia Minor where Paul was stoned and left for dead",
+          "answer": "LYSTRA",
+          "length": 6,
+          "reference": "Acts 14:19",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 303,
+          "number_in_level": 3,
+          "clue": "First European convert baptized by Paul in Philippi",
+          "answer": "LYDIA",
+          "length": 5,
+          "reference": "Acts 16:14",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 304,
+          "number_in_level": 4,
+          "clue": "Seller of purple fabric from Thyatira who hosted Paul",
+          "answer": "LYDIA",
+          "length": 5,
+          "reference": "Acts 16:14",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 305,
+          "number_in_level": 5,
+          "clue": "City where Paul and Silas sang in prison during an earthquake",
+          "answer": "PHILIPPI",
+          "length": 8,
+          "reference": "Acts 16:25",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 306,
+          "number_in_level": 6,
+          "clue": "City in Greece where believers examined scriptures daily",
+          "answer": "BEREA",
+          "length": 5,
+          "reference": "Acts 17:11",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 307,
+          "number_in_level": 7,
+          "clue": "Famous hill in Athens where Paul preached about the 'Unknown God'",
+          "answer": "AREOPAGUS",
+          "length": 9,
+          "reference": "Acts 17:22",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 308,
+          "number_in_level": 8,
+          "clue": "Tentmakers and Christian couple who partnered with Paul",
+          "answer": "AQUILA",
+          "length": 6,
+          "reference": "Acts 18:2",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 309,
+          "number_in_level": 9,
+          "clue": "Wife of Aquila who helped instruct Apollos in the faith",
+          "answer": "PRISCILLA",
+          "length": 9,
+          "reference": "Acts 18:26",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 310,
+          "number_in_level": 10,
+          "clue": "Eloquent preacher from Alexandria instructed by Aquila and Priscilla",
+          "answer": "APOLLOS",
+          "length": 7,
+          "reference": "Acts 18:24",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 32,
+      "level": 32,
+      "title": "Level 32",
+      "questions": [
+        {
+          "id": 311,
+          "number_in_level": 1,
+          "clue": "City famous for its temple of Artemis where Paul caused a riot",
+          "answer": "EPHESUS",
+          "length": 7,
+          "reference": "Acts 19:28",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 312,
+          "number_in_level": 2,
+          "clue": "Young man who fell asleep during Paul's sermon and fell from a 3rd story window",
+          "answer": "EUTYCHUS",
+          "length": 8,
+          "reference": "Acts 20:9",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 313,
+          "number_in_level": 3,
+          "clue": "Roman governor in Caesarea who kept Paul imprisoned for 2 years",
+          "answer": "FELIX",
+          "length": 5,
+          "reference": "Acts 24:27",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 314,
+          "number_in_level": 4,
+          "clue": "Roman governor who succeeded Felix and sent Paul to Rome",
+          "answer": "FESTUS",
+          "length": 6,
+          "reference": "Acts 25:1",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 315,
+          "number_in_level": 5,
+          "clue": "Jewish king who told Paul 'You almost persuade me to become a Christian'",
+          "answer": "AGRIPPA",
+          "length": 7,
+          "reference": "Acts 26:28",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 316,
+          "number_in_level": 6,
+          "clue": "Island where Paul was shipwrecked on his journey to Rome",
+          "answer": "MALTA",
+          "length": 5,
+          "reference": "Acts 28:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 317,
+          "number_in_level": 7,
+          "clue": "Viper bit Paul on this part of his body without harming him",
+          "answer": "HAND",
+          "length": 4,
+          "reference": "Acts 28:3",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 318,
+          "number_in_level": 8,
+          "clue": "Paul's major epistle explaining justification by faith",
+          "answer": "ROMANS",
+          "length": 6,
+          "reference": "Romans 1:16",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 319,
+          "number_in_level": 9,
+          "clue": "Pauline letter dealing with church divisions, gifts, and resurrection",
+          "answer": "CORINTHIANS",
+          "length": 11,
+          "reference": "1 Corinthians 1:2",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 320,
+          "number_in_level": 10,
+          "clue": "Fruit of the Spirit listed in Galatians: Love, Joy,...",
+          "answer": "PEACE",
+          "length": 5,
+          "reference": "Galatians 5:22",
+          "category": "New Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 33,
+      "level": 33,
+      "title": "Level 33",
+      "questions": [
+        {
+          "id": 321,
+          "number_in_level": 1,
+          "clue": "Armor of God item: Belt of...",
+          "answer": "TRUTH",
+          "length": 5,
+          "reference": "Ephesians 6:14",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 322,
+          "number_in_level": 2,
+          "clue": "Armor of God item: Breastplate of...",
+          "answer": "RIGHTEOUSNESS",
+          "length": 13,
+          "reference": "Ephesians 6:14",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 323,
+          "number_in_level": 3,
+          "clue": "Armor of God item: Shield of...",
+          "answer": "FAITH",
+          "length": 5,
+          "reference": "Ephesians 6:16",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 324,
+          "number_in_level": 4,
+          "clue": "Armor of God item: Helmet of...",
+          "answer": "SALVATION",
+          "length": 9,
+          "reference": "Ephesians 6:17",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 325,
+          "number_in_level": 5,
+          "clue": "Armor of God item: Sword of the...",
+          "answer": "SPIRIT",
+          "length": 6,
+          "reference": "Ephesians 6:17",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 326,
+          "number_in_level": 6,
+          "clue": "Pauline epistle known as the 'Epistle of Joy'",
+          "answer": "PHILIPPIANS",
+          "length": 11,
+          "reference": "Philippians 4:4",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 327,
+          "number_in_level": 7,
+          "clue": "Epistle focusing on the supreme preeminence of Christ",
+          "answer": "COLOSSIANS",
+          "length": 10,
+          "reference": "Colossians 1:15",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 328,
+          "number_in_level": 8,
+          "clue": "Paul's letter addressing the Second Coming of Christ and the rapture",
+          "answer": "THESSALONIANS",
+          "length": 13,
+          "reference": "1 Thessalonians 4:16",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 329,
+          "number_in_level": 9,
+          "clue": "Runaway slave for whom Paul wrote a personal letter to Philemon",
+          "answer": "ONESIMUS",
+          "length": 8,
+          "reference": "Philemon 1:10",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 330,
+          "number_in_level": 10,
+          "clue": "Master of Onesimus whom Paul urged to receive him as a brother",
+          "answer": "PHILEMON",
+          "length": 8,
+          "reference": "Philemon 1:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 34,
+      "level": 34,
+      "title": "Level 34",
+      "questions": [
+        {
+          "id": 331,
+          "number_in_level": 1,
+          "clue": "Young pastor mentored by Paul in Crete",
+          "answer": "TITUS",
+          "length": 5,
+          "reference": "Titus 1:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 332,
+          "number_in_level": 2,
+          "clue": "New Testament book comparing Jesus as High Priest superior to Melchizedek",
+          "answer": "HEBREWS",
+          "length": 7,
+          "reference": "Hebrews 5:6",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 333,
+          "number_in_level": 3,
+          "clue": "Mystery priest-king of Salem whom Abraham gave a tenth to",
+          "answer": "MELCHIZEDEK",
+          "length": 11,
+          "reference": "Genesis 14:18",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 334,
+          "number_in_level": 4,
+          "clue": "Book defining faith: 'Faith is the substance of things hoped for...'",
+          "answer": "HEBREWS",
+          "length": 7,
+          "reference": "Hebrews 11:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 335,
+          "number_in_level": 5,
+          "clue": "Author of the epistle emphasizing 'Faith without works is dead'",
+          "answer": "JAMES",
+          "length": 5,
+          "reference": "James 2:26",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 336,
+          "number_in_level": 6,
+          "clue": "Epistle describing believers as 'living stones' and a 'royal priesthood'",
+          "answer": "PETER",
+          "length": 5,
+          "reference": "1 Peter 2:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 337,
+          "number_in_level": 7,
+          "clue": "Three epistles emphasizing love, truth, and testing the spirits",
+          "answer": "JOHN",
+          "length": 4,
+          "reference": "1 John 4:8",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 338,
+          "number_in_level": 8,
+          "clue": "Short epistle warning against false teachers and invoking Enoch",
+          "answer": "JUDE",
+          "length": 4,
+          "reference": "Jude 1:14",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 339,
+          "number_in_level": 9,
+          "clue": "Alpha and...",
+          "answer": "OMEGA",
+          "length": 5,
+          "reference": "Revelation 1:8",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 340,
+          "number_in_level": 10,
+          "clue": "Four horsemen in Revelation: White, Red, Black, and...",
+          "answer": "PALE",
+          "length": 4,
+          "reference": "Revelation 6:8",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 35,
+      "level": 35,
+      "title": "Level 35",
+      "questions": [
+        {
+          "id": 341,
+          "number_in_level": 1,
+          "clue": "Number of sealed believers from 12 tribes in Revelation",
+          "answer": "144000",
+          "length": 6,
+          "reference": "Revelation 7:4",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 342,
+          "number_in_level": 2,
+          "clue": "New city descending out of heaven prepared as a bride",
+          "answer": "JERUSALEM",
+          "length": 9,
+          "reference": "Revelation 21:2",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 343,
+          "number_in_level": 3,
+          "clue": "Street of the New Jerusalem made of pure...",
+          "answer": "GOLD",
+          "length": 4,
+          "reference": "Revelation 21:21",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 344,
+          "number_in_level": 4,
+          "clue": "Number of gates in the New Jerusalem made of single pearls",
+          "answer": "TWELVE",
+          "length": 6,
+          "reference": "Revelation 21:12",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 345,
+          "number_in_level": 5,
+          "clue": "Tree bearing 12 crops of fruit in the New Jerusalem",
+          "answer": "LIFE",
+          "length": 4,
+          "reference": "Revelation 22:2",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 346,
+          "number_in_level": 6,
+          "clue": "Ruler of Egypt who held Israel in bondage",
+          "answer": "PHARAOH",
+          "length": 7,
+          "reference": "Exodus 1:11",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 347,
+          "number_in_level": 7,
+          "clue": "Sister of Moses who watched over him in the Nile",
+          "answer": "MIRIAM",
+          "length": 6,
+          "reference": "Exodus 2:4",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 348,
+          "number_in_level": 8,
+          "clue": "Basket in which infant Moses was placed in the Nile",
+          "answer": "PAPYRUS",
+          "length": 7,
+          "reference": "Exodus 2:3",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 349,
+          "number_in_level": 9,
+          "clue": "Daughter of Pharaoh who adopted Moses",
+          "answer": "PRINCESS",
+          "length": 8,
+          "reference": "Exodus 2:5",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 350,
+          "number_in_level": 10,
+          "clue": "Wife of Moses, daughter of Jethro",
+          "answer": "ZIPPORAH",
+          "length": 8,
+          "reference": "Exodus 2:21",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 36,
+      "level": 36,
+      "title": "Level 36",
+      "questions": [
+        {
+          "id": 351,
+          "number_in_level": 1,
+          "clue": "Sons of Moses: Gershom and...",
+          "answer": "ELIEZER",
+          "length": 7,
+          "reference": "Exodus 18:4",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 352,
+          "number_in_level": 2,
+          "clue": "Golden box where manna, Aaron's rod, and tablets were stored",
+          "answer": "ARK",
+          "length": 3,
+          "reference": "Hebrews 9:4",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 353,
+          "number_in_level": 3,
+          "clue": "Curtains separating Holy Place from Most Holy Place",
+          "answer": "VEIL",
+          "length": 4,
+          "reference": "Exodus 26:31",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 354,
+          "number_in_level": 4,
+          "clue": "Altar where incense was burned twice daily",
+          "answer": "INCENSE",
+          "length": 7,
+          "reference": "Exodus 30:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 355,
+          "number_in_level": 5,
+          "clue": "Bronze basin used by priests for washing hands and feet",
+          "answer": "LAVER",
+          "length": 5,
+          "reference": "Exodus 30:18",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 356,
+          "number_in_level": 6,
+          "clue": "Seven-branched golden lampstand in the Tabernacle",
+          "answer": "MENORAH",
+          "length": 7,
+          "reference": "Exodus 25:31",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 357,
+          "number_in_level": 7,
+          "clue": "Table holding 12 loaves of consecrated bread",
+          "answer": "SHOWBREAD",
+          "length": 9,
+          "reference": "Exodus 25:30",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 358,
+          "number_in_level": 8,
+          "clue": "Day of Atonement in the Hebrew calendar",
+          "answer": "YOMKIPPUR",
+          "length": 9,
+          "reference": "Leviticus 16:34",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 359,
+          "number_in_level": 9,
+          "clue": "Goat sent into the wilderness bearing the sins of the nation",
+          "answer": "SCAPEGOAT",
+          "length": 9,
+          "reference": "Leviticus 16:10",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 360,
+          "number_in_level": 10,
+          "clue": "Year of liberty occurring every 50th year in Israel",
+          "answer": "JUBILEE",
+          "length": 7,
+          "reference": "Leviticus 25:10",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 37,
+      "level": 37,
+      "title": "Level 37",
+      "questions": [
+        {
+          "id": 361,
+          "number_in_level": 1,
+          "clue": "Son of Aaron struck dead for offering 'unauthorized fire'",
+          "answer": "NADAB",
+          "length": 5,
+          "reference": "Leviticus 10:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 362,
+          "number_in_level": 2,
+          "clue": "Brother of Nadab who also died offering unauthorized fire",
+          "answer": "ABIHU",
+          "length": 5,
+          "reference": "Leviticus 10:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 363,
+          "number_in_level": 3,
+          "clue": "Spies sent by Moses to explore Canaan numbered...",
+          "answer": "TWELVE",
+          "length": 6,
+          "reference": "Numbers 13:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 364,
+          "number_in_level": 4,
+          "clue": "Valley where spies cut a cluster of grapes so large two carried it",
+          "answer": "ESHCOL",
+          "length": 6,
+          "reference": "Numbers 13:23",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 365,
+          "number_in_level": 5,
+          "clue": "Levite who led a rebellion against Moses and was swallowed by the earth",
+          "answer": "KORAH",
+          "length": 5,
+          "reference": "Numbers 16:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 366,
+          "number_in_level": 6,
+          "clue": "Aaron's rod budded, blossomed, and produced...",
+          "answer": "ALMONDS",
+          "length": 7,
+          "reference": "Numbers 17:8",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 367,
+          "number_in_level": 7,
+          "clue": "King of Bashan whose bed was over 13 feet long made of iron",
+          "answer": "OG",
+          "length": 2,
+          "reference": "Deuteronomy 3:11",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 368,
+          "number_in_level": 8,
+          "clue": "Canaanite priest-king who blessed Abram with bread and wine",
+          "answer": "MELCHIZEDEK",
+          "length": 11,
+          "reference": "Genesis 14:18",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 369,
+          "number_in_level": 9,
+          "clue": "Covenant sign given to Abraham and his descendants",
+          "answer": "CIRCUMCISION",
+          "length": 12,
+          "reference": "Genesis 17:10",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 370,
+          "number_in_level": 10,
+          "clue": "Cities destroyed by fire and brimstone for their wickedness",
+          "answer": "SODOM",
+          "length": 5,
+          "reference": "Genesis 19:24",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 38,
+      "level": 38,
+      "title": "Level 38",
+      "questions": [
+        {
+          "id": 371,
+          "number_in_level": 1,
+          "clue": "Sister city destroyed alongside Sodom",
+          "answer": "GOMORRAH",
+          "length": 8,
+          "reference": "Genesis 19:24",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 372,
+          "number_in_level": 2,
+          "clue": "Wife of Lot turned into a pillar of...",
+          "answer": "SALT",
+          "length": 4,
+          "reference": "Genesis 19:26",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 373,
+          "number_in_level": 3,
+          "clue": "Small town to which Lot fled during Sodom's destruction",
+          "answer": "ZOAR",
+          "length": 4,
+          "reference": "Genesis 19:22",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 374,
+          "number_in_level": 4,
+          "clue": "Well where Hagar met the Angel: Beer-lahai-...",
+          "answer": "ROI",
+          "length": 3,
+          "reference": "Genesis 16:14",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 375,
+          "number_in_level": 5,
+          "clue": "Burial cave purchased by Abraham for Sarah",
+          "answer": "MACHPELAH",
+          "length": 9,
+          "reference": "Genesis 23:9",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 376,
+          "number_in_level": 6,
+          "clue": "Stairway reaching to heaven seen by Jacob in a dream",
+          "answer": "LADDER",
+          "length": 6,
+          "reference": "Genesis 28:12",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 377,
+          "number_in_level": 7,
+          "clue": "Place where Jacob dreamt of the ladder and named it 'House of God'",
+          "answer": "BETHEL",
+          "length": 6,
+          "reference": "Genesis 28:19",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 378,
+          "number_in_level": 8,
+          "clue": "Place where Jacob wrestled with God face to face",
+          "answer": "PENIEL",
+          "length": 6,
+          "reference": "Genesis 32:30",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 379,
+          "number_in_level": 9,
+          "clue": "Daughter of Jacob and Leah raped by Shechem",
+          "answer": "DINAH",
+          "length": 5,
+          "reference": "Genesis 34:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 380,
+          "number_in_level": 10,
+          "clue": "Egyptian officer who bought Joseph from Ismaelites",
+          "answer": "POTIPHAR",
+          "length": 8,
+          "reference": "Genesis 39:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 39,
+      "level": 39,
+      "title": "Level 39",
+      "questions": [
+        {
+          "id": 381,
+          "number_in_level": 1,
+          "clue": "Two prisoners whose dreams Joseph interpreted: Chief Butler and Chief...",
+          "answer": "BAKER",
+          "length": 5,
+          "reference": "Genesis 40:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 382,
+          "number_in_level": 2,
+          "clue": "Pharaoh's dream predicted 7 years of abundance and 7 years of...",
+          "answer": "FAMINE",
+          "length": 6,
+          "reference": "Genesis 41:30",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 383,
+          "number_in_level": 3,
+          "clue": "Egyptian name given to Joseph by Pharaoh",
+          "answer": "ZAPHNATH",
+          "length": 8,
+          "reference": "Genesis 41:45",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 384,
+          "number_in_level": 4,
+          "clue": "Egyptian wife of Joseph, daughter of Potiphera",
+          "answer": "ASENATH",
+          "length": 7,
+          "reference": "Genesis 41:45",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 385,
+          "number_in_level": 5,
+          "clue": "Firstborn son of Joseph born in Egypt",
+          "answer": "MANASSEH",
+          "length": 8,
+          "reference": "Genesis 41:51",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 386,
+          "number_in_level": 6,
+          "clue": "Second son of Joseph who received the primary blessing from Jacob",
+          "answer": "EPHRAIM",
+          "length": 7,
+          "reference": "Genesis 41:52",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 387,
+          "number_in_level": 7,
+          "clue": "Land in Egypt where the Israelites settled",
+          "answer": "GOSHEN",
+          "length": 6,
+          "reference": "Genesis 47:6",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 388,
+          "number_in_level": 8,
+          "clue": "Midwives who feared God and saved Hebrew baby boys",
+          "answer": "SHIPHRAH",
+          "length": 8,
+          "reference": "Exodus 1:15",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 389,
+          "number_in_level": 9,
+          "clue": "Second midwife who disobeyed Pharaoh's command",
+          "answer": "PUAH",
+          "length": 4,
+          "reference": "Exodus 1:15",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 390,
+          "number_in_level": 10,
+          "clue": "Mother of Moses who hid him for 3 months",
+          "answer": "JOCHEBED",
+          "length": 8,
+          "reference": "Exodus 6:20",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 40,
+      "level": 40,
+      "title": "Level 40",
+      "questions": [
+        {
+          "id": 391,
+          "number_in_level": 1,
+          "clue": "Father of Moses, Aaron, and Miriam",
+          "answer": "AMRAM",
+          "length": 5,
+          "reference": "Exodus 6:20",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 392,
+          "number_in_level": 2,
+          "clue": "Prophetess who played timbrel and danced after Red Sea crossing",
+          "answer": "MIRIAM",
+          "length": 6,
+          "reference": "Exodus 15:20",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 393,
+          "number_in_level": 3,
+          "clue": "Place of bitter water made sweet by casting a tree into it",
+          "answer": "MARAH",
+          "length": 5,
+          "reference": "Exodus 15:23",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 394,
+          "number_in_level": 4,
+          "clue": "Oasis with 12 springs and 70 palm trees where Israel camped",
+          "answer": "ELIM",
+          "length": 4,
+          "reference": "Exodus 15:27",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 395,
+          "number_in_level": 5,
+          "clue": "Artisan filled with God's Spirit to design the Tabernacle",
+          "answer": "BEZALEL",
+          "length": 7,
+          "reference": "Exodus 31:2",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 396,
+          "number_in_level": 6,
+          "clue": "Assistant artisan who helped Bezalel with Tabernacle furnishings",
+          "answer": "OHOLIAB",
+          "length": 7,
+          "reference": "Exodus 31:6",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 397,
+          "number_in_level": 7,
+          "clue": "Hills of Moab where Moses died",
+          "answer": "PISGAH",
+          "length": 6,
+          "reference": "Deuteronomy 34:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 398,
+          "number_in_level": 8,
+          "clue": "King of Jericho who lost his city to Joshua",
+          "answer": "JERICHO",
+          "length": 7,
+          "reference": "Joshua 6:2",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 399,
+          "number_in_level": 9,
+          "clue": "Canaanite town where Israel was temporarily defeated due to Achan's sin",
+          "answer": "AI",
+          "length": 2,
+          "reference": "Joshua 7:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 400,
+          "number_in_level": 10,
+          "clue": "Altar built by Reuben, Gad, and Manasseh as a witness",
+          "answer": "ED",
+          "length": 2,
+          "reference": "Joshua 22:34",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 41,
+      "level": 41,
+      "title": "Level 41",
+      "questions": [
+        {
+          "id": 401,
+          "number_in_level": 1,
+          "clue": "Canaanite goddess of fertility often paired with Baal",
+          "answer": "ASHTORETH",
+          "length": 9,
+          "reference": "Judges 2:13",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 402,
+          "number_in_level": 2,
+          "clue": "First judge of Israel, nephew of Caleb",
+          "answer": "OTHNIEL",
+          "length": 7,
+          "reference": "Judges 3:9",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 403,
+          "number_in_level": 3,
+          "clue": "Fleece test was used by this judge to confirm God's call",
+          "answer": "GIDEON",
+          "length": 6,
+          "reference": "Judges 6:37",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 404,
+          "number_in_level": 4,
+          "clue": "Wicked son of Gideon who killed 70 of his brothers to become king",
+          "answer": "ABIMELECH",
+          "length": 9,
+          "reference": "Judges 9:5",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 405,
+          "number_in_level": 5,
+          "clue": "Samson's father from the tribe of Dan",
+          "answer": "MANOAH",
+          "length": 6,
+          "reference": "Judges 13:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 406,
+          "number_in_level": 6,
+          "clue": "Jawbone of this animal was used by Samson to kill 1,000 Philistines",
+          "answer": "DONKEY",
+          "length": 6,
+          "reference": "Judges 15:15",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 407,
+          "number_in_level": 7,
+          "clue": "Gates of this Philistine city were carried away by Samson on his shoulders",
+          "answer": "GAZA",
+          "length": 4,
+          "reference": "Judges 16:3",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 408,
+          "number_in_level": 8,
+          "clue": "Priest who raised Samuel at the shrine of Shiloh",
+          "answer": "ELI",
+          "length": 3,
+          "reference": "1 Samuel 1:3",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 409,
+          "number_in_level": 9,
+          "clue": "Wicked sons of Eli: Hophni and...",
+          "answer": "PHINEHAS",
+          "length": 8,
+          "reference": "1 Samuel 1:3",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 410,
+          "number_in_level": 10,
+          "clue": "Ebenezer stone name means 'Thus far the Lord has... us'",
+          "answer": "HELPED",
+          "length": 6,
+          "reference": "1 Samuel 7:12",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 42,
+      "level": 42,
+      "title": "Level 42",
+      "questions": [
+        {
+          "id": 411,
+          "number_in_level": 1,
+          "clue": "Tribe from which King Saul originated",
+          "answer": "BENJAMIN",
+          "length": 8,
+          "reference": "1 Samuel 9:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 412,
+          "number_in_level": 2,
+          "clue": "City where Saul was publicly proclaimed king",
+          "answer": "MIZPAH",
+          "length": 6,
+          "reference": "1 Samuel 10:17",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 413,
+          "number_in_level": 3,
+          "clue": "Valley where David fought Goliath",
+          "answer": "ELAH",
+          "length": 4,
+          "reference": "1 Samuel 17:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 414,
+          "number_in_level": 4,
+          "clue": "Priest who gave David holy showbread and Goliath's sword at Nob",
+          "answer": "AHIMELECH",
+          "length": 9,
+          "reference": "1 Samuel 21:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 415,
+          "number_in_level": 5,
+          "clue": "Edomite chief shepherd who massacred the priests of Nob for Saul",
+          "answer": "DOEG",
+          "length": 4,
+          "reference": "1 Samuel 22:18",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 416,
+          "number_in_level": 6,
+          "clue": "Sole surviving son of Ahimelech who fled to join David",
+          "answer": "ABIATHAR",
+          "length": 8,
+          "reference": "1 Samuel 22:20",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 417,
+          "number_in_level": 7,
+          "clue": "Cave where David cut off the corner of Saul's robe",
+          "answer": "ENGEDI",
+          "length": 6,
+          "reference": "1 Samuel 24:4",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 418,
+          "number_in_level": 8,
+          "clue": "Witch consulted by King Saul on the eve of his death",
+          "answer": "ENDOR",
+          "length": 5,
+          "reference": "1 Samuel 28:7",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 419,
+          "number_in_level": 9,
+          "clue": "Mountain where Saul and his sons died in battle against Philistines",
+          "answer": "GILBOA",
+          "length": 6,
+          "reference": "1 Samuel 31:1",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 420,
+          "number_in_level": 10,
+          "clue": "Son of Saul made king over northern tribes by Abner",
+          "answer": "ISHBOSHETH",
+          "length": 10,
+          "reference": "2 Samuel 2:8",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 43,
+      "level": 43,
+      "title": "Level 43",
+      "questions": [
+        {
+          "id": 421,
+          "number_in_level": 1,
+          "clue": "Capital city where David reigned over Judah for 7 years before Jerusalem",
+          "answer": "HEBRON",
+          "length": 6,
+          "reference": "2 Samuel 2:11",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 422,
+          "number_in_level": 2,
+          "clue": "Commander of Saul's army who made peace with David before being murdered",
+          "answer": "ABNER",
+          "length": 5,
+          "reference": "2 Samuel 3:12",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 423,
+          "number_in_level": 3,
+          "clue": "Water shaft through which David's men conquered the Jebusites",
+          "answer": "GUTTER",
+          "length": 6,
+          "reference": "2 Samuel 5:8",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 424,
+          "number_in_level": 4,
+          "clue": "Threshing floor David bought to build an altar and stop the plague",
+          "answer": "ARAUNAH",
+          "length": 7,
+          "reference": "2 Samuel 24:24",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 425,
+          "number_in_level": 5,
+          "clue": "Proverbial wisdom king who wrote 3,000 proverbs and 1,005 songs",
+          "answer": "SOLOMON",
+          "length": 7,
+          "reference": "1 Kings 4:32",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 426,
+          "number_in_level": 6,
+          "clue": "Cedar timber for Solomon's temple came from these mountains",
+          "answer": "LEBANON",
+          "length": 7,
+          "reference": "1 Kings 5:6",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 427,
+          "number_in_level": 7,
+          "clue": "Two bronze pillars at the Temple porch: Jachin and...",
+          "answer": "BOAZ",
+          "length": 4,
+          "reference": "1 Kings 7:21",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 428,
+          "number_in_level": 8,
+          "clue": "Prophet who confronted Jeroboam and saw his hand wither",
+          "answer": "MANOFGOD",
+          "length": 8,
+          "reference": "1 Kings 13:1",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 429,
+          "number_in_level": 9,
+          "clue": "Capital city of the northern kingdom of Israel built by Omri",
+          "answer": "SAMARIA",
+          "length": 7,
+          "reference": "1 Kings 16:24",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 430,
+          "number_in_level": 10,
+          "clue": "Chariot of fire and horses of fire took Elijah to heaven in a...",
+          "answer": "WHIRLWIND",
+          "length": 9,
+          "reference": "2 Kings 2:11",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        }
+      ]
+    },
+    {
+      "set_id": 44,
+      "level": 44,
+      "title": "Level 44",
+      "questions": [
+        {
+          "id": 431,
+          "number_in_level": 1,
+          "clue": "Pot of oil multiplied by Elisha to pay debts for a poor...",
+          "answer": "WIDOW",
+          "length": 5,
+          "reference": "2 Kings 4:1",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 432,
+          "number_in_level": 2,
+          "clue": "Shunammite woman's son was raised from the dead by...",
+          "answer": "ELISHA",
+          "length": 6,
+          "reference": "2 Kings 4:35",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 433,
+          "number_in_level": 3,
+          "clue": "King of Israel who drove his chariot furiously",
+          "answer": "JEHU",
+          "length": 4,
+          "reference": "2 Kings 9:20",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 434,
+          "number_in_level": 4,
+          "clue": "King of Assyria who destroyed Samaria and exiled the 10 tribes",
+          "answer": "SHALMANESER",
+          "length": 11,
+          "reference": "2 Kings 17:3",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 435,
+          "number_in_level": 5,
+          "clue": "Assyrian military commander who taunted Hezekiah on the walls of Jerusalem",
+          "answer": "RABSHAKEH",
+          "length": 9,
+          "reference": "2 Kings 18:19",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 436,
+          "number_in_level": 6,
+          "clue": "Angel of the Lord killed this many Assyrian soldiers in one night",
+          "answer": "185000",
+          "length": 6,
+          "reference": "2 Kings 19:35",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 437,
+          "number_in_level": 7,
+          "clue": "Babylonian general who burned the Temple and Jerusalem in 586 BC",
+          "answer": "NEBUZARADAN",
+          "length": 11,
+          "reference": "2 Kings 25:8",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 438,
+          "number_in_level": 8,
+          "clue": "Great-grandmother of David and heroine of her own Old Testament book",
+          "answer": "RUTH",
+          "length": 4,
+          "reference": "Ruth 4:17",
+          "category": "Old Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 439,
+          "number_in_level": 9,
+          "clue": "Sister of Moses who had leprosy for 7 days after criticizing him",
+          "answer": "MIRIAM",
+          "length": 6,
+          "reference": "Numbers 12:10",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 440,
+          "number_in_level": 10,
+          "clue": "Aunt of King Joash who saved him as a baby from Athaliah",
+          "answer": "JEHOSHABEATH",
+          "length": 12,
+          "reference": "2 Chronicles 22:11",
+          "category": "Old Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 45,
+      "level": 45,
+      "title": "Level 45",
+      "questions": [
+        {
+          "id": 441,
+          "number_in_level": 1,
+          "clue": "Mount of Transfiguration where Moses and Elijah appeared with Jesus",
+          "answer": "TABOR",
+          "length": 5,
+          "reference": "Matthew 17:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 442,
+          "number_in_level": 2,
+          "clue": "Feast of Tabernacles Hebrew name",
+          "answer": "SUKKOT",
+          "length": 6,
+          "reference": "John 7:2",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 443,
+          "number_in_level": 3,
+          "clue": "Feast of Dedication in John 10 today known as...",
+          "answer": "HANUKKAH",
+          "length": 8,
+          "reference": "John 10:22",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 444,
+          "number_in_level": 4,
+          "clue": "Roman Emperor during the birth of Jesus who ordered the census",
+          "answer": "AUGUSTUS",
+          "length": 8,
+          "reference": "Luke 2:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 445,
+          "number_in_level": 5,
+          "clue": "Roman Emperor during the ministry and execution of Jesus",
+          "answer": "TIBERIUS",
+          "length": 8,
+          "reference": "Luke 3:1",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 446,
+          "number_in_level": 6,
+          "clue": "Governor of Syria during the census at Jesus' birth",
+          "answer": "QUIRINIUS",
+          "length": 9,
+          "reference": "Luke 2:2",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 447,
+          "number_in_level": 7,
+          "clue": "Tetrarch of Galilee who beheaded John the Baptist",
+          "answer": "HERODANTIPAS",
+          "length": 12,
+          "reference": "Matthew 14:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 448,
+          "number_in_level": 8,
+          "clue": "Daughter of Herodias who danced before Herod for John's head",
+          "answer": "SALOME",
+          "length": 6,
+          "reference": "Matthew 14:6",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 449,
+          "number_in_level": 9,
+          "clue": "Wife of Herod's steward Chuza who helped support Jesus' ministry",
+          "answer": "JOANNA",
+          "length": 6,
+          "reference": "Luke 8:3",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 450,
+          "number_in_level": 10,
+          "clue": "Mother of James and John who asked for top seats in the kingdom",
+          "answer": "SALOME",
+          "length": 6,
+          "reference": "Matthew 20:20",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 46,
+      "level": 46,
+      "title": "Level 46",
+      "questions": [
+        {
+          "id": 451,
+          "number_in_level": 1,
+          "clue": "Blind beggar healed by Jesus outside Jericho",
+          "answer": "BARTIMAEUS",
+          "length": 10,
+          "reference": "Mark 10:46",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 452,
+          "number_in_level": 2,
+          "clue": "Deacon and evangelist who preached in Samaria and to Ethiopian",
+          "answer": "PHILIP",
+          "length": 6,
+          "reference": "Acts 8:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 453,
+          "number_in_level": 3,
+          "clue": "Prochorus, Nicanor, Timon, Parmenas, and Nicolas were early...",
+          "answer": "DEACONS",
+          "length": 7,
+          "reference": "Acts 6:5",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 454,
+          "number_in_level": 4,
+          "clue": "Pharisee and member of Sanhedrin who helped bury Jesus with spices",
+          "answer": "NICODEMUS",
+          "length": 9,
+          "reference": "John 19:39",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 455,
+          "number_in_level": 5,
+          "clue": "Roman centurion at the cross who said 'Truly this was the Son of God'",
+          "answer": "CENTURION",
+          "length": 9,
+          "reference": "Matthew 27:54",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 456,
+          "number_in_level": 6,
+          "clue": "Village 7 miles from Jerusalem where risen Jesus broke bread",
+          "answer": "EMMAUS",
+          "length": 6,
+          "reference": "Luke 24:13",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 457,
+          "number_in_level": 7,
+          "clue": "Other disciple who ran with Peter to the empty tomb on Easter morning",
+          "answer": "JOHN",
+          "length": 4,
+          "reference": "John 20:4",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 458,
+          "number_in_level": 8,
+          "clue": "High Priest's servant whose ear Peter cut off",
+          "answer": "MALCHUS",
+          "length": 7,
+          "reference": "John 18:10",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 459,
+          "number_in_level": 9,
+          "clue": "Relative of Malchus who recognized Peter in the High Priest's courtyard",
+          "answer": "KINSMAN",
+          "length": 7,
+          "reference": "John 18:26",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 460,
+          "number_in_level": 10,
+          "clue": "Name of the field bought with Judas' betrayal money (Field of Blood)",
+          "answer": "ACELDAMA",
+          "length": 8,
+          "reference": "Acts 1:19",
+          "category": "New Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 47,
+      "level": 47,
+      "title": "Level 47",
+      "questions": [
+        {
+          "id": 461,
+          "number_in_level": 1,
+          "clue": "Prophet whose words were fulfilled by Judas' 30 silver pieces",
+          "answer": "ZECHARIAH",
+          "length": 9,
+          "reference": "Zechariah 11:12",
+          "category": "Old Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 462,
+          "number_in_level": 2,
+          "clue": "Prison door swung open for Peter when church was praying at home of...",
+          "answer": "MARY",
+          "length": 4,
+          "reference": "Acts 12:12",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 463,
+          "number_in_level": 3,
+          "clue": "Cousin of Barnabas who accompanied Paul and Barnabas on 1st journey",
+          "answer": "MARK",
+          "length": 4,
+          "reference": "Acts 12:25",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 464,
+          "number_in_level": 4,
+          "clue": "Paul and Barnabas parted ways over taking this man on 2nd journey",
+          "answer": "MARK",
+          "length": 4,
+          "reference": "Acts 15:37",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 465,
+          "number_in_level": 5,
+          "clue": "Companion Paul chose for his 2nd missionary journey instead of Barnabas",
+          "answer": "SILAS",
+          "length": 5,
+          "reference": "Acts 15:40",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 466,
+          "number_in_level": 6,
+          "clue": "Mother of Timothy who taught him scriptures from childhood",
+          "answer": "EUNICE",
+          "length": 6,
+          "reference": "2 Timothy 1:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 467,
+          "number_in_level": 7,
+          "clue": "Grandmother of Timothy lauded for her sincere faith",
+          "answer": "LOIS",
+          "length": 4,
+          "reference": "2 Timothy 1:5",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 468,
+          "number_in_level": 8,
+          "clue": "City in Macedonia where Paul saw a vision of a man saying 'Come over and help us'",
+          "answer": "MACEDONIA",
+          "length": 9,
+          "reference": "Acts 16:9",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 469,
+          "number_in_level": 9,
+          "clue": "Jailer who asked 'What must I do to be saved?' after earthquake",
+          "answer": "PHILIPPIAN",
+          "length": 10,
+          "reference": "Acts 16:30",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 470,
+          "number_in_level": 10,
+          "clue": "Philosophers in Athens who argued with Paul: Epicureans and...",
+          "answer": "STOICS",
+          "length": 6,
+          "reference": "Acts 17:18",
+          "category": "New Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 48,
+      "level": 48,
+      "title": "Level 48",
+      "questions": [
+        {
+          "id": 471,
+          "number_in_level": 1,
+          "clue": "Ruler of the synagogue in Corinth converted under Paul's ministry",
+          "answer": "CRISPUS",
+          "length": 7,
+          "reference": "Acts 18:8",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 472,
+          "number_in_level": 2,
+          "clue": "Synagogue ruler beaten before Gallio in Corinth",
+          "answer": "SOSTHENES",
+          "length": 9,
+          "reference": "Acts 18:17",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 473,
+          "number_in_level": 3,
+          "clue": "Roman proconsul in Achaia who dismissed charges against Paul",
+          "answer": "GALLIO",
+          "length": 6,
+          "reference": "Acts 18:12",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 474,
+          "number_in_level": 4,
+          "clue": "Demetrius the silversmith in Ephesus made shrines for this goddess",
+          "answer": "ARTEMIS",
+          "length": 7,
+          "reference": "Acts 19:24",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 475,
+          "number_in_level": 5,
+          "clue": "City where Paul gave his farewell address to elders on the beach at Miletus",
+          "answer": "EPHESUS",
+          "length": 7,
+          "reference": "Acts 20:17",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 476,
+          "number_in_level": 6,
+          "clue": "Prophet who bound his own hands with Paul's belt to predict Paul's arrest",
+          "answer": "AGABUS",
+          "length": 6,
+          "reference": "Acts 21:11",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 477,
+          "number_in_level": 7,
+          "clue": "Commander of the Roman garrison in Jerusalem who saved Paul from the mob",
+          "answer": "LYSIAS",
+          "length": 6,
+          "reference": "Acts 23:26",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 478,
+          "number_in_level": 8,
+          "clue": "Lawyer hired by Jewish leaders to accuse Paul before Governor Felix",
+          "answer": "TERTULLUS",
+          "length": 9,
+          "reference": "Acts 24:1",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 479,
+          "number_in_level": 9,
+          "clue": "Wife of Governor Felix who was Jewish and listened to Paul",
+          "answer": "DRUSILLA",
+          "length": 8,
+          "reference": "Acts 24:24",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 480,
+          "number_in_level": 10,
+          "clue": "Sister of King Agrippa who accompanied him to hear Paul",
+          "answer": "BERNICE",
+          "length": 7,
+          "reference": "Acts 25:13",
+          "category": "New Testament",
+          "difficulty": "hard"
+        }
+      ]
+    },
+    {
+      "set_id": 49,
+      "level": 49,
+      "title": "Level 49",
+      "questions": [
+        {
+          "id": 481,
+          "number_in_level": 1,
+          "clue": "Centurion responsible for guarding Paul on the voyage to Rome",
+          "answer": "JULIUS",
+          "length": 6,
+          "reference": "Acts 27:1",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 482,
+          "number_in_level": 2,
+          "clue": "Northeaster storm wind that wrecked Paul's ship near Malta",
+          "answer": "EUROCLYDON",
+          "length": 10,
+          "reference": "Acts 27:14",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 483,
+          "number_in_level": 3,
+          "clue": "Chief official of the island of Malta whose father Paul healed",
+          "answer": "PUBLIUS",
+          "length": 7,
+          "reference": "Acts 28:7",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 484,
+          "number_in_level": 4,
+          "clue": "Deaconess from Cenchreae who delivered Paul's letter to the Romans",
+          "answer": "PHOEBE",
+          "length": 6,
+          "reference": "Romans 16:1",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 485,
+          "number_in_level": 5,
+          "clue": "Paul's amanuensis/secretary who wrote down the Epistle to Romans",
+          "answer": "TERTIUS",
+          "length": 7,
+          "reference": "Romans 16:22",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 486,
+          "number_in_level": 6,
+          "clue": "City treasurer in Corinth mentioned in Romans closing greetings",
+          "answer": "ERASTUS",
+          "length": 7,
+          "reference": "Romans 16:23",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 487,
+          "number_in_level": 7,
+          "clue": "Man carrying Paul's letter to Ephesians and Colossians",
+          "answer": "TYCHICUS",
+          "length": 8,
+          "reference": "Ephesians 6:21",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 488,
+          "number_in_level": 8,
+          "clue": "Co-worker who fell ill almost to death while ministering to Paul",
+          "answer": "EPAPHRODITUS",
+          "length": 12,
+          "reference": "Philippians 2:25",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 489,
+          "number_in_level": 9,
+          "clue": "Founder of the church in Colossae mentioned by Paul",
+          "answer": "EPAPHRAS",
+          "length": 8,
+          "reference": "Colossians 1:7",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 490,
+          "number_in_level": 10,
+          "clue": "Co-worker who deserted Paul because he loved this present world",
+          "answer": "DEMAS",
+          "length": 5,
+          "reference": "2 Timothy 4:10",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    },
+    {
+      "set_id": 50,
+      "level": 50,
+      "title": "Level 50",
+      "questions": [
+        {
+          "id": 491,
+          "number_in_level": 1,
+          "clue": "Only co-worker left with Paul during his final imprisonment in Rome",
+          "answer": "LUKE",
+          "length": 4,
+          "reference": "2 Timothy 4:11",
+          "category": "New Testament",
+          "difficulty": "easy"
+        },
+        {
+          "id": 492,
+          "number_in_level": 2,
+          "clue": "Blacksmith who did Paul much harm according to 2 Timothy",
+          "answer": "ALEXANDER",
+          "length": 9,
+          "reference": "2 Timothy 4:14",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 493,
+          "number_in_level": 3,
+          "clue": "Brother of Jesus and leader of the Jerusalem Council",
+          "answer": "JAMES",
+          "length": 5,
+          "reference": "Acts 15:13",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 494,
+          "number_in_level": 4,
+          "clue": "Brother of Jesus who wrote a short warning epistle before Revelation",
+          "answer": "JUDE",
+          "length": 4,
+          "reference": "Jude 1:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 495,
+          "number_in_level": 5,
+          "clue": "Archangel who disputed with Satan over the body of Moses",
+          "answer": "MICHAEL",
+          "length": 7,
+          "reference": "Jude 1:9",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 496,
+          "number_in_level": 6,
+          "clue": "Prophet quoted in Jude who was 7th from Adam",
+          "answer": "ENOCH",
+          "length": 5,
+          "reference": "Jude 1:14",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 497,
+          "number_in_level": 7,
+          "clue": "King of Salem and Priest of the Most High God without genealogy",
+          "answer": "MELCHIZEDEK",
+          "length": 11,
+          "reference": "Hebrews 7:1",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 498,
+          "number_in_level": 8,
+          "clue": "City of the 7 churches in Revelation known for lukewarm faith",
+          "answer": "LAODICEA",
+          "length": 8,
+          "reference": "Revelation 3:14",
+          "category": "New Testament",
+          "difficulty": "medium"
+        },
+        {
+          "id": 499,
+          "number_in_level": 9,
+          "clue": "City of the 7 churches in Revelation known for its faithful martyr Antipas",
+          "answer": "PERGAMUM",
+          "length": 8,
+          "reference": "Revelation 2:12",
+          "category": "New Testament",
+          "difficulty": "hard"
+        },
+        {
+          "id": 500,
+          "number_in_level": 10,
+          "clue": "City of the 7 churches in Revelation known for its crown of life promise",
+          "answer": "SMYRNA",
+          "length": 6,
+          "reference": "Revelation 2:8",
+          "category": "New Testament",
+          "difficulty": "medium"
+        }
+      ]
+    }
+  ]
+}

@@ -32,4 +32,10 @@ class RouteNames {
   static const String bibleSearch = '/bible/search';
   static const String bibleTopicDetail = '/bible/topic/:topic';
   static const String bibleVerseDetail = '/bible/verse/:book/:chapter/:verse';
+
+  // CrossPuzzle
+  static const String crossPuzzle = '/crosspuzzle';
+  static const String crossPuzzleMyPuzzles = '/crosspuzzle/my-puzzles';
+  static const String crossPuzzlePlay = '/crosspuzzle/play';
+  static const String crossPuzzleResult = '/crosspuzzle/result';
 }

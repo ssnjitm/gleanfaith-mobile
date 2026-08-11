@@ -29,6 +29,11 @@ class TokenRefreshInterceptor extends Interceptor {
   bool _isRefreshing = false;
   final List<_PendingRequest> _pendingRequests = [];
 
+  /// Header set on a request that has already been retried after a token
+  /// refresh. Prevents an infinite refresh loop when the retried request
+  /// fails with 401 again (e.g. the endpoint rejects the user entirely).
+  static const String _retryMarker = 'x-token-retried';
+
   TokenRefreshInterceptor({
     required Dio dio,
     required StorageService storageService,
@@ -43,6 +48,13 @@ class TokenRefreshInterceptor extends Interceptor {
     }
 
     if (err.requestOptions.path.contains(ApiConstants.refreshToken)) {
+      handler.next(err);
+      return;
+    }
+
+    // A retried request that still fails with 401 must not trigger another
+    // refresh (or it would deadlock the pending queue forever).
+    if (err.requestOptions.headers[_retryMarker] == 'true') {
       handler.next(err);
       return;
     }
@@ -92,13 +104,27 @@ class TokenRefreshInterceptor extends Interceptor {
         await _storageService.write(AppConstants.refreshTokenKey, newRefreshToken);
       }
 
+      // Retry the original request with the fresh token. Any error here is a
+      // "retry failed" case (e.g. the endpoint still rejects the user), NOT a
+      // refresh failure, so tokens must be preserved.
       err.requestOptions.headers['Authorization'] = 'Bearer $newAccessToken';
-      final retryResponse = await _dio.fetch(err.requestOptions);
-      handler.resolve(retryResponse);
+      err.requestOptions.headers[_retryMarker] = 'true';
+      try {
+        final retryResponse = await _dio.fetch(err.requestOptions);
+        handler.resolve(retryResponse);
+      } catch (retryError) {
+        for (final pending in _pendingRequests) {
+          pending.handler.next(err);
+        }
+        _pendingRequests.clear();
+        handler.next(err);
+        return;
+      }
 
       for (final pending in _pendingRequests) {
         try {
           pending.options.headers['Authorization'] = 'Bearer $newAccessToken';
+          pending.options.headers[_retryMarker] = 'true';
           final response = await _dio.fetch(pending.options);
           pending.handler.resolve(response);
         } catch (e) {

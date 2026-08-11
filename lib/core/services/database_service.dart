@@ -408,7 +408,12 @@ Future<void> _initBibleDatabase() async {
     }
   }
 
-  /// Get a deterministic verse of the day based on the current date.
+  /// Get a deterministic pseudo-random verse of the day.
+  ///
+  /// The verse stays constant for the whole day (so the VOTD doesn't change
+  /// mid-day) but jumps to a different book/chapter/verse each day by deriving
+  /// the row offset from a hash of the date string instead of a sequential
+  /// `dayOfYear % count`.
   Future<Map<String, dynamic>?> getVerseOfTheDay() async {
     if (!isBibleAvailable) return null;
     try {
@@ -418,8 +423,13 @@ Future<void> _initBibleDatabase() async {
       if (count == 0) return null;
 
       final now = DateTime.now();
-      final dayOfYear = now.difference(DateTime(now.year)).inDays;
-      final offset = dayOfYear % count;
+      final dateKey = '${now.year}-${now.month}-${now.day}';
+      var hash = 5381;
+      for (var i = 0; i < dateKey.length; i++) {
+        hash = ((hash << 5) + hash) ^ dateKey.codeUnitAt(i);
+      }
+      hash = hash & 0x7fffffff;
+      final offset = hash % count;
 
       final results = await db.rawQuery('''
         SELECT 

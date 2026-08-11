@@ -70,6 +70,7 @@ flutter:
   assets:
     # Bible Database
     - assets/databases/topical_bible.db
+    - assets/databases/bible_crossword_50_sets.json
     
     # Other assets (uncomment as you add them)
     # - assets/images/

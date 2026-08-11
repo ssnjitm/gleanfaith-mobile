@@ -307,6 +307,15 @@ class HomePage extends ConsumerWidget {
       bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
       onTap: () => context.pushNamed(RouteNames.bibleSearch),
     ),
+
+    // NEW: Crossword action
+    QuickAction(
+      icon: Icons.grid_4x4_rounded,
+      label: 'CrossWord',
+      color: const Color(0xFF16A34A),
+      bgColor: const Color(0xFF16A34A).withValues(alpha: 0.1),
+      onTap: () => context.pushNamed(RouteNames.crossPuzzle),
+    ),
     
       QuickAction(
         icon: Icons.person_rounded,

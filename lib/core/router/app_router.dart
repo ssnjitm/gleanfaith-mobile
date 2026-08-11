@@ -18,6 +18,11 @@ import '../../features/quiz/presentation/pages/quiz_result_page.dart';
 import '../features/library/presentation/pages/library_page.dart';
 import '../../features/library/presentation/pages/library_detail_page.dart';
 import '../../features/library/domain/entities/content_item.dart';
+import '../../features/crosspuzzle/presentation/pages/crosspuzzle_home_page.dart';
+import '../../features/crosspuzzle/presentation/pages/crosspuzzle_my_puzzles_page.dart';
+import '../../features/crosspuzzle/presentation/pages/crosspuzzle_play_page.dart';
+import '../../features/crosspuzzle/presentation/pages/crosspuzzle_result_page.dart';
+import '../../features/crosspuzzle/domain/entities/crosspuzzle_entities.dart';
 import '../common/features/splash/presentation/pages/splash_page.dart';
 import 'route_names.dart';
 
@@ -164,6 +169,39 @@ class AppRouter {
       );
     },
   ),
+        GoRoute(
+          path: RouteNames.crossPuzzle,
+          name: RouteNames.crossPuzzle,
+          builder: (context, state) => const CrossPuzzleHomePage(),
+        ),
+        GoRoute(
+          path: RouteNames.crossPuzzleMyPuzzles,
+          name: RouteNames.crossPuzzleMyPuzzles,
+          builder: (context, state) => const CrossPuzzleMyPuzzlesPage(),
+        ),
+        GoRoute(
+          path: RouteNames.crossPuzzlePlay,
+          name: RouteNames.crossPuzzlePlay,
+          builder: (context, state) {
+            final extra = state.extra;
+            final params = extra is Map<String, dynamic>
+                ? extra
+                : const <String, dynamic>{};
+            return CrossPuzzlePlayPage(
+              puzzleId: params['id'] as String? ?? '',
+              title: params['title'] as String? ?? 'Crossword',
+            );
+          },
+        ),
+        GoRoute(
+          path: RouteNames.crossPuzzleResult,
+          name: RouteNames.crossPuzzleResult,
+          builder: (context, state) => CrossPuzzleResultPage(
+            result: state.extra is CrossPuzzleCompleteResult
+                ? state.extra as CrossPuzzleCompleteResult
+                : null,
+          ),
+        ),
       ],
     );
   }
