@@ -61,41 +61,50 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       _loading = true;
       _error = null;
     });
-    final detail = await ref
-        .read(crossPuzzleProvider.notifier)
-        .loadPuzzleDetail(widget.puzzleId);
-    if (!mounted) return;
+    try {
+      final detail = await ref
+          .read(crossPuzzleProvider.notifier)
+          .loadPuzzleDetail(widget.puzzleId);
+      if (!mounted) return;
 
-    if (detail == null) {
+      if (detail == null) {
+        setState(() {
+          _loading = false;
+          _error =
+              ref.read(crossPuzzleProvider).message ?? 'Failed to load puzzle';
+        });
+        return;
+      }
+
+      final board = CrosswordBoard.fromPuzzle(detail.puzzle);
+      board.restore(
+        detail.progress?.gridState,
+        detail.progress?.revealedCells,
+      );
+      if (detail.progress != null) {
+        _mistakes = detail.progress!.mistakes;
+        _hintsUsed = detail.progress!.hintsUsed;
+        _timeSpentSeconds = detail.progress!.timeSpentSeconds;
+      }
+
+      setState(() {
+        _detail = detail;
+        _board = board;
+        _loading = false;
+      });
+
+      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+        if (!mounted) return;
+        setState(() => _timeSpentSeconds += 1);
+        _scheduleAutosave();
+      });
+    } catch (e) {
+      if (!mounted) return;
       setState(() {
         _loading = false;
-        _error = ref.read(crossPuzzleProvider).message ?? 'Failed to load puzzle';
+        _error = 'Could not load puzzle: $e';
       });
-      return;
     }
-
-    final board = CrosswordBoard.fromPuzzle(detail.puzzle);
-    board.restore(
-      detail.progress?.gridState,
-      detail.progress?.revealedCells,
-    );
-    if (detail.progress != null) {
-      _mistakes = detail.progress!.mistakes;
-      _hintsUsed = detail.progress!.hintsUsed;
-      _timeSpentSeconds = detail.progress!.timeSpentSeconds;
-    }
-
-    setState(() {
-      _detail = detail;
-      _board = board;
-      _loading = false;
-    });
-
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(() => _timeSpentSeconds += 1);
-      _scheduleAutosave();
-    });
   }
 
   void _scheduleAutosave() {
@@ -296,26 +305,24 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       return const Center(child: CircularProgressIndicator());
     }
     if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(AppDimensions.paddingXl),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-              const SizedBox(height: AppDimensions.paddingMd),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 14),
-              ),
-              const SizedBox(height: AppDimensions.lg),
-              ElevatedButton(
-                onPressed: _loadDetail,
-                child: const Text('Retry'),
-              ),
-            ],
-          ),
+      return SingleChildScrollView(
+        padding: const EdgeInsets.all(AppDimensions.paddingXl),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
+            const SizedBox(height: AppDimensions.paddingMd),
+            Text(
+              _error!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 14),
+            ),
+            const SizedBox(height: AppDimensions.lg),
+            ElevatedButton(
+              onPressed: _loadDetail,
+              child: const Text('Retry'),
+            ),
+          ],
         ),
       );
     }
@@ -328,40 +335,42 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       onKeyEvent: _handleKeyEvent,
       child: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(AppDimensions.paddingMd),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _StatPill(
-                      icon: Icons.check_circle_outline_rounded,
-                      label: '${board.filledCellCount}/${board.totalActiveCells}',
-                      color: AppColors.success,
-                    ),
-                    const SizedBox(width: AppDimensions.sm),
-                    _StatPill(
-                      icon: Icons.lightbulb_outline_rounded,
-                      label: '$_hintsUsed',
-                      color: AppColors.primaryAmber,
-                    ),
-                    const SizedBox(width: AppDimensions.sm),
-                    _StatPill(
-                      icon: Icons.error_outline_rounded,
-                      label: '$_mistakes',
-                      color: AppColors.error,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppDimensions.paddingMd),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 420),
-                  child: CrosswordGrid(
-                    board: board,
-                    onCellChanged: _onCellChanged,
+          Expanded(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(AppDimensions.paddingMd),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _StatPill(
+                        icon: Icons.check_circle_outline_rounded,
+                        label: '${board.filledCellCount}/${board.totalActiveCells}',
+                        color: AppColors.success,
+                      ),
+                      const SizedBox(width: AppDimensions.sm),
+                      _StatPill(
+                        icon: Icons.lightbulb_outline_rounded,
+                        label: '$_hintsUsed',
+                        color: AppColors.primaryAmber,
+                      ),
+                      const SizedBox(width: AppDimensions.sm),
+                      _StatPill(
+                        icon: Icons.error_outline_rounded,
+                        label: '$_mistakes',
+                        color: AppColors.error,
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                  const SizedBox(height: AppDimensions.paddingMd),
+                  ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 420),
+                    child: CrosswordGrid(
+                      board: board,
+                      onCellChanged: _onCellChanged,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
           Container(
