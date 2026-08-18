@@ -14,7 +14,6 @@ import '../widgets/promo_carousel.dart';
 import '../widgets/home_verse_of_the_day.dart';
 import '../widgets/upcoming_quiz_card.dart';
 import '../widgets/activity_tile.dart';
-import '../widgets/quick_action_grid.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -41,26 +40,24 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Refresh the scheduled notification with the freshest verse each time the
-    // app is brought to the foreground.
     if (state == AppLifecycleState.resumed) {
       _scheduleDailyVerseNotification();
     }
   }
 
-  /// Schedules (or refreshes) the daily 7:00 AM "Good Morning + verse of the
-  /// day" notification using the current user name and today's verse.
   Future<void> _scheduleDailyVerseNotification() async {
     try {
       final user = ref.read(authProvider).user;
       final firstName = (user?.fullName ?? '').split(' ').first.trim();
-
       final verse = await ref.read(verseOfTheDayProvider.future);
+
+      // Clean brackets if present in raw verse text
+      final cleanedText = verse.text.replaceAll('{', '').replaceAll('}', '');
 
       await NotificationService.instance.requestPermissions();
       await NotificationService.instance.scheduleDailyVerse(
         userName: firstName,
-        verseText: verse.text,
+        verseText: cleanedText,
         verseReference: verse.formattedReference,
       );
     } catch (e) {
@@ -73,34 +70,101 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final mockData = _mockHomeData();
 
-    return RefreshIndicator(
-      onRefresh: () async {
-        // TODO: refresh home data
-      },
-      child: ListView(
-        padding: const EdgeInsets.only(bottom: AppDimensions.paddingXl),
-        children: [
-          _buildGreeting(context, user?.fullName, isDark),
-          const SizedBox(height: AppDimensions.paddingMd),
-          PromoCarousel(slides: _promoSides(context)),
-          const SizedBox(height: AppDimensions.paddingMd),
-          const HomeVerseOfTheDay(),
-          const SizedBox(height: AppDimensions.paddingLg),
-          _buildSectionHeader(context, 'Quick Actions', isDark),
-          const SizedBox(height: AppDimensions.paddingSm),
-          QuickActionGrid(actions: _quickActions(context)),
-          const SizedBox(height: AppDimensions.paddingLg),
-          _buildSectionHeader(context, 'Upcoming Quizzes', isDark),
-          const SizedBox(height: AppDimensions.paddingSm),
-          _buildUpcomingQuizzes(context, mockData.upcomingQuizzes),
-          const SizedBox(height: AppDimensions.paddingLg),
-          _buildSectionHeader(context, 'Recent Activity', isDark),
-          const SizedBox(height: AppDimensions.paddingSm),
-          _buildRecentActivity(context, mockData.recentActivity),
-        ],
+    return Scaffold(
+      body: SafeArea(
+        child: RefreshIndicator(
+          onRefresh: () async {
+            // TODO: refresh home data
+          },
+          child: ListView(
+            padding: const EdgeInsets.only(bottom: AppDimensions.paddingXl),
+            children: [
+              _buildGreeting(context, user?.fullName, isDark),
+              const SizedBox(height: AppDimensions.paddingMd),
+              PromoCarousel(slides: _promoSides(context)),
+              const SizedBox(height: AppDimensions.paddingMd),
+              const HomeVerseOfTheDay(),
+              const SizedBox(height: AppDimensions.paddingLg),
+              _buildSectionHeader(context, 'Quick Actions', isDark),
+              const SizedBox(height: AppDimensions.paddingSm),
+              _buildQuickActionGrid(context, isDark),
+              const SizedBox(height: AppDimensions.paddingLg),
+              _buildSectionHeader(context, 'Upcoming Quizzes', isDark),
+              const SizedBox(height: AppDimensions.paddingSm),
+              _buildUpcomingQuizzes(context, mockData.upcomingQuizzes),
+              const SizedBox(height: AppDimensions.paddingLg),
+              _buildSectionHeader(context, 'Recent Activity', isDark),
+              const SizedBox(height: AppDimensions.paddingSm),
+              _buildRecentActivity(context, mockData.recentActivity),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuickActionGrid(BuildContext context, bool isDark) {
+    final actions = _quickActions(context);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
+      child: GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: actions.length,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 3,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+          childAspectRatio: 0.95,
+        ),
+        itemBuilder: (context, index) {
+          final action = actions[index];
+          return Material(
+            color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+              onTap: action.onTap,
+              child: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: action.bgColor,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(action.icon, color: action.color, size: 22),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      action.label,
+                      textAlign: TextAlign.center,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -130,19 +194,12 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
 
   Widget _buildGreeting(BuildContext context, String? fullName, bool isDark) {
     final hour = DateTime.now().hour;
-    String greeting;
-    if (hour < 12) {
-      greeting = 'Good Morning';
-    } else if (hour < 17) {
-      greeting = 'Good Afternoon';
-    } else {
-      greeting = 'Good Evening';
-    }
+    String greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
         AppDimensions.paddingMd,
-        AppDimensions.paddingMd,
+        AppDimensions.paddingSm,
         AppDimensions.paddingMd,
         0,
       ),
@@ -152,9 +209,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
             radius: 22,
             backgroundColor: AppColors.primaryBlue,
             child: Text(
-              (fullName?.isNotEmpty == true)
-                  ? fullName!.substring(0, 1).toUpperCase()
-                  : 'U',
+              (fullName?.isNotEmpty == true) ? fullName!.substring(0, 1).toUpperCase() : 'U',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -226,9 +281,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
           ),
           TextButton(
             onPressed: () {
-              if (title == 'Upcoming Quizzes') {
-                context.go(RouteNames.quiz);
-              } else if (title == 'Recent Activity') {
+              if (title == 'Upcoming Quizzes' || title == 'Recent Activity') {
                 context.go(RouteNames.quiz);
               }
             },
@@ -259,7 +312,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
         itemCount: quizzes.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 4),
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
         itemBuilder: (context, index) {
           final quiz = quizzes[index];
           return UpcomingQuizCard(
@@ -274,8 +327,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     );
   }
 
-  Widget _buildRecentActivity(
-      BuildContext context, List<RecentActivity> activities) {
+  Widget _buildRecentActivity(BuildContext context, List<RecentActivity> activities) {
     if (activities.isEmpty) {
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
@@ -327,49 +379,44 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     );
   }
 
-  List<QuickAction> _quickActions(BuildContext context) {
+  List<_QuickActionItem> _quickActions(BuildContext context) {
     return [
-      QuickAction(
+      _QuickActionItem(
         icon: Icons.quiz_rounded,
         label: 'Take Quiz',
         color: AppColors.primaryBlue,
         bgColor: AppColors.primaryBlue.withValues(alpha: 0.1),
         onTap: () => context.go(RouteNames.quiz),
       ),
-      QuickAction(
+      _QuickActionItem(
         icon: Icons.menu_book_rounded,
         label: 'Bible Learning',
         color: AppColors.primaryAmber,
         bgColor: AppColors.primaryAmber.withValues(alpha: 0.1),
         onTap: () => context.push(RouteNames.library),
       ),
-      QuickAction(
+      _QuickActionItem(
         icon: Icons.auto_stories_rounded,
         label: 'Library',
         color: const Color(0xFF7C3AED),
         bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
         onTap: () => context.push(RouteNames.library),
       ),
-
-      // NEW: Bible Search action
-    QuickAction(
-      icon: Icons.search_rounded,
-      label: 'Bible Search',
-      color: const Color(0xFF7C3AED),
-      bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
-      onTap: () => context.pushNamed(RouteNames.bibleSearch),
-    ),
-
-    // NEW: Crossword action
-    QuickAction(
-      icon: Icons.grid_4x4_rounded,
-      label: 'CrossWord',
-      color: const Color(0xFF16A34A),
-      bgColor: const Color(0xFF16A34A).withValues(alpha: 0.1),
-      onTap: () => context.pushNamed(RouteNames.crossPuzzle),
-    ),
-    
-      QuickAction(
+      _QuickActionItem(
+        icon: Icons.search_rounded,
+        label: 'Bible Search',
+        color: const Color(0xFF7C3AED),
+        bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
+        onTap: () => context.pushNamed(RouteNames.bibleSearch),
+      ),
+      _QuickActionItem(
+        icon: Icons.grid_4x4_rounded,
+        label: 'Crossword',
+        color: const Color(0xFF16A34A),
+        bgColor: const Color(0xFF16A34A).withValues(alpha: 0.1),
+        onTap: () => context.pushNamed(RouteNames.crossPuzzle),
+      ),
+      _QuickActionItem(
         icon: Icons.person_rounded,
         label: 'Profile',
         color: AppColors.success,
@@ -444,4 +491,20 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     if (diff.inDays < 7) return '${diff.inDays}d ago';
     return '${diff.inDays ~/ 7}w ago';
   }
+}
+
+class _QuickActionItem {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final Color bgColor;
+  final VoidCallback onTap;
+
+  const _QuickActionItem({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.bgColor,
+    required this.onTap,
+  });
 }
