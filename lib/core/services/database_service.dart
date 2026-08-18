@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:path/path.dart';
@@ -411,36 +412,51 @@ Future<void> _initBibleDatabase() async {
   /// Get a deterministic pseudo-random verse of the day.
   ///
   /// The verse stays constant for the whole day (so the VOTD doesn't change
-  /// mid-day) but jumps to a different book/chapter/verse each day by deriving
-  /// the row offset from a hash of the date string instead of a sequential
-  /// `dayOfYear % count`.
+  /// mid-day) but is drawn from a random book, chapter and verse each day by
+  /// seeding the RNG with the current date. This guarantees the verse comes
+  /// from a different book/chapter/verse every day instead of repeating from
+  /// a single book.
   Future<Map<String, dynamic>?> getVerseOfTheDay() async {
     if (!isBibleAvailable) return null;
     try {
       final db = await bibleDatabase;
-      final countResult = await db.rawQuery('SELECT COUNT(*) AS count FROM bible_verses');
-      final count = countResult.first['count'] as int? ?? 0;
-      if (count == 0) return null;
 
+      // Date-seeded RNG so the pick is stable within a day, random across days.
       final now = DateTime.now();
-      final dateKey = '${now.year}-${now.month}-${now.day}';
-      var hash = 5381;
-      for (var i = 0; i < dateKey.length; i++) {
-        hash = ((hash << 5) + hash) ^ dateKey.codeUnitAt(i);
-      }
-      hash = hash & 0x7fffffff;
-      final offset = hash % count;
+      final seed = now.year * 10000 + now.month * 100 + now.day;
+      final random = Random(seed);
 
-      final results = await db.rawQuery('''
+      // 1. Pick a random book from the whole Bible.
+      final books = await db.rawQuery(
+        'SELECT DISTINCT book FROM bible_verses ORDER BY book',
+      );
+      if (books.isEmpty) return null;
+      final book = books[random.nextInt(books.length)]['book'] as String;
+
+      // 2. Pick a random chapter within that book.
+      final chapters = await db.rawQuery(
+        'SELECT DISTINCT chapter FROM bible_verses WHERE book = ? ORDER BY chapter',
+        [book],
+      );
+      if (chapters.isEmpty) return null;
+      final chapter = chapters[random.nextInt(chapters.length)]['chapter'] as int;
+
+      // 3. Pick a random verse within that chapter.
+      final verses = await db.rawQuery(
+        '''
         SELECT 
           book,
           chapter,
           verse,
           text
         FROM bible_verses
-        LIMIT 1 OFFSET ?
-      ''', [offset]);
-      return results.isNotEmpty ? results.first : null;
+        WHERE book = ? AND chapter = ?
+        ORDER BY verse
+        ''',
+        [book, chapter],
+      );
+      if (verses.isEmpty) return null;
+      return verses[random.nextInt(verses.length)];
     } catch (e) {
       LoggerService.error('getVerseOfTheDay failed: $e');
       return null;

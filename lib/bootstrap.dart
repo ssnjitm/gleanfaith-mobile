@@ -1,6 +1,7 @@
 import 'package:talker_flutter/talker_flutter.dart';
 import 'core/services/logger_service.dart';
 import 'core/services/database_service.dart';
+import 'core/services/notification_service.dart';
 
 class AppBootstrap {
   static late final DatabaseService databaseService;
@@ -19,6 +20,9 @@ class AppBootstrap {
       // Initialize database services
       databaseService = DatabaseService.instance;
       await databaseService.init();
+      
+      // Initialize local notifications (daily verse reminder)
+      await NotificationService.instance.init();
       
       _isInitialized = true;
       

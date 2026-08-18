@@ -8,6 +8,7 @@
 
 #include <connectivity_plus/connectivity_plus_windows_plugin.h>
 #include <flutter_secure_storage_windows/flutter_secure_storage_windows_plugin.h>
+#include <flutter_timezone/flutter_timezone_plugin_c_api.h>
 #include <objectbox_flutter_libs/objectbox_flutter_libs_plugin.h>
 #include <pdfx/pdfx_plugin.h>
 #include <share_plus/share_plus_windows_plugin_c_api.h>
@@ -18,6 +19,8 @@ void RegisterPlugins(flutter::PluginRegistry* registry) {
       registry->GetRegistrarForPlugin("ConnectivityPlusWindowsPlugin"));
   FlutterSecureStorageWindowsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("FlutterSecureStorageWindowsPlugin"));
+  FlutterTimezonePluginCApiRegisterWithRegistrar(
+      registry->GetRegistrarForPlugin("FlutterTimezonePluginCApi"));
   ObjectboxFlutterLibsPluginRegisterWithRegistrar(
       registry->GetRegistrarForPlugin("ObjectboxFlutterLibsPlugin"));
   PdfxPluginRegisterWithRegistrar(

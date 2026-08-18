@@ -5,7 +5,10 @@ import 'package:go_router/go_router.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
+import '../../../../services/logger_service.dart';
+import '../../../../services/notification_service.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../../../features/bible/presentation/providers/bible_providers.dart';
 import '../../domain/entities/home_data.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/home_verse_of_the_day.dart';
@@ -13,11 +16,60 @@ import '../widgets/upcoming_quiz_card.dart';
 import '../widgets/activity_tile.dart';
 import '../widgets/quick_action_grid.dart';
 
-class HomePage extends ConsumerWidget {
+class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scheduleDailyVerseNotification();
+    });
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Refresh the scheduled notification with the freshest verse each time the
+    // app is brought to the foreground.
+    if (state == AppLifecycleState.resumed) {
+      _scheduleDailyVerseNotification();
+    }
+  }
+
+  /// Schedules (or refreshes) the daily 7:00 AM "Good Morning + verse of the
+  /// day" notification using the current user name and today's verse.
+  Future<void> _scheduleDailyVerseNotification() async {
+    try {
+      final user = ref.read(authProvider).user;
+      final firstName = (user?.fullName ?? '').split(' ').first.trim();
+
+      final verse = await ref.read(verseOfTheDayProvider.future);
+
+      await NotificationService.instance.requestPermissions();
+      await NotificationService.instance.scheduleDailyVerse(
+        userName: firstName,
+        verseText: verse.text,
+        verseReference: verse.formattedReference,
+      );
+    } catch (e) {
+      LoggerService.warning('Could not schedule daily verse notification: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
