@@ -3,6 +3,7 @@ import '../../../../core/error/failures.dart';
 import '../entities/topic.dart';
 import '../entities/verse.dart';
 import '../entities/topic_verse.dart';
+import '../entities/bible_book.dart';
 
 abstract class BibleRepository {
   TaskEither<Failure, List<Topic>> searchTopics(String query);
@@ -17,5 +18,11 @@ abstract class BibleRepository {
     required int chapter,
     required int verse,
     int contextRange,
+  });
+  TaskEither<Failure, List<BibleBook>> getBooks();
+  TaskEither<Failure, List<int>> getChapters(String book);
+  TaskEither<Failure, List<Verse>> getChapterVerses({
+    required String book,
+    required int chapter,
   });
 }

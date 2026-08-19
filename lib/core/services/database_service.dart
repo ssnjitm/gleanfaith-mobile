@@ -601,6 +601,77 @@ Future<void> _initBibleDatabase() async {
     }
   }
 
+  /// Get all 66 books of the Bible with their chapter counts, in canonical
+  /// order (Old Testament first, then New Testament).
+  Future<List<Map<String, dynamic>>> getBooks() async {
+    if (!isBibleAvailable) return [];
+    try {
+      final db = await bibleDatabase;
+      final rows = await db.rawQuery('''
+        SELECT 
+          book,
+          COUNT(DISTINCT chapter) AS chapter_count
+        FROM bible_verses
+        GROUP BY book
+      ''');
+      final order = {
+        for (var i = 0; i < kjvCanonicalBooks.length; i++)
+          kjvCanonicalBooks[i]: i,
+      };
+      // rawQuery results are immutable; copy into a growable list before sorting.
+      final books = List<Map<String, Object?>>.from(rows);
+      books.sort((a, b) {
+        final ia = order[a['book']] ?? kjvCanonicalBooks.length;
+        final ib = order[b['book']] ?? kjvCanonicalBooks.length;
+        return ia.compareTo(ib);
+      });
+      return books;
+    } catch (e) {
+      LoggerService.error('getBooks failed: $e');
+      return [];
+    }
+  }
+
+  /// Get the list of chapter numbers available in a book.
+  Future<List<int>> getChapters(String book) async {
+    if (!isBibleAvailable) return [];
+    try {
+      final db = await bibleDatabase;
+      final rows = await db.rawQuery(
+        'SELECT DISTINCT chapter FROM bible_verses WHERE book = ? ORDER BY chapter',
+        [book],
+      );
+      return rows.map((r) => r['chapter'] as int).toList();
+    } catch (e) {
+      LoggerService.error('getChapters failed: $e');
+      return [];
+    }
+  }
+
+  /// Get all verses of a full chapter, in order.
+  Future<List<Map<String, dynamic>>> getChapterVerses({
+    required String book,
+    required int chapter,
+  }) async {
+    if (!isBibleAvailable) return [];
+    try {
+      final db = await bibleDatabase;
+      return await db.rawQuery('''
+        SELECT 
+          book,
+          chapter,
+          verse,
+          text
+        FROM bible_verses
+        WHERE book = ? AND chapter = ?
+        ORDER BY verse
+      ''', [book, chapter]);
+    } catch (e) {
+      LoggerService.error('getChapterVerses failed: $e');
+      return [];
+    }
+  }
+
   /// Get total counts for statistics
   Future<Map<String, int>> getStats() async {
     if (!isBibleAvailable) {
@@ -667,6 +738,12 @@ const List<String> _kjvBooks = [
   'Hebrews', 'James', '1 Peter', '2 Peter', '1 John', '2 John',
   '3 John', 'Jude', 'Revelation',
 ];
+
+/// Public canonical list of the 66 books of the Bible (OT then NT).
+///
+/// Re-exported from [_kjvBooks] so feature layers can classify books by
+/// testament without depending on the private constant.
+const List<String> kjvCanonicalBooks = _kjvBooks;
 
 const Map<String, String> _bookAbbreviations = {
   'gen': 'Genesis',

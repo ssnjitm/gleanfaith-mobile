@@ -5,6 +5,7 @@ import '../../../../core/services/database_service.dart';
 import '../../domain/entities/topic.dart';
 import '../../domain/entities/verse.dart';
 import '../../domain/entities/topic_verse.dart';
+import '../../domain/entities/bible_book.dart';
 import '../../domain/repositories/bible_repository.dart';
 
 class BibleRepositoryImpl implements BibleRepository {
@@ -124,6 +125,61 @@ class BibleRepositoryImpl implements BibleRepository {
       },
       (error, stackTrace) => handleError(error),
     );
+  }
+
+  @override
+  TaskEither<Failure, List<BibleBook>> getBooks() {
+    return TaskEither.tryCatch(
+      () async {
+        final rows = await _databaseService.getBooks();
+        return rows.map((row) {
+          final name = row['book'] as String;
+          return BibleBook(
+            name: name,
+            chapterCount: row['chapter_count'] as int? ?? 0,
+            testament: _isOldTestament(name)
+                ? 'Old Testament'
+                : 'New Testament',
+          );
+        }).toList();
+      },
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  @override
+  TaskEither<Failure, List<int>> getChapters(String book) {
+    return TaskEither.tryCatch(
+      () async => _databaseService.getChapters(book),
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  @override
+  TaskEither<Failure, List<Verse>> getChapterVerses({
+    required String book,
+    required int chapter,
+  }) {
+    return TaskEither.tryCatch(
+      () async {
+        final rows = await _databaseService.getChapterVerses(
+          book: book,
+          chapter: chapter,
+        );
+        return rows.map((row) => Verse(
+          book: row['book'] as String,
+          chapter: row['chapter'] as int,
+          verse: row['verse'] as int,
+          text: row['text'] as String,
+        )).toList();
+      },
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  bool _isOldTestament(String book) {
+    final index = kjvCanonicalBooks.indexOf(book);
+    return index >= 0 && index < 39;
   }
 
   @override

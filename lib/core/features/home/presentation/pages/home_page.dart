@@ -10,6 +10,7 @@ import '../../../../services/notification_service.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../../features/bible/presentation/providers/bible_providers.dart';
 import '../../domain/entities/home_data.dart';
+import '../providers/main_tab_provider.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/home_verse_of_the_day.dart';
 import '../widgets/upcoming_quiz_card.dart';
@@ -406,14 +407,16 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         label: 'Take Quiz',
         color: AppColors.primaryBlue,
         bgColor: AppColors.primaryBlue.withValues(alpha: 0.1),
-        onTap: () => context.go(RouteNames.quiz),
+        onTap: () {
+          ref.read(mainTabIndexProvider.notifier).state = 1;
+        },
       ),
       _QuickActionItem(
         icon: Icons.menu_book_rounded,
         label: 'Bible Learning',
         color: AppColors.primaryAmber,
         bgColor: AppColors.primaryAmber.withValues(alpha: 0.1),
-        onTap: () => context.push(RouteNames.library),
+        onTap: () => context.pushNamed(RouteNames.bibleReader),
       ),
       _QuickActionItem(
         icon: Icons.auto_stories_rounded,
@@ -441,7 +444,9 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         label: 'Profile',
         color: AppColors.success,
         bgColor: AppColors.successBg,
-        onTap: () => context.go(RouteNames.profile),
+        onTap: () {
+          ref.read(mainTabIndexProvider.notifier).state = 3;
+        },
       ),
     ];
   }

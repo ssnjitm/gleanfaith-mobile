@@ -7,6 +7,7 @@ import '../../../quiz/presentation/pages/quiz_home_page.dart';
 import '../../../leaderboard/presentation/pages/leaderboard_home_page.dart';
 import '../../../profile/presentation/pages/profile_page.dart';
 import '../../../profile/presentation/widgets/profile_drawer.dart';
+import '../providers/main_tab_provider.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -16,8 +17,6 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
-  int _currentIndex = 0;
-
   final _pages = const [
     HomePage(),
     QuizHomePage(),
@@ -28,11 +27,12 @@ class _MainShellState extends ConsumerState<MainShell> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentIndex = ref.watch(mainTabIndexProvider);
 
     return Scaffold(
       drawer: const ProfileDrawer(),
       body: IndexedStack(
-        index: _currentIndex,
+        index: currentIndex,
         children: _pages,
       ),
       bottomNavigationBar: Container(
@@ -45,9 +45,9 @@ class _MainShellState extends ConsumerState<MainShell> {
           ),
         ),
         child: BottomNavigationBar(
-          currentIndex: _currentIndex,
+          currentIndex: currentIndex,
           onTap: (index) {
-            setState(() => _currentIndex = index);
+            ref.read(mainTabIndexProvider.notifier).state = index;
           },
           backgroundColor: Colors.transparent,
           elevation: 0,

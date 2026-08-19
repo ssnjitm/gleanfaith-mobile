@@ -1,4 +1,7 @@
 import 'package:flutter/widgets.dart';
+import 'package:glean_faith_app/features/bible/presentation/pages/bible_reader_page.dart';
+import 'package:glean_faith_app/features/bible/presentation/pages/bible_chapter_list_page.dart';
+import 'package:glean_faith_app/features/bible/presentation/pages/bible_reading_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_search_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_topic_detail_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_verse_detail_page.dart';
@@ -149,6 +152,25 @@ class AppRouter {
           ),
         ),
         GoRoute(
+    path: RouteNames.bibleReader,
+    name: RouteNames.bibleReader,
+    builder: (context, state) => const BibleReaderPage(),
+  ),
+  GoRoute(
+    path: RouteNames.bibleChapters,
+    name: RouteNames.bibleChapters,
+    builder: (context, state) =>
+        BibleChapterListPage(book: state.pathParameters['book']!),
+  ),
+  GoRoute(
+    path: RouteNames.bibleChapter,
+    name: RouteNames.bibleChapter,
+    builder: (context, state) => BibleReadingPage(
+      book: state.pathParameters['book']!,
+      chapter: int.parse(state.pathParameters['chapter']!),
+    ),
+  ),
+  GoRoute(
     path: RouteNames.bibleSearch,
     name: RouteNames.bibleSearch,
     builder: (context, state) => const BibleSearchPage(),
