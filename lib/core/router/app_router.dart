@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_search_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_topic_detail_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_verse_detail_page.dart';
@@ -40,6 +40,11 @@ class _AuthRedirect extends ChangeNotifier {
 class AppRouter {
   static _AuthRedirect? _authRedirect;
 
+  /// Global route observer used by pages that need to refresh their data
+  /// when they regain visibility (e.g. the crossword journey after a play).
+  static final RouteObserver<ModalRoute<void>> routeObserver =
+      RouteObserver<ModalRoute<void>>();
+
   static _AuthRedirect get redirectNotifier {
     _authRedirect ??= _AuthRedirect();
     return _authRedirect!;
@@ -49,6 +54,7 @@ class AppRouter {
     return GoRouter(
       initialLocation: RouteNames.splash,
       refreshListenable: redirectNotifier,
+      observers: [routeObserver],
       redirect: (context, state) {
         final authStatus = redirectNotifier.status;
         final location = state.matchedLocation;

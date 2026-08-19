@@ -320,25 +320,7 @@ class CrossPuzzleLocalDataSource {
       throw Exception('Crossword set ${set.setId} has no questions');
     }
 
-    // Lay the answers out as rows (all "across"), one per row, so the
-    // grid can be rendered and played.
-    final rows = set.questions.length;
-    final cols = set.questions
-        .map((q) => q.answer.length)
-        .fold<int>(0, (max, len) => len > max ? len : max);
-
-    final clues = <CrossClue>[];
-    for (var i = 0; i < set.questions.length; i++) {
-      final q = set.questions[i];
-      clues.add(CrossClue(
-        number: q.numberInLevel,
-        clue: q.clue,
-        answer: q.answer,
-        direction: 'across',
-        row: i,
-        col: 0,
-      ));
-    }
+    final layout = _buildCrosswordLayout(set.questions);
 
     final difficulty = _majorityDifficulty(set.questions);
 
@@ -349,15 +331,237 @@ class CrossPuzzleLocalDataSource {
       thumbnail: null,
       difficulty: difficulty,
       categoryId: null,
-      gridRows: rows,
-      gridCols: cols,
-      clues: clues,
+      gridRows: layout.rows,
+      gridCols: layout.cols,
+      clues: layout.clues,
       points: 100,
       status: 'published',
       revealAnswers: false,
       createdAt: DateTime.now(),
       updatedAt: DateTime.now(),
     );
+  }
+
+  /// Builds an interlocking across/down crossword layout from the set's
+  /// questions. Words are placed greedily (longest first), crossing at
+  /// shared letters; clue numbers follow classic reading order
+  /// (top-left first), with a shared number when across + down words start
+  /// on the same cell.
+  _CrosswordLayout _buildCrosswordLayout(List<_LocalQuestion> questions) {
+    final placed = <_LayoutWord>[];
+    final occupied = <String, String>{};
+
+    final sorted = [...questions]
+      ..sort((a, b) => b.answer.length.compareTo(a.answer.length));
+
+    // Place the longest word horizontally in the top-left corner.
+    final first = sorted.first;
+    placed.add(_LayoutWord(
+      question: first,
+      direction: 'across',
+      row: 0,
+      col: 0,
+    ));
+    for (var c = 0; c < first.answer.length; c++) {
+      occupied['0,$c'] = first.answer[c];
+    }
+
+    for (var i = 1; i < sorted.length; i++) {
+      final word = sorted[i];
+      final best = _findBestPlacement(word, occupied);
+      if (best != null) {
+        placed.add(best);
+        _markPlaced(best, occupied);
+      } else {
+        // No intersection found — start a fresh island below the grid.
+        final startRow = _maxOccupiedRow(occupied) + 2;
+        final fallback = _LayoutWord(
+          question: word,
+          direction: 'across',
+          row: startRow,
+          col: 0,
+        );
+        placed.add(fallback);
+        _markPlaced(fallback, occupied);
+      }
+    }
+
+    // Normalize coordinates to a 0-based grid.
+    var minRow = 0, minCol = 0, maxRow = 0, maxCol = 0;
+    for (final word in placed) {
+      for (var i = 0; i < word.answer.length; i++) {
+        final row = word.direction == 'down' ? word.row + i : word.row;
+        final col = word.direction == 'across' ? word.col + i : word.col;
+        if (row < minRow) minRow = row;
+        if (row > maxRow) maxRow = row;
+        if (col < minCol) minCol = col;
+        if (col > maxCol) maxCol = col;
+      }
+    }
+
+    // Assign clue numbers in reading order over the normalized grid.
+    final numbers = <String, int>{};
+    final startKeys = placed.map((w) {
+      final r = w.row - minRow;
+      final c = w.col - minCol;
+      return '$r,$c';
+    }).toSet();
+    var nextNumber = 1;
+    for (var r = minRow; r <= maxRow; r++) {
+      for (var c = minCol; c <= maxCol; c++) {
+        final key = '${r - minRow},${c - minCol}';
+        if (startKeys.contains(key)) {
+          numbers[key] = nextNumber++;
+        }
+      }
+    }
+
+    final clues = placed.map((w) {
+      final row = w.row - minRow;
+      final col = w.col - minCol;
+      return CrossClue(
+        number: numbers['$row,$col']!,
+        clue: w.question.clue,
+        answer: w.answer,
+        direction: w.direction,
+        row: row,
+        col: col,
+      );
+    }).toList();
+
+    return _CrosswordLayout(
+      clues: clues,
+      rows: maxRow - minRow + 1,
+      cols: maxCol - minCol + 1,
+    );
+  }
+
+  _LayoutWord? _findBestPlacement(
+    _LocalQuestion word,
+    Map<String, String> occupied,
+  ) {
+    _LayoutWord? best;
+    var bestScore = -1;
+
+    // Try every cell of every placed word as a crossing point.
+    final placedCells = occupied.keys.toList();
+    for (final key in placedCells) {
+      final parts = key.split(',');
+      final pr = int.parse(parts[0]);
+      final pc = int.parse(parts[1]);
+      final letter = occupied[key]!;
+      for (var li = 0; li < word.answer.length; li++) {
+        if (word.answer[li] != letter) continue;
+
+        // Try placing this word vertically, crossing at (pr, pc).
+        final vStartRow = pr - li;
+        final vScore = _scorePlacement(
+          word,
+          vStartRow,
+          pc,
+          'down',
+          occupied,
+        );
+        if (vScore != null && vScore > bestScore) {
+          bestScore = vScore;
+          best = _LayoutWord(
+            question: word,
+            direction: 'down',
+            row: vStartRow,
+            col: pc,
+          );
+        }
+
+        // Try placing this word horizontally, crossing at (pr, pc).
+        final hStartCol = pc - li;
+        final hScore = _scorePlacement(
+          word,
+          pr,
+          hStartCol,
+          'across',
+          occupied,
+        );
+        if (hScore != null && hScore > bestScore) {
+          bestScore = hScore;
+          best = _LayoutWord(
+            question: word,
+            direction: 'across',
+            row: pr,
+            col: hStartCol,
+          );
+        }
+      }
+    }
+    return best;
+  }
+
+  /// Validates a candidate placement and returns a score (or null when
+  /// invalid). Higher = better: prefers more shared letters and a more
+  /// compact result.
+  int? _scorePlacement(
+    _LocalQuestion word,
+    int row,
+    int col,
+    String direction,
+    Map<String, String> occupied,
+  ) {
+    final length = word.answer.length;
+    final dr = direction == 'down' ? 1 : 0;
+    final dc = direction == 'across' ? 1 : 0;
+
+    var intersections = 0;
+    var minRow = row, maxRow = row, minCol = col, maxCol = col;
+
+    for (var i = 0; i < length; i++) {
+      final r = row + dr * i;
+      final c = col + dc * i;
+      final key = '$r,$c';
+      final existing = occupied[key];
+      if (existing != null) {
+        if (existing != word.answer[i]) return null;
+        intersections++;
+      } else {
+        // Perpendicular neighbours must be empty (no parallel touch).
+        final pr = direction == 'down' ? 0 : 1;
+        final pc = direction == 'down' ? 1 : 0;
+        if (occupied.containsKey('${r - pr},${c - pc}') ||
+            occupied.containsKey('${r + pr},${c + pc}')) {
+          return null;
+        }
+      }
+      if (r < minRow) minRow = r;
+      if (r > maxRow) maxRow = r;
+      if (c < minCol) minCol = c;
+      if (c > maxCol) maxCol = c;
+    }
+
+    // Words must not merge: empty cell right before/after the word.
+    if (occupied.containsKey('${row - dr},${col - dc}') ||
+        occupied.containsKey('${row + dr * length},${col + dc * length}')) {
+      return null;
+    }
+
+    if (intersections == 0) return null;
+
+    final area = (maxRow - minRow + 1) * (maxCol - minCol + 1);
+    return intersections * 1000 - area;
+  }
+
+  void _markPlaced(_LayoutWord word, Map<String, String> occupied) {
+    for (var i = 0; i < word.answer.length; i++) {
+      final r = word.direction == 'down' ? word.row + i : word.row;
+      final c = word.direction == 'across' ? word.col + i : word.col;
+      occupied['$r,$c'] = word.answer[i];
+    }
+  }
+
+  int _maxOccupiedRow(Map<String, String> occupied) {
+    var maxRow = 0;
+    for (final key in occupied.keys) {
+      final row = int.parse(key.split(',')[0]);
+      if (row > maxRow) maxRow = row;
+    }
+    return maxRow;
   }
 
   CrossPuzzle _attachSummary(CrossPuzzle puzzle, LocalProgressRecord? record) {
@@ -518,4 +722,33 @@ class _LocalQuestion {
       difficulty: json['difficulty'] as String? ?? 'easy',
     );
   }
+}
+
+/// Result of [CrossPuzzleLocalDataSource._buildCrosswordLayout].
+class _CrosswordLayout {
+  final List<CrossClue> clues;
+  final int rows;
+  final int cols;
+
+  const _CrosswordLayout({
+    required this.clues,
+    required this.rows,
+    required this.cols,
+  });
+}
+
+/// A single word placed on the crossword grid.
+class _LayoutWord {
+  final _LocalQuestion question;
+  final String answer;
+  final String direction; // across | down
+  final int row;
+  final int col;
+
+  _LayoutWord({
+    required this.question,
+    required this.direction,
+    required this.row,
+    required this.col,
+  }) : answer = question.answer;
 }
