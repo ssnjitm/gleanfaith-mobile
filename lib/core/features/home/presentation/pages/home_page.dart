@@ -49,7 +49,26 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     try {
       final user = ref.read(authProvider).user;
       final firstName = (user?.fullName ?? '').split(' ').first.trim();
-      final verse = await ref.read(verseOfTheDayProvider.future);
+
+      // Determine the date the next 7:00 AM notification fires on, and fetch
+      // the deterministic verse for THAT date so the notification matches the
+      // verse of the day shown on the home page that day.
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      final nextFireAt7am = today.add(const Duration(hours: 7));
+      final targetDate = nextFireAt7am.isAfter(now)
+          ? today
+          : today.add(const Duration(days: 1));
+
+      final result = await ref
+          .read(getVerseOfTheDayUseCaseProvider)
+          .call(date: targetDate)
+          .run();
+      final verse = result.fold(
+        (failure) => throw failure,
+        (v) => v,
+      );
+      if (verse == null) return;
 
       // Clean brackets if present in raw verse text
       final cleanedText = verse.text.replaceAll('{', '').replaceAll('}', '');
@@ -59,6 +78,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         userName: firstName,
         verseText: cleanedText,
         verseReference: verse.formattedReference,
+        date: targetDate,
       );
     } catch (e) {
       LoggerService.warning('Could not schedule daily verse notification: $e');

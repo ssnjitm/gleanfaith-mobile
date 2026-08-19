@@ -8,7 +8,7 @@ class GetVerseOfTheDayUseCase {
 
   GetVerseOfTheDayUseCase(this._repository);
 
-  TaskEither<Failure, Verse?> call() {
-    return _repository.getVerseOfTheDay();
+  TaskEither<Failure, Verse?> call({DateTime? date}) {
+    return _repository.getVerseOfTheDay(date: date);
   }
 }

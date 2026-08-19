@@ -416,13 +416,17 @@ Future<void> _initBibleDatabase() async {
   /// seeding the RNG with the current date. This guarantees the verse comes
   /// from a different book/chapter/verse every day instead of repeating from
   /// a single book.
-  Future<Map<String, dynamic>?> getVerseOfTheDay() async {
+  ///
+  /// Passing a [date] makes the pick deterministic for that specific date, so
+  /// the notification scheduled for tomorrow can show the exact same verse the
+  /// home page will display on that day.
+  Future<Map<String, dynamic>?> getVerseOfTheDay({DateTime? date}) async {
     if (!isBibleAvailable) return null;
     try {
       final db = await bibleDatabase;
 
       // Date-seeded RNG so the pick is stable within a day, random across days.
-      final now = DateTime.now();
+      final now = date ?? DateTime.now();
       final seed = now.year * 10000 + now.month * 100 + now.day;
       final random = Random(seed);
 

@@ -8,9 +8,10 @@ import 'logger_service.dart';
 
 /// Manages the daily "Good Morning + Verse of the Day" notification.
 ///
-/// A repeating daily notification is scheduled for 7:00 AM local time. The
-/// content (user name + verse) is refreshed every time the app is opened so
-/// the verse shown matches the day it is delivered.
+/// A one-shot notification is scheduled for 7:00 AM on the target [date] with
+/// the verse for that exact day baked in. It is re-scheduled every time the
+/// app is opened/resumed, so the verse delivered always matches the one the
+/// home page shows for that day.
 class NotificationService {
   NotificationService._internal();
 
@@ -63,21 +64,23 @@ class NotificationService {
     }
   }
 
-  /// Schedules (or re-schedules) the daily 7:00 AM verse notification.
+  /// Schedules (or re-schedules) the 7:00 AM verse notification for [date].
   ///
-  /// Re-scheduling with the same id replaces any previously scheduled
-  /// notification, which keeps the verse content fresh for each day.
+  /// This is a one-shot notification (no daily repetition) so the verse content
+  /// baked into it always matches the date it fires on. Re-scheduling with the
+  /// same id replaces any previously scheduled notification.
   Future<void> scheduleDailyVerse({
     required String userName,
     required String verseText,
     required String verseReference,
+    required DateTime date,
   }) async {
     try {
       await _configureLocalTimeZone();
 
       final now = tz.TZDateTime.now(tz.local);
       tz.TZDateTime scheduledDate =
-          tz.TZDateTime(tz.local, now.year, now.month, now.day, 7);
+          tz.TZDateTime(tz.local, date.year, date.month, date.day, 7);
       if (scheduledDate.isBefore(now)) {
         scheduledDate = scheduledDate.add(const Duration(days: 1));
       }
@@ -111,11 +114,12 @@ class NotificationService {
         scheduledDate: scheduledDate,
         notificationDetails: details,
         androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
-        matchDateTimeComponents: DateTimeComponents.time,
         payload: 'verse_of_the_day',
       );
 
-      LoggerService.info('Daily verse notification scheduled for 7:00 AM');
+      LoggerService.info(
+        'Daily verse notification scheduled for ${date.year}-${date.month}-${date.day} at 7:00 AM',
+      );
     } catch (e) {
       LoggerService.error('Failed to schedule daily verse notification: $e');
     }

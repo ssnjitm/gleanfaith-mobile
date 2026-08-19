@@ -80,10 +80,10 @@ class BibleRepositoryImpl implements BibleRepository {
   }
 
   @override
-  TaskEither<Failure, Verse?> getVerseOfTheDay() {
+  TaskEither<Failure, Verse?> getVerseOfTheDay({DateTime? date}) {
     return TaskEither.tryCatch(
       () async {
-        final row = await _databaseService.getVerseOfTheDay();
+        final row = await _databaseService.getVerseOfTheDay(date: date);
         if (row == null) return null;
         return Verse(
           book: row['book'] as String,
