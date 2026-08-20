@@ -197,19 +197,14 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       return;
     }
 
-    if (value.length > 1) {
-      final char = value.substring(value.length - 1);
-      
-      if (board.inputLetter(char)) {
-        if (board.activeDirection == 'across') {
-          board.moveBy(0, 1);
-        } else {
-          board.moveBy(1, 0);
-        }
-      }
-      _resetHiddenController();
-      _onCellChanged(board.filledCellCount);
+    // inputLetter places the letter and advances the cursor by one cell in
+    // the active direction — it must NOT be called again here.
+    final char = value.substring(value.length - 1);
+    if (RegExp(r'^[a-zA-Z]$').hasMatch(char)) {
+      board.inputLetter(char);
     }
+    _resetHiddenController();
+    _onCellChanged(board.filledCellCount);
   }
 
   void _resetHiddenController() {
@@ -266,7 +261,18 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
     final board = _board;
     if (board == null || _saving) return;
 
-    if (board.filledCellCount < board.totalActiveCells) {
+    // When the puzzle ships answers (local datasets always do) require a
+    // fully correct grid before submitting — a partial/wrong submission must
+    // never unlock the next level.
+    if (board.hasAnswers) {
+      board.markIncorrectCells();
+      setState(() {});
+      if (!board.isFullyCorrect) {
+        _showIncompleteFeedback(board);
+        _scheduleAutosave();
+        return;
+      }
+    } else if (board.filledCellCount < board.totalActiveCells) {
       final confirmed = await _confirmIncomplete();
       if (!confirmed) return;
     }
@@ -297,6 +303,26 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
     if (completed == null) return;
 
     context.pushReplacement(RouteNames.crossPuzzleResult, extra: completed);
+  }
+
+  void _showIncompleteFeedback(CrosswordBoard board) {
+    final empty = board.emptyCellCount;
+    final wrong = board.wrongCellCount;
+    final parts = <String>[];
+    if (empty > 0) {
+      parts.add('$empty empty cell${empty == 1 ? '' : 's'}');
+    }
+    if (wrong > 0) {
+      parts.add('$wrong incorrect letter${wrong == 1 ? '' : 's'}');
+    }
+    final detail = parts.isEmpty ? 'Keep filling the grid' : parts.join(' and ');
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Not solved yet — $detail. Every letter must be correct to unlock the next level.',
+        ),
+      ),
+    );
   }
 
   Future<bool> _confirmIncomplete() async {

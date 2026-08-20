@@ -220,14 +220,18 @@ class CrossPuzzleLocalDataSource {
 
     final totalCells = answerCells.length;
     var correctCells = 0;
+    final graded = <String>{};
     for (final cell in gridState) {
-      final expected = answerCells['${cell.row},${cell.col}'];
+      final key = '${cell.row},${cell.col}';
+      if (!graded.add(key)) continue;
+      final expected = answerCells[key];
       if (expected != null && expected == cell.value.toUpperCase()) {
         correctCells += 1;
       }
     }
 
     final accuracy = totalCells > 0 ? ((correctCells / totalCells) * 100).round() : 0;
+    final isSolved = totalCells > 0 && correctCells == totalCells;
     final pointsEarned = ((puzzle.points * accuracy) / 100).round();
 
     final all = await _readAllProgress();
@@ -236,16 +240,18 @@ class CrossPuzzleLocalDataSource {
           startedAt: DateTime.now().toIso8601String(),
         );
     final wasCompleted = existing.status == 'completed';
-    final newlyAwarded = !wasCompleted;
-    final completions = existing.completions + 1;
+    final newlyAwarded = isSolved && !wasCompleted;
+    final completions = existing.completions + (isSolved ? 1 : 0);
     final prevBest = existing.bestTimeSpentSeconds;
-    final bestTime = prevBest == null
-        ? timeSpentSeconds
-        : (timeSpentSeconds < prevBest ? timeSpentSeconds : prevBest);
+    final bestTime = isSolved
+        ? (prevBest == null
+            ? timeSpentSeconds
+            : (timeSpentSeconds < prevBest ? timeSpentSeconds : prevBest))
+        : prevBest;
 
     final now = DateTime.now().toIso8601String();
     final updated = LocalProgressRecord(
-      status: 'completed',
+      status: isSolved ? 'completed' : 'in_progress',
       gridState: gridState,
       revealedCells: existing.revealedCells,
       mistakes: mistakes,
@@ -256,7 +262,7 @@ class CrossPuzzleLocalDataSource {
       completions: completions,
       bestTimeSpentSeconds: bestTime,
       startedAt: existing.startedAt,
-      completedAt: now,
+      completedAt: isSolved ? now : existing.completedAt,
       lastSavedAt: now,
     );
     all[puzzleId] = updated;
@@ -265,15 +271,15 @@ class CrossPuzzleLocalDataSource {
     return CrossPuzzleCompleteResult(
       puzzleId: puzzleId,
       title: puzzle.title,
-      status: 'completed',
+      status: isSolved ? 'completed' : 'in_progress',
       totalCells: totalCells,
       correctCells: correctCells,
       accuracy: accuracy,
-      pointsEarned: pointsEarned,
+      pointsEarned: isSolved ? pointsEarned : 0,
       newlyAwarded: newlyAwarded,
       completions: completions,
-      bestTimeSpentSeconds: bestTime,
-      completedAt: now,
+      bestTimeSpentSeconds: bestTime ?? timeSpentSeconds,
+      completedAt: isSolved ? now : existing.completedAt ?? '',
       level: _buildLevelInfo(all),
     );
   }

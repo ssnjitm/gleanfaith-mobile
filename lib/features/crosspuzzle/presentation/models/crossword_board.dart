@@ -193,6 +193,81 @@ class CrosswordBoard {
     return count;
   }
 
+  int get emptyCellCount => totalActiveCells - filledCellCount;
+
+  // --- Answer verification ----------------------------------------------
+
+  /// Expected letter for every active cell, derived from the clue answers.
+  /// Only populated when the puzzle ships answers (local datasets always do).
+  Map<String, String> get answerCells {
+    final map = <String, String>{};
+    for (final clue in [...acrossClues, ...downClues]) {
+      final answer = clue.answer;
+      if (answer == null || answer.isEmpty) continue;
+      final cells =
+          clue.direction == 'across' ? acrossCells[clue.number] : downCells[clue.number];
+      if (cells == null) continue;
+      for (var i = 0; i < cells.length && i < answer.length; i++) {
+        map[cells[i].key] = answer[i].toUpperCase();
+      }
+    }
+    return map;
+  }
+
+  /// True when every active cell has a known expected letter, so the board
+  /// can be graded locally. Remote puzzles hide answers until completed.
+  bool get hasAnswers {
+    if (totalActiveCells == 0) return false;
+    return answerCells.length >= totalActiveCells;
+  }
+
+  /// True when every active cell holds the correct letter (all empty or wrong
+  /// cells fail this). Only meaningful when [hasAnswers] is true.
+  bool get isFullyCorrect {
+    final answers = answerCells;
+    for (final row in grid) {
+      for (final cell in row) {
+        if (!cell.isActive) continue;
+        final expected = answers[cell.key];
+        if (expected == null) continue;
+        if (cell.value.trim().isEmpty || cell.value != expected) return false;
+      }
+    }
+    return true;
+  }
+
+  /// Number of filled cells whose letter does not match the expected answer.
+  int get wrongCellCount {
+    final answers = answerCells;
+    var count = 0;
+    for (final row in grid) {
+      for (final cell in row) {
+        if (!cell.isActive) continue;
+        final expected = answers[cell.key];
+        if (expected == null) continue;
+        if (cell.value.trim().isNotEmpty && cell.value != expected) count++;
+      }
+    }
+    return count;
+  }
+
+  /// Marks every filled-and-incorrect cell as wrong so the UI can highlight
+  /// them. Correct/empty cells are cleared. No-op when answers are unknown.
+  void markIncorrectCells() {
+    final answers = answerCells;
+    for (final row in grid) {
+      for (final cell in row) {
+        if (!cell.isActive) continue;
+        final expected = answers[cell.key];
+        if (expected == null) {
+          cell.isWrong = false;
+          continue;
+        }
+        cell.isWrong = cell.value.trim().isNotEmpty && cell.value != expected;
+      }
+    }
+  }
+
   /// All filled cells in [row, col, value] form.
   List<GridCell> toGridState() {
     final result = <GridCell>[];
@@ -295,6 +370,7 @@ class CrosswordBoard {
     if (!RegExp(r'^[A-Z]$').hasMatch(upper)) return false;
 
     cell.value = upper;
+    cell.isWrong = false;
     _markInActiveClue();
     moveToNext();
     return true;
@@ -305,6 +381,7 @@ class CrosswordBoard {
     final cell = grid[_selectedRow!][_selectedCol!];
     if (!cell.isActive) return;
     cell.value = '';
+    cell.isWrong = false;
     _markInActiveClue();
   }
 

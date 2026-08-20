@@ -25,6 +25,7 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
     final accuracy = result?.accuracy ?? 0;
     final newlyAwarded = result?.newlyAwarded ?? true;
     final level = result?.level;
+    final isCompleted = result?.status == 'completed';
 
     return Scaffold(
       body: SafeArea(
@@ -38,19 +39,23 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
                   _buildTrophy(accuracy, isDark),
                   const SizedBox(height: AppDimensions.lg),
                   Text(
-                    newlyAwarded ? 'Congratulations!' : 'Completed Again!',
+                    isCompleted
+                        ? (newlyAwarded ? 'Congratulations!' : 'Completed Again!')
+                        : 'Keep Going!',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
-                      color: newlyAwarded ? AppColors.success : AppColors.primaryAmber,
+                      color: isCompleted ? AppColors.success : AppColors.primaryAmber,
                     ),
                   ),
                   const SizedBox(height: AppDimensions.sm),
                   Text(
-                    newlyAwarded
-                        ? 'You solved the puzzle and earned XP!'
-                        : 'Nice replay — no extra XP this time.',
+                    isCompleted
+                        ? (newlyAwarded
+                            ? 'You solved the puzzle and earned XP!'
+                            : 'Nice replay — no extra XP this time.')
+                        : 'Not quite — every letter must be correct to unlock the next level.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 14,
@@ -269,8 +274,39 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
   }
 
   Widget _buildButtons(BuildContext context) {
+    final result = widget.result;
+    final isCompleted = result?.status == 'completed';
+
     return Column(
       children: [
+        if (!isCompleted) ...[
+          SizedBox(
+            width: double.infinity,
+            height: AppDimensions.buttonHeight,
+            child: ElevatedButton.icon(
+              onPressed: () => context.pushReplacement(
+                RouteNames.crossPuzzlePlay,
+                extra: {
+                  'id': result?.puzzleId ?? '',
+                  'title': result?.title ?? '',
+                },
+              ),
+              icon: const Icon(Icons.replay_rounded, size: 20),
+              label: const Text(
+                'Try Again',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: AppDimensions.sm),
+        ],
         SizedBox(
           width: double.infinity,
           height: AppDimensions.buttonHeight,

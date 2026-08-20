@@ -2,6 +2,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glean_faith_app/core/services/storage_service.dart';
 import 'package:glean_faith_app/features/crosspuzzle/data/datasources/crosspuzzle_local_datasource.dart';
+import 'package:glean_faith_app/features/crosspuzzle/domain/entities/crosspuzzle_entities.dart';
 import 'package:glean_faith_app/features/crosspuzzle/presentation/models/crossword_board.dart';
 
 class _FakeSecureStorage extends FlutterSecureStorage {
@@ -135,5 +136,99 @@ void main() {
       expect(detail.puzzle.id, puzzle.id);
       expect(detail.puzzle.clues.length, puzzle.clues.length);
     }
+  });
+
+  Map<String, String> answersFor(CrossPuzzle puzzle) {
+    final answers = <String, String>{};
+    for (final clue in puzzle.clues) {
+      final answer = clue.answer ?? '';
+      if (clue.direction == 'across') {
+        for (var i = 0; i < answer.length; i++) {
+          answers['${clue.row},${clue.col + i}'] = answer[i];
+        }
+      } else {
+        for (var i = 0; i < answer.length; i++) {
+          answers['${clue.row + i},${clue.col}'] = answer[i];
+        }
+      }
+    }
+    return answers;
+  }
+
+  List<GridCell> gridFromAnswers(Map<String, String> answers) {
+    return answers.entries.map((e) {
+      final parts = e.key.split(',');
+      return GridCell(
+        row: int.parse(parts[0]),
+        col: int.parse(parts[1]),
+        value: e.value,
+      );
+    }).toList();
+  }
+
+  test('board can verify a fully correct grid locally', () async {
+    final puzzles = await datasource.getLocalPuzzles();
+    for (final puzzle in puzzles) {
+      final board = CrosswordBoard.fromPuzzle(puzzle);
+      expect(board.hasAnswers, isTrue, reason: '${puzzle.id} must ship answers');
+      expect(board.isFullyCorrect, isFalse,
+          reason: '${puzzle.id} starts empty so must not be correct');
+    }
+  });
+
+  test('partial/wrong submission does NOT complete or unlock the puzzle',
+      () async {
+    final puzzles = await datasource.getLocalPuzzles();
+    final puzzle = puzzles.first;
+    final answers = answersFor(puzzle);
+    final wrongGrid = answers.entries.map((e) {
+      final parts = e.key.split(',');
+      final wrongLetter = e.value == 'A' ? 'B' : 'A';
+      return GridCell(
+        row: int.parse(parts[0]),
+        col: int.parse(parts[1]),
+        value: wrongLetter,
+      );
+    }).toList();
+
+    final result = await datasource.completeLocalPuzzle(
+      puzzleId: puzzle.id,
+      gridState: wrongGrid,
+      mistakes: 0,
+      hintsUsed: 0,
+      timeSpentSeconds: 10,
+    );
+
+    expect(result.status, 'in_progress');
+    expect(result.newlyAwarded, isFalse);
+    expect(result.accuracy, lessThan(100));
+
+    final refreshed = await datasource.getLocalPuzzles();
+    final refreshedPuzzle = refreshed.firstWhere((p) => p.id == puzzle.id);
+    expect(refreshedPuzzle.userProgress?.isCompleted, isFalse,
+        reason: 'a partial solve must not unlock the next level');
+  });
+
+  test('fully correct submission completes and unlocks the next level',
+      () async {
+    final puzzles = await datasource.getLocalPuzzles();
+    final puzzle = puzzles.first;
+    final correctGrid = gridFromAnswers(answersFor(puzzle));
+
+    final result = await datasource.completeLocalPuzzle(
+      puzzleId: puzzle.id,
+      gridState: correctGrid,
+      mistakes: 0,
+      hintsUsed: 0,
+      timeSpentSeconds: 10,
+    );
+
+    expect(result.status, 'completed');
+    expect(result.newlyAwarded, isTrue);
+    expect(result.accuracy, 100);
+
+    final refreshed = await datasource.getLocalPuzzles();
+    final refreshedPuzzle = refreshed.firstWhere((p) => p.id == puzzle.id);
+    expect(refreshedPuzzle.userProgress?.isCompleted, isTrue);
   });
 }
