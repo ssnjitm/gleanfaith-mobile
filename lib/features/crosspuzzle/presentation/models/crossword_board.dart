@@ -312,7 +312,7 @@ class CrosswordBoard {
 
   // --- Input -------------------------------------------------------------
 
-  void selectCell(int row, int col) {
+  void selectCell(int row, int col, {String? preferDirection}) {
     if (!_inBounds(row, col)) return;
     final cell = grid[row][col];
     if (!cell.isActive) return;
@@ -327,8 +327,11 @@ class CrosswordBoard {
     _selectedRow = row;
     _selectedCol = col;
 
-    // Try to keep a matching clue active if it covers this cell.
-    final clue = _clueAtCell(row, col);
+    // Prefer a clue of the direction we were already typing in so the
+    // cursor flows naturally through down answers instead of snapping
+    // back to an intersecting across word.
+    final dir = preferDirection ?? _activeDirection ?? 'across';
+    final clue = _clueAtCell(row, col, preferredDirection: dir);
     if (clue != null) {
       _selectClue(clue);
     } else {
@@ -336,7 +339,7 @@ class CrosswordBoard {
     }
   }
 
-  /// Move selection: [dx, dy] where across moves in row (+1 col), down in col.
+  /// Move selection: [dy, dx] steps in the ACTIVE direction only.
   bool moveBy(int dy, int dx) {
     if (_selectedRow == null || _selectedCol == null) return false;
     final dir = _activeDirection ?? 'across';
@@ -370,10 +373,107 @@ class CrosswordBoard {
     if (!RegExp(r'^[A-Z]$').hasMatch(upper)) return false;
 
     cell.value = upper;
-    cell.isWrong = false;
+    // Live feedback: flag incorrect letters immediately so the user can
+    // self-correct and submission unlocks naturally on a perfect grid.
+    cell.isWrong = _isWrongLetter(cell);
     _markInActiveClue();
-    moveToNext();
+    _advanceCursor();
     return true;
+  }
+
+  bool _isWrongLetter(CrosswordCell cell) {
+    if (!hasAnswers) return false;
+    final expected = answerCells[cell.key];
+    return expected != null && expected != cell.value;
+  }
+
+  /// Places the cursor on the next empty cell of the active word, jumping to
+  /// the next unfinished word once the current one is exhausted.
+  void _advanceCursor() {
+    final cells = currentClueCells;
+    if (cells == null || cells.isEmpty) return;
+
+    final idx = _selectedIndexIn(cells);
+    if (idx >= 0 && idx < cells.length - 1) {
+      final next = cells[idx + 1];
+      selectCell(next.row, next.col);
+      return;
+    }
+    _jumpToNextIncompleteClue();
+  }
+
+  int _selectedIndexIn(List<CrosswordCell> cells) {
+    if (_selectedRow == null || _selectedCol == null) return -1;
+    return cells.indexWhere(
+      (c) => c.row == _selectedRow && c.col == _selectedCol,
+    );
+  }
+
+  /// Jumps to the next word with empty cells — continues in the current
+  /// direction first, then switches direction; wraps around the puzzle.
+  void _jumpToNextIncompleteClue() {
+    final dir = _activeDirection ?? 'across';
+    final sameDir = dir == 'across' ? acrossClues : downClues;
+    final otherDir = dir == 'across' ? downClues : acrossClues;
+    final map = dir == 'across' ? acrossCells : downCells;
+    final otherMap = dir == 'across' ? downCells : acrossCells;
+
+    final currentIndex =
+        sameDir.indexWhere((c) => c.number == _activeClueNumber);
+
+    CrossClue? target;
+    for (var i = 1; i <= sameDir.length; i++) {
+      final clue = sameDir[(currentIndex + i) % sameDir.length];
+      if (!_clueFilled(map[clue.number])) {
+        target = clue;
+        break;
+      }
+    }
+    target ??= otherDir.firstWhere(
+      (c) => !_clueFilled(otherMap[c.number]),
+      orElse: () => otherDir.isEmpty ? sameDir.first : otherDir.first,
+    );
+
+    _selectClue(target);
+    final cells = (target.direction == 'across'
+        ? acrossCells
+        : downCells)[target.number];
+    if (cells != null && cells.isNotEmpty) {
+      final firstEmpty = cells.indexWhere((c) => c.value.trim().isEmpty);
+      final cell = firstEmpty >= 0 ? cells[firstEmpty] : cells.first;
+      selectCell(cell.row, cell.col);
+    }
+  }
+
+  bool _clueFilled(List<CrosswordCell>? cells) {
+    if (cells == null || cells.isEmpty) return true;
+    return cells.every((c) => c.value.trim().isNotEmpty);
+  }
+
+  /// Backspace: clears the current letter, or steps back and clears the
+  /// previous letter when the current cell is already empty.
+  void handleBackspace() {
+    if (_selectedRow == null || _selectedCol == null) return;
+    final cell = grid[_selectedRow!][_selectedCol!];
+    if (!cell.isActive) return;
+
+    if (cell.value.trim().isNotEmpty) {
+      cell.value = '';
+      cell.isWrong = false;
+      _markInActiveClue();
+      return;
+    }
+
+    final cells = currentClueCells;
+    if (cells == null) return;
+    final idx = _selectedIndexIn(cells);
+    if (idx > 0) {
+      final prev = cells[idx - 1];
+      selectCell(prev.row, prev.col);
+      prev.value = '';
+      prev.isWrong = false;
+      _markInActiveClue();
+    }
   }
 
   void clearCell() {
@@ -386,10 +486,11 @@ class CrosswordBoard {
   }
 
   void toggleDirection() {
-    if (_selectedRow == null || _selectedCol == null || _activeDirection == null) {
+    if (_selectedRow == null || _selectedCol == null) {
       return;
     }
-    final newDir = _activeDirection == 'across' ? 'down' : 'across';
+    final currentDir = _activeDirection ?? 'across';
+    final newDir = currentDir == 'across' ? 'down' : 'across';
     // Find a clue of the new direction covering the selected cell.
     CrossClue? candidate;
     for (final clue in (newDir == 'across' ? acrossClues : downClues)) {
@@ -400,6 +501,7 @@ class CrosswordBoard {
     }
     if (candidate != null) {
       _selectClue(candidate);
+      _markInActiveClue();
     } else {
       _isAcross = newDir == 'across';
       _activeDirection = newDir;
@@ -435,11 +537,14 @@ class CrosswordBoard {
     return null;
   }
 
-  CrossClue? _clueAtCell(int row, int col) {
-    for (final clue in acrossClues) {
+  CrossClue? _clueAtCell(int row, int col, {String? preferredDirection}) {
+    final dir = preferredDirection ?? 'across';
+    final primary = dir == 'down' ? downClues : acrossClues;
+    final secondary = dir == 'down' ? acrossClues : downClues;
+    for (final clue in primary) {
       if (_covers(clue, row, col)) return clue;
     }
-    for (final clue in downClues) {
+    for (final clue in secondary) {
       if (_covers(clue, row, col)) return clue;
     }
     return null;
