@@ -19,6 +19,11 @@ class RouteNames {
   static const String leaderboard = '/leaderboard';
   static const String library = '/library';
   static const String libraryDetail = '/library/detail';
+
+  // Courses
+  static const String courses = '/courses';
+  static const String courseDetail = '/courses/detail';
+  static const String courseContent = '/courses/content';
   static const String blog = '/blog';
   static const String blogDetail = '/blog/detail';
   static const String video = '/video';

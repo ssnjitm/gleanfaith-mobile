@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
+import '../../../../../features/course/presentation/pages/courses_page.dart';
 import '../../../../../features/library/presentation/providers/library_provider.dart';
 import '../../../../../features/library/domain/entities/content_item.dart';
 
@@ -35,14 +36,37 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
     final libraryState = ref.watch(libraryProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Bible Learning')),
-      body: Column(
-        children: [
-          _buildTypeFilter(context, libraryState.activeType, isDark),
-          const SizedBox(height: AppDimensions.sm),
-          Expanded(child: _buildContentList(libraryState, isDark)),
-        ],
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        backgroundColor: AppColors.bgGray,
+        appBar: AppBar(
+          title: const Text('Bible Learning'),
+          bottom: TabBar(
+            labelColor: AppColors.primaryBlue,
+            unselectedLabelColor:
+                isDark ? Colors.grey[400] : AppColors.textMuted,
+            indicatorColor: AppColors.primaryBlue,
+            dividerColor:
+                isDark ? const Color(0xFF334155) : AppColors.borderLight,
+            tabs: const [
+              Tab(text: 'Contents'),
+              Tab(text: 'Courses'),
+            ],
+          ),
+        ),
+        body: TabBarView(
+          children: [
+            Column(
+              children: [
+                _buildTypeFilter(context, libraryState.activeType, isDark),
+                const SizedBox(height: AppDimensions.sm),
+                Expanded(child: _buildContentList(libraryState, isDark)),
+              ],
+            ),
+            const CoursesGridBody(),
+          ],
+        ),
       ),
     );
   }

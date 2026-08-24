@@ -34,6 +34,21 @@ class ApiConstants {
   static const String content = '/content';
   static const String contentCategories = '/content/categories';
 
+  static String contentById(String id) => '/content/$id';
+
+  // Courses
+  static const String courses = '/courses';
+  static const String coursesMyProgress = '/courses/my-progress';
+
+  static String courseById(String id) => '/courses/$id';
+  static String courseStart(String id) => '/courses/$id/start';
+  static String courseReset(String id) => '/courses/$id/reset';
+  static String courseProgress(String id) => '/courses/$id/progress';
+  static String courseLessonComplete(String courseId, String lessonId) =>
+      '/courses/$courseId/lessons/$lessonId/complete';
+  static String courseItemComplete(String courseId, String itemId) =>
+      '/courses/$courseId/items/$itemId/complete';
+
   // Leaderboard
   static const String leaderboard = '/leaderboard';
   static const String leaderboardMe = '/leaderboard/me';

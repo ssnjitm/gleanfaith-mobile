@@ -21,6 +21,10 @@ import '../../features/quiz/presentation/pages/quiz_result_page.dart';
 import '../features/library/presentation/pages/library_page.dart';
 import '../../features/library/presentation/pages/library_detail_page.dart';
 import '../../features/library/domain/entities/content_item.dart';
+import '../../features/course/presentation/pages/courses_page.dart';
+import '../../features/course/presentation/pages/course_learn_page.dart';
+import '../../features/course/presentation/pages/course_content_page.dart';
+import '../../features/course/domain/entities/course_progress_entities.dart';
 import '../../features/notification/presentation/pages/notifications_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_home_page.dart';
@@ -147,6 +151,25 @@ class AppRouter {
         GoRoute(
           path: RouteNames.library,
           builder: (context, state) => const LibraryPage(),
+        ),
+        GoRoute(
+          path: RouteNames.courses,
+          builder: (context, state) => const CoursesPage(),
+        ),
+        GoRoute(
+          path: RouteNames.courseDetail,
+          builder: (context, state) => CourseLearnPage(
+            courseId: state.extra as String? ?? '',
+          ),
+        ),
+        GoRoute(
+          path: RouteNames.courseContent,
+          builder: (context, state) {
+            final extra = state.extra;
+            return CourseContentPage(
+              args: extra is CourseContentViewArgs ? extra : null,
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.libraryDetail,
