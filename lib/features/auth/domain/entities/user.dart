@@ -22,4 +22,24 @@ class User {
     this.isActive = true,
     this.avatar,
   });
+
+  User copyWithProfile({
+    String? fullName,
+    String? username,
+    String? phoneNumber,
+    String? avatar,
+  }) {
+    return User(
+      id: id,
+      customerID: customerID,
+      email: email,
+      fullName: fullName ?? this.fullName,
+      role: role,
+      username: username ?? this.username,
+      phoneNumber: phoneNumber ?? this.phoneNumber,
+      isVerified: isVerified,
+      isActive: isActive,
+      avatar: avatar ?? this.avatar,
+    );
+  }
 }

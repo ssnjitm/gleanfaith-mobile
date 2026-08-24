@@ -199,6 +199,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 
+  void updateUser(User user) {
+    if (state.status == AuthStatus.authenticated) {
+      state = state.copyWith(user: user);
+    }
+  }
+
   Future<void> checkAuth() async {
     final hasToken = await _ref.read(storageProvider).containsKey(AppConstants.tokenKey);
     if (hasToken) {

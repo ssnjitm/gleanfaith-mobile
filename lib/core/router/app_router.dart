@@ -21,6 +21,8 @@ import '../../features/quiz/presentation/pages/quiz_result_page.dart';
 import '../features/library/presentation/pages/library_page.dart';
 import '../../features/library/presentation/pages/library_detail_page.dart';
 import '../../features/library/domain/entities/content_item.dart';
+import '../../features/notification/presentation/pages/notifications_page.dart';
+import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_home_page.dart';
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_my_puzzles_page.dart';
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_play_page.dart';
@@ -117,6 +119,14 @@ class AppRouter {
         GoRoute(
           path: RouteNames.settings,
           builder: (context, state) => const SettingsPage(),
+        ),
+        GoRoute(
+          path: RouteNames.notifications,
+          builder: (context, state) => const NotificationsPage(),
+        ),
+        GoRoute(
+          path: RouteNames.profileEdit,
+          builder: (context, state) => const EditProfilePage(),
         ),
         GoRoute(
           path: RouteNames.quizDetail,

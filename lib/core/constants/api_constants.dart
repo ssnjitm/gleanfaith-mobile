@@ -42,6 +42,13 @@ class ApiConstants {
   static const String crossPuzzle = '/crosspuzzle';
   static const String crossPuzzleProgress = '/crosspuzzle/progress';
 
+  // Notifications (user-facing)
+  static const String notificationsUser = '/notifications/user';
+  static const String notificationsUserReadAll = '/notifications/user/read-all';
+
+  static String notificationMarkRead(String id) =>
+      '/notifications/user/$id/read';
+
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

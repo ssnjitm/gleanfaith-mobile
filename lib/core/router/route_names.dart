@@ -26,6 +26,8 @@ class RouteNames {
   static const String pdf = '/pdf';
   static const String article = '/article';
   static const String profile = '/profile';
+  static const String profileEdit = '/profile/edit';
+  static const String notifications = '/notifications';
   static const String settings = '/settings';
 
   //bible 

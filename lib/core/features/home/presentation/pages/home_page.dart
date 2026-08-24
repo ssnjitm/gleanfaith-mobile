@@ -196,19 +196,19 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         title: 'Daily Quiz Challenge',
         subtitle: 'Grow in faith and win points every day.',
         icon: Icons.emoji_events_rounded,
-        onTap: () => context.go(RouteNames.quiz),
+        onTap: () => ref.read(mainTabIndexProvider.notifier).state = 1,
       ),
       PromoSlide(
         title: 'Bible Study Library',
         subtitle: 'Explore articles, videos and podcasts.',
         icon: Icons.auto_stories_rounded,
-        onTap: () => context.go(RouteNames.profile),
+        onTap: () => context.go(RouteNames.library),
       ),
       PromoSlide(
         title: 'Join the Leaderboard',
         subtitle: 'Compete with the community this week.',
         icon: Icons.leaderboard_rounded,
-        onTap: () => context.go(RouteNames.leaderboard),
+        onTap: () => ref.read(mainTabIndexProvider.notifier).state = 2,
       ),
     ];
   }
@@ -277,7 +277,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                 color: isDark ? Colors.grey[400] : AppColors.textMuted,
                 size: 20,
               ),
-              onPressed: () {},
+              onPressed: () => context.push(RouteNames.notifications),
               padding: EdgeInsets.zero,
             ),
           ),
@@ -303,7 +303,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
           TextButton(
             onPressed: () {
               if (title == 'Upcoming Quizzes' || title == 'Recent Activity') {
-                context.go(RouteNames.quiz);
+                ref.read(mainTabIndexProvider.notifier).state = 1;
               }
             },
             style: TextButton.styleFrom(
@@ -341,7 +341,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
             startDateTime: quiz.startDateTime,
             durationMinutes: quiz.durationMinutes,
             totalQuestions: quiz.totalQuestions,
-            onTap: () => context.go(RouteNames.quiz),
+            onTap: () => ref.read(mainTabIndexProvider.notifier).state = 1,
           );
         },
       ),

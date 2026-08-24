@@ -5,15 +5,35 @@ import 'package:go_router/go_router.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
+import '../../../home/presentation/providers/main_tab_provider.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../../../features/notification/presentation/providers/notification_provider.dart';
 
-class ProfileDrawer extends ConsumerWidget {
+class ProfileDrawer extends ConsumerStatefulWidget {
   const ProfileDrawer({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ProfileDrawer> createState() => _ProfileDrawerState();
+}
+
+class _ProfileDrawerState extends ConsumerState<ProfileDrawer> {
+  @override
+  void initState() {
+    super.initState();
+    Future.microtask(() {
+      if (!mounted) return;
+      final state = ref.read(notificationsProvider);
+      if (state.status == NotificationStatus.initial) {
+        ref.read(notificationsProvider.notifier).load();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final user = authState.user;
+    final unread = ref.watch(notificationsProvider).unreadCount;
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Drawer(
@@ -34,25 +54,38 @@ class ProfileDrawer extends ConsumerWidget {
                     context,
                     icon: Icons.person_outline,
                     title: 'Edit Profile',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(RouteNames.profileEdit);
+                    },
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.quiz_outlined,
                     title: 'My Quizzes',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      ref.read(mainTabIndexProvider.notifier).state = 1;
+                    },
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.leaderboard_outlined,
                     title: 'My Rankings',
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.pop(context);
+                      ref.read(mainTabIndexProvider.notifier).state = 2;
+                    },
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.notifications_outlined,
                     title: 'Notifications',
-                    onTap: () {},
+                    badgeCount: unread,
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.push(RouteNames.notifications);
+                    },
                   ),
                   _buildMenuItem(
                     context,
@@ -110,7 +143,7 @@ class ProfileDrawer extends ConsumerWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.paddingLg),
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: AppColors.primaryGradient,
       ),
       child: Row(
@@ -167,6 +200,7 @@ class ProfileDrawer extends ConsumerWidget {
     required IconData icon,
     required String title,
     required VoidCallback onTap,
+    int badgeCount = 0,
   }) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -192,6 +226,25 @@ class ProfileDrawer extends ConsumerWidget {
           color: isDark ? Colors.grey[200] : AppColors.textPrimary,
         ),
       ),
+      trailing: badgeCount > 0
+          ? Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+              decoration: BoxDecoration(
+                color: AppColors.error,
+                borderRadius: BorderRadius.circular(999),
+              ),
+              constraints: const BoxConstraints(minWidth: 22),
+              child: Text(
+                badgeCount > 99 ? '99+' : '$badgeCount',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            )
+          : null,
       onTap: onTap,
     );
   }
