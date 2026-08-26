@@ -192,7 +192,7 @@ class _CoursesGridBodyState extends ConsumerState<CoursesGridBody>
           crossAxisCount: 2,
           mainAxisSpacing: AppDimensions.paddingMd,
           crossAxisSpacing: AppDimensions.paddingMd,
-          mainAxisExtent: 236,
+          mainAxisExtent: 272,
         ),
         itemCount: state.courses.length,
         itemBuilder: (context, index) {

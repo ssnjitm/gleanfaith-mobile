@@ -114,7 +114,7 @@ class CourseCard extends StatelessWidget {
         topRight: Radius.circular(AppDimensions.radiusLg - 1),
       ),
       child: AspectRatio(
-        aspectRatio: 16 / 9,
+        aspectRatio: 4 / 3,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -186,7 +186,7 @@ class CourseCard extends StatelessWidget {
             )
           : Icon(
               Icons.auto_stories_rounded,
-              size: 36,
+              size: 48,
               color: AppColors.primaryBlue.withValues(alpha: 0.45),
             ),
     );

@@ -61,6 +61,10 @@ class CourseItemContent {
   final String type; // written | pdf | audio | video
   final String? thumbnailUrl;
   final int? readTimeMinutes;
+  final String body;
+  final String? fileUrl;
+  final String? videoUrl;
+  final List<String> tags;
 
   const CourseItemContent({
     required this.id,
@@ -68,7 +72,69 @@ class CourseItemContent {
     required this.type,
     required this.thumbnailUrl,
     required this.readTimeMinutes,
+    required this.body,
+    required this.fileUrl,
+    required this.videoUrl,
+    required this.tags,
   });
+
+  bool get isRenderable {
+    switch (type) {
+      case 'pdf':
+        return (fileUrl ?? '').isNotEmpty;
+      case 'video':
+        return (videoUrl ?? fileUrl ?? '').isNotEmpty;
+      case 'audio':
+        return (fileUrl ?? videoUrl ?? '').isNotEmpty;
+      default:
+        return body.trim().isNotEmpty;
+    }
+  }
+
+  CourseContentDocument toDocument() => CourseContentDocument(
+        id: id,
+        title: title,
+        body: body,
+        type: type,
+        fileUrl: fileUrl,
+        videoUrl: videoUrl,
+        thumbnailUrl: thumbnailUrl,
+        tags: tags,
+        readTimeMinutes: readTimeMinutes,
+      );
+}
+
+class CourseQuizQuestion {
+  final String text;
+  final List<String> options;
+  final int correctAnswerIndex;
+  final double points;
+  final String? explanation;
+
+  const CourseQuizQuestion({
+    required this.text,
+    required this.options,
+    required this.correctAnswerIndex,
+    required this.points,
+    required this.explanation,
+  });
+}
+
+class CourseQuizSet {
+  final String id;
+  final String title;
+  final String description;
+  final List<CourseQuizQuestion> questions;
+
+  const CourseQuizSet({
+    required this.id,
+    required this.title,
+    required this.description,
+    required this.questions,
+  });
+
+  double get maxScore =>
+      questions.fold(0, (sum, q) => sum + q.points);
 }
 
 class CourseContentDocument {
@@ -93,6 +159,19 @@ class CourseContentDocument {
     required this.tags,
     required this.readTimeMinutes,
   });
+
+  bool get isRenderable {
+    switch (type) {
+      case 'pdf':
+        return (fileUrl ?? '').isNotEmpty;
+      case 'video':
+        return (videoUrl ?? fileUrl ?? '').isNotEmpty;
+      case 'audio':
+        return (fileUrl ?? videoUrl ?? '').isNotEmpty;
+      default:
+        return body.trim().isNotEmpty;
+    }
+  }
 }
 
 class CourseItemQuiz {

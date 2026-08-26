@@ -24,6 +24,8 @@ class ApiConstants {
   // Quiz Sets (admin only — not used for user-facing quiz list)
   static const String quizSetsAll = '/quiz-sets/all-quizes';
 
+  static String quizSetById(String id) => '/quiz-sets/$id';
+
   // Quiz Schedule & Sessions
   static const String quizScheduleUpcoming = '/quiz-schedule/upcoming';
   static const String quizScheduleStart = '/quiz-schedule/';

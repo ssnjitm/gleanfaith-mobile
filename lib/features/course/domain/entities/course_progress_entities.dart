@@ -1,3 +1,5 @@
+import 'course_entities.dart';
+
 class LessonItemFlag {
   final String itemId;
   final String refType;
@@ -160,11 +162,29 @@ class CourseContentViewArgs {
   final String itemId;
   final String refId;
   final bool alreadyCompleted;
+  final CourseContentDocument? embedded;
 
   const CourseContentViewArgs({
     required this.courseId,
     required this.itemId,
     required this.refId,
     required this.alreadyCompleted,
+    this.embedded,
+  });
+}
+
+class CourseQuizPlayArgs {
+  final String courseId;
+  final String itemId;
+  final String refId;
+  final String title;
+  final int attemptsBefore;
+
+  const CourseQuizPlayArgs({
+    required this.courseId,
+    required this.itemId,
+    required this.refId,
+    required this.title,
+    required this.attemptsBefore,
   });
 }

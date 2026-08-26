@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/common/widgets/app_error_widget.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../library/presentation/widgets/library_content_player.dart';
@@ -48,19 +47,40 @@ class _CourseContentPageState extends ConsumerState<CourseContentPage> {
       });
       return;
     }
+
+    final embedded = _args.embedded;
+    if (embedded != null && embedded.isRenderable) {
+      setState(() {
+        _loading = false;
+        _doc = embedded;
+      });
+      return;
+    }
+
     setState(() => _loading = true);
     final result =
         await ref.read(getCourseContentUseCaseProvider).call(_args.refId).run();
     result.fold(
-      (failure) => setState(() {
-        _loading = false;
-        _error = failure.message;
-      }),
-      (doc) => setState(() {
-        _loading = false;
-        _error = null;
-        _doc = doc;
-      }),
+      (failure) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = embedded != null
+                ? 'This material may not be published yet.'
+                : failure.message;
+            _doc = embedded;
+          });
+        }
+      },
+      (doc) {
+        if (mounted) {
+          setState(() {
+            _loading = false;
+            _error = null;
+            _doc = doc;
+          });
+        }
+      },
     );
   }
 
@@ -107,16 +127,23 @@ class _CourseContentPageState extends ConsumerState<CourseContentPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (_error != null || _doc == null) {
-      return AppErrorWidget(
-        message: _error ?? 'Could not load this lesson content.',
-        onRetry: () => Future.microtask(_load),
-      );
+    final doc = _doc;
+
+    if (doc == null) {
+      return _buildUnpublishedFallback(isDark);
     }
 
-    final doc = _doc!;
+    if (_error != null && !doc.isRenderable) {
+      return _buildUnpublishedFallback(isDark);
+    }
+
     final hasMedia =
         doc.type == 'video' || doc.type == 'audio' || doc.type == 'pdf';
+
+    if (hasMedia && (doc.fileUrl == null || doc.fileUrl!.isEmpty) &&
+        (doc.videoUrl == null || doc.videoUrl!.isEmpty)) {
+      return _buildUnpublishedFallback(isDark);
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -192,6 +219,43 @@ class _CourseContentPageState extends ConsumerState<CourseContentPage> {
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildUnpublishedFallback(bool isDark) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(AppDimensions.paddingLg),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.lock_outline_rounded,
+              size: 56,
+              color: isDark ? Colors.white24 : AppColors.textMuted,
+            ),
+            const SizedBox(height: AppDimensions.paddingMd),
+            Text(
+              'Content not available yet',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: AppDimensions.sm),
+            Text(
+              'This material may still be unpublished. You can mark this step as complete and check back later.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 14,
+                height: 1.5,
+                color: isDark ? Colors.white54 : AppColors.textMuted,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

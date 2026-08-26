@@ -10,6 +10,7 @@ import '../../domain/usecases/complete_course_lesson.dart';
 import '../../domain/usecases/get_course_content.dart';
 import '../../domain/usecases/get_course_detail.dart';
 import '../../domain/usecases/get_course_progress.dart';
+import '../../domain/usecases/get_course_quiz.dart';
 import '../../domain/usecases/get_courses.dart';
 import '../../domain/usecases/reset_course_progress.dart';
 import '../../domain/usecases/start_course.dart';
@@ -30,6 +31,10 @@ final getCourseDetailUseCaseProvider = Provider<GetCourseDetailUseCase>((ref) {
 final getCourseContentUseCaseProvider =
     Provider<GetCourseContentUseCase>((ref) {
   return GetCourseContentUseCase(ref.watch(courseRepositoryProvider));
+});
+
+final getCourseQuizUseCaseProvider = Provider<GetCourseQuizUseCase>((ref) {
+  return GetCourseQuizUseCase(ref.watch(courseRepositoryProvider));
 });
 
 final getCourseProgressUseCaseProvider =

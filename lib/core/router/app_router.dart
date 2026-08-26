@@ -24,6 +24,7 @@ import '../../features/library/domain/entities/content_item.dart';
 import '../../features/course/presentation/pages/courses_page.dart';
 import '../../features/course/presentation/pages/course_learn_page.dart';
 import '../../features/course/presentation/pages/course_content_page.dart';
+import '../../features/course/presentation/pages/course_quiz_play_page.dart';
 import '../../features/course/domain/entities/course_progress_entities.dart';
 import '../../features/notification/presentation/pages/notifications_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
@@ -168,6 +169,15 @@ class AppRouter {
             final extra = state.extra;
             return CourseContentPage(
               args: extra is CourseContentViewArgs ? extra : null,
+            );
+          },
+        ),
+        GoRoute(
+          path: RouteNames.courseQuizPlay,
+          builder: (context, state) {
+            final extra = state.extra;
+            return CourseQuizPlayPage(
+              args: extra is CourseQuizPlayArgs ? extra : null,
             );
           },
         ),

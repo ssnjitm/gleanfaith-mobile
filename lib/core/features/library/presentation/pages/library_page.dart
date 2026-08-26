@@ -38,6 +38,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
 
     return DefaultTabController(
       length: 2,
+      initialIndex: 1,
       child: Scaffold(
         backgroundColor: AppColors.bgGray,
         appBar: AppBar(

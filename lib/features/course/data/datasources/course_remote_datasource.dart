@@ -111,6 +111,11 @@ class CourseRemoteDataSource {
     );
   }
 
+  Future<CourseQuizSet> getQuizSet(String quizSetId) async {
+    final response = await _dio.get(ApiConstants.quizSetById(quizSetId));
+    return CourseQuizSetModel.fromJson(_extractMap(response.data)).set;
+  }
+
   List<dynamic> _extractList(dynamic response, String key) {
     if (response is Map<String, dynamic>) {
       final data = response['data'];

@@ -18,6 +18,8 @@ abstract class CourseRepository {
     String contentId,
   );
 
+  TaskEither<Failure, CourseQuizSet> getQuizSet(String quizSetId);
+
   TaskEither<Failure, CourseProgressSnapshot> getCourseProgress(
     String courseId,
   );

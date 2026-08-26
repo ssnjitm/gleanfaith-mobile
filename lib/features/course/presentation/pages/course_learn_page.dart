@@ -11,7 +11,6 @@ import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/course_entities.dart';
 import '../../domain/entities/course_progress_entities.dart';
 import '../providers/course_detail_provider.dart';
-import '../widgets/quiz_attempt_sheet.dart';
 
 class CourseLearnPage extends ConsumerStatefulWidget {
   final String courseId;
@@ -23,7 +22,7 @@ class CourseLearnPage extends ConsumerStatefulWidget {
 }
 
 class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
-  final Set<String> _expandedLessonIds = {};
+  final Set<String> _collapsedLessonIds = {};
 
   CourseDetailNotifier get _notifier =>
       ref.read(courseDetailProvider(widget.courseId).notifier);
@@ -449,7 +448,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
       status = LessonStatusInfo.compute(doneCount, lesson.items.length);
     }
 
-    final expanded = _expandedLessonIds.contains(lesson.id);
+    final expanded = !_collapsedLessonIds.contains(lesson.id);
 
     return Container(
       decoration: BoxDecoration(
@@ -467,9 +466,9 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
               borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               onTap: () => setState(() {
                 if (expanded) {
-                  _expandedLessonIds.remove(lesson.id);
+                  _collapsedLessonIds.add(lesson.id);
                 } else {
-                  _expandedLessonIds.add(lesson.id);
+                  _collapsedLessonIds.remove(lesson.id);
                 }
               }),
               child: Padding(
@@ -798,24 +797,36 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
     }
 
     if (item.isQuiz) {
-      final state = ref.read(courseDetailProvider(widget.courseId));
-      final result = await showQuizAttemptSheet(
-        context,
+      final args = CourseQuizPlayArgs(
         courseId: widget.courseId,
         itemId: item.itemId,
-        quizTitle: item.quiz?.title ?? item.title,
-        questionCount: item.quiz?.questionCount,
-        previous: state.progress?.resultForItem(item.itemId),
+        refId: item.refId,
+        title: item.title,
+        attemptsBefore:
+            ref.read(courseDetailProvider(widget.courseId)).progress
+                ?.resultForItem(item.itemId)
+                ?.attempts ??
+            0,
       );
-      await _handleCompletion(result);
+      final result = await context.push<Object?>(
+        RouteNames.courseQuizPlay,
+        extra: args,
+      );
+      if (result is CompleteCourseItemResult) {
+        await _handleCompletion(result);
+      }
       return;
     }
 
+    final embedded = item.content != null && item.content!.isRenderable
+        ? item.content!.toDocument()
+        : null;
     final args = CourseContentViewArgs(
       courseId: widget.courseId,
       itemId: item.itemId,
       refId: item.refId,
       alreadyCompleted: completed,
+      embedded: embedded,
     );
     final result = await context.push<Object?>(
       RouteNames.courseContent,

@@ -1,9 +1,9 @@
 import 'dart:async';
-import 'dart:typed_data';
 
 import 'package:chewie/chewie.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:video_player/video_player.dart';
@@ -47,6 +47,7 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
   StreamSubscription<PlayerState>? _playerStateSub;
 
   PdfController? _pdfController;
+  Uint8List? _pdfBytes;
   bool _pdfReady = false;
   String? _pdfError;
 
@@ -146,6 +147,7 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
       if (bytes == null) throw Exception('Empty PDF response');
       final data = Uint8List.fromList(bytes);
       final controller = PdfController(document: PdfDocument.openData(data));
+      _pdfBytes = data;
       if (!mounted) return;
       setState(() {
         _pdfController = controller;
@@ -416,6 +418,13 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
                       );
                     },
                   ),
+                  IconButton(
+                    visualDensity: VisualDensity.compact,
+                    tooltip: 'Full screen',
+                    icon: const Icon(Icons.fullscreen_rounded),
+                    color: AppColors.primaryBlue,
+                    onPressed: _openFullScreenPdf,
+                  ),
                 ],
               ),
             ),
@@ -424,7 +433,7 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
               child: PdfView(
                 controller: controller,
                 scrollDirection: Axis.vertical,
-                builders: PdfViewBuilders(
+                builders: PdfViewBuilders<DefaultBuilderOptions>(
                   options: const DefaultBuilderOptions(),
                   documentLoaderBuilder: (context) => const Center(
                     child: CircularProgressIndicator(),
@@ -506,5 +515,147 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
     final minutes = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final seconds = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '${d.inHours > 0 ? '${d.inHours}:' : ''}$minutes:$seconds';
+  }
+
+  void _openFullScreenPdf() {
+    final bytes = _pdfBytes;
+    if (bytes == null) return;
+    Navigator.of(context, rootNavigator: true).push(
+      PageRouteBuilder<void>(
+        opaque: true,
+        transitionDuration: const Duration(milliseconds: 180),
+        reverseTransitionDuration: const Duration(milliseconds: 180),
+        pageBuilder: (_, _, _) => FullScreenPdfPage(
+          bytes: bytes,
+          initialPage: _pdfController?.page ?? 1,
+        ),
+        transitionsBuilder: (_, animation, _, child) => FadeTransition(
+          opacity: animation,
+          child: child,
+        ),
+      ),
+    );
+  }
+}
+
+class FullScreenPdfPage extends StatefulWidget {
+  final Uint8List bytes;
+  final int initialPage;
+
+  const FullScreenPdfPage({
+    super.key,
+    required this.bytes,
+    required this.initialPage,
+  });
+
+  @override
+  State<FullScreenPdfPage> createState() => _FullScreenPdfPageState();
+}
+
+class _FullScreenPdfPageState extends State<FullScreenPdfPage> {
+  late final PdfController _controller;
+  late int _page;
+  int? _pagesCount;
+
+  @override
+  void initState() {
+    super.initState();
+    _page = widget.initialPage < 1 ? 1 : widget.initialPage;
+    _controller = PdfController(
+      document: PdfDocument.openData(Uint8List.fromList(widget.bytes)),
+      initialPage: _page,
+    );
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: Stack(
+        children: [
+          PdfView(
+            controller: _controller,
+            scrollDirection: Axis.vertical,
+            onDocumentLoaded: (doc) {
+              if (mounted) setState(() => _pagesCount = doc.pagesCount);
+            },
+            onPageChanged: (page) {
+              if (mounted) setState(() => _page = page);
+            },
+            builders: PdfViewBuilders<DefaultBuilderOptions>(
+              options: const DefaultBuilderOptions(),
+              documentLoaderBuilder: (_) => const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+              pageLoaderBuilder: (_) => const Center(
+                child: CircularProgressIndicator(color: Colors.white),
+              ),
+              errorBuilder: (_, error) => Center(
+                child: Text(
+                  'Error: $error',
+                  style: const TextStyle(color: Colors.white70),
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(AppDimensions.sm),
+                child: Material(
+                  color: Colors.black.withValues(alpha: 0.45),
+                  shape: const CircleBorder(),
+                  clipBehavior: Clip.antiAlias,
+                  child: Tooltip(
+                    message: 'Exit full screen',
+                    child: IconButton(
+                      icon: const Icon(Icons.close_rounded,
+                          color: Colors.white),
+                      onPressed: () => Navigator.of(context).pop(),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: MediaQuery.of(context).padding.bottom + AppDimensions.md,
+            left: 0,
+            right: 0,
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.paddingMd,
+                  vertical: AppDimensions.xs + 2,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.55),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '$_page / ${_pagesCount ?? '-'}',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }

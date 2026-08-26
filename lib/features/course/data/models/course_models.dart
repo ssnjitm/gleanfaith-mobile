@@ -107,6 +107,10 @@ class CourseItemContentModel {
         type: map['type'] as String? ?? 'written',
         thumbnailUrl: map['thumbnailUrl'] as String?,
         readTimeMinutes: _toInt(map['readTimeMinutes']),
+        body: map['body'] as String? ?? '',
+        fileUrl: map['fileUrl'] as String?,
+        videoUrl: map['videoUrl'] as String?,
+        tags: _asList(map['tags']).map((e) => e.toString()).toList(),
       ),
     );
   }
@@ -176,44 +180,54 @@ class CourseDetailModel {
   const CourseDetailModel(this.detail);
 
   factory CourseDetailModel.fromJson(Map<String, dynamic> json) {
-    final lessons = _asList(json['lessons'])
+    final wrappedCourse = json['course'];
+    final courseJson = wrappedCourse is Map
+        ? Map<String, dynamic>.from(wrappedCourse)
+        : json;
+
+    final lessons = _asList(courseJson['lessons'])
         .whereType<Map>()
         .map((e) => CourseLessonModel.fromJson(_asMap(e)).lesson)
         .toList()
       ..sort((a, b) => a.order.compareTo(b.order));
 
-    final statsRaw = _asMap(json['stats']);
+    final statsRaw = _asMap(courseJson['stats']);
     final totalItems = _toIntOrZero(
-      statsRaw['totalItems'] ?? json['totalItems'],
+      statsRaw['totalItems'] ?? courseJson['totalItems'],
     );
     final totalLessons = _toIntOrZero(
-      statsRaw['totalLessons'] ?? json['totalLessons'],
+      statsRaw['totalLessons'] ?? courseJson['totalLessons'],
     );
     var completedItems = _toIntOrZero(statsRaw['completedItems']);
 
-    final progressRaw = _asMap(json['progress']);
+    final progressRaw = _asMap(json['progress'] ?? courseJson['progress']);
     final completedIds = _asList(progressRaw['completedItems'])
         .map((e) => e.toString())
         .toSet();
 
+    final userProgressRaw =
+        json['userProgress'] ?? courseJson['userProgress'];
     final userProgress =
-        CourseProgressSummaryModel.fromJson(json['userProgress'])?.summary;
+        CourseProgressSummaryModel.fromJson(userProgressRaw)?.summary;
 
-    if (completedItems == 0 && progressRaw.isNotEmpty) {
+    if (completedItems == 0 && completedIds.isNotEmpty) {
       completedItems = completedIds.length;
     }
 
     return CourseDetailModel(
       CourseDetail(
-        id: json['_id'] as String? ?? json['id'] as String? ?? '',
-        title: json['title'] as String? ?? '',
-        description: json['description'] as String? ?? '',
-        thumbnail: json['thumbnail'] as String?,
-        difficulty: json['difficulty'] as String? ?? 'easy',
-        categoryName: _categoryName(json['categoryId']),
-        points: _toIntOrZero(json['points']),
-        estimatedDurationMinutes: _toInt(json['estimatedDurationMinutes']),
-        totalCompletions: _toIntOrZero(json['totalCompletions']),
+        id: courseJson['_id'] as String? ??
+            courseJson['id'] as String? ??
+            '',
+        title: courseJson['title'] as String? ?? '',
+        description: courseJson['description'] as String? ?? '',
+        thumbnail: courseJson['thumbnail'] as String?,
+        difficulty: courseJson['difficulty'] as String? ?? 'easy',
+        categoryName: _categoryName(courseJson['categoryId']),
+        points: _toIntOrZero(courseJson['points']),
+        estimatedDurationMinutes:
+            _toInt(courseJson['estimatedDurationMinutes']),
+        totalCompletions: _toIntOrZero(courseJson['totalCompletions']),
         lessons: lessons,
         stats: CourseDetailStats(
           totalLessons: totalLessons,
@@ -369,6 +383,41 @@ class CompleteCourseItemResultModel {
         quizResult: quizRaw.isEmpty
             ? null
             : CourseQuizResultModel.fromJson(quizRaw).result,
+      ),
+    );
+  }
+}
+
+class CourseQuizSetModel {
+  final CourseQuizSet set;
+
+  const CourseQuizSetModel(this.set);
+
+  factory CourseQuizSetModel.fromJson(Map<String, dynamic> json) {
+    final questions = _asList(json['questions'])
+        .whereType<Map>()
+        .map((raw) {
+          final q = _asMap(raw);
+          final options = _asList(q['options'])
+              .map((e) => e.toString())
+              .toList();
+          return CourseQuizQuestion(
+            text: q['text'] as String? ?? '',
+            options: options,
+            correctAnswerIndex:
+                _toIntOrZero(q['correctAnswerIndex']),
+            points: _toDouble(q['points']) ?? 1,
+            explanation: q['explanation'] as String?,
+          );
+        })
+        .toList();
+
+    return CourseQuizSetModel(
+      CourseQuizSet(
+        id: json['_id'] as String? ?? json['id'] as String? ?? '',
+        title: json['title'] as String? ?? 'Quiz',
+        description: json['description'] as String? ?? '',
+        questions: questions,
       ),
     );
   }

@@ -53,6 +53,14 @@ class CourseRepositoryImpl implements CourseRepository {
   }
 
   @override
+  TaskEither<Failure, CourseQuizSet> getQuizSet(String quizSetId) {
+    return TaskEither.tryCatch(
+      () => _remoteDataSource.getQuizSet(quizSetId),
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  @override
   TaskEither<Failure, CourseProgressSnapshot> getCourseProgress(
     String courseId,
   ) {
