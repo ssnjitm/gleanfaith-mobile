@@ -53,7 +53,29 @@ class ContentRemoteDataSource {
       bibleChapter: _toInt(json['bibleChapter']),
       tags: _asListOfStrings(json['tags']),
       readTimeMinutes: _toInt(json['readTimeMinutes']),
+      categoryNames: _asCategoryNames(
+        json['categoryIds'] ??
+            json['categories'] ??
+            json['category'] ??
+            json['categoryNames'],
+      ),
     );
+  }
+
+  List<String> _asCategoryNames(dynamic value) {
+    if (value is! List) return const [];
+    return value.map((e) {
+      if (e is Map) {
+        final name = e['name'];
+        if (name != null) return name.toString();
+        final slug = e['slug'];
+        if (slug != null) return slug.toString();
+        final id = e['_id'];
+        if (id != null) return id.toString();
+        return '';
+      }
+      return e.toString();
+    }).where((s) => s.isNotEmpty).toList();
   }
 
   List<String> _asListOfStrings(dynamic value) {

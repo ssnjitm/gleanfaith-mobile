@@ -11,6 +11,14 @@ import 'package:video_player/video_player.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 
+Future<PdfPageImage?> _renderPdfPageSharp(PdfPage page) => page.render(
+      width: page.width * 3,
+      height: page.height * 3,
+      format: PdfPageImageFormat.png,
+      backgroundColor: '#ffffff',
+      quality: 100,
+    );
+
 class LibraryContentPlayer extends StatefulWidget {
   final String type;
   final String? videoUrl;
@@ -433,6 +441,7 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
               child: PdfView(
                 controller: controller,
                 scrollDirection: Axis.vertical,
+                renderer: _renderPdfPageSharp,
                 builders: PdfViewBuilders<DefaultBuilderOptions>(
                   options: const DefaultBuilderOptions(),
                   documentLoaderBuilder: (context) => const Center(
@@ -586,6 +595,7 @@ class _FullScreenPdfPageState extends State<FullScreenPdfPage> {
           PdfView(
             controller: _controller,
             scrollDirection: Axis.vertical,
+            renderer: _renderPdfPageSharp,
             onDocumentLoaded: (doc) {
               if (mounted) setState(() => _pagesCount = doc.pagesCount);
             },

@@ -526,14 +526,23 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
               padding: const EdgeInsets.all(AppDimensions.paddingSm + 2),
               child: Column(
                 children: [
-                  ...lesson.items.map(
-                    (item) => _buildItemTile(
-                      item,
-                      completedIds.contains(item.itemId),
-                      progress?.resultForItem(item.itemId),
-                      isDark,
+                  if (lesson.items.isNotEmpty)
+                    GridView.count(
+                      crossAxisCount: 2,
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      mainAxisSpacing: AppDimensions.sm,
+                      crossAxisSpacing: AppDimensions.sm,
+                      childAspectRatio: 0.78,
+                      children: lesson.items.map((item) {
+                        return _buildItemGridCard(
+                          item,
+                          completedIds.contains(item.itemId),
+                          progress?.resultForItem(item.itemId),
+                          isDark,
+                        );
+                      }).toList(),
                     ),
-                  ),
                   if (_canCompleteWholeLesson(lesson, completedIds))
                     Padding(
                       padding: const EdgeInsets.only(top: AppDimensions.xs),
@@ -600,95 +609,160 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
     return allContent && !allDone;
   }
 
-  Widget _buildItemTile(
+  Widget _buildItemGridCard(
     CourseLessonItem item,
     bool completed,
     CourseQuizResult? previousResult,
     bool isDark,
   ) {
     return Material(
-      color: Colors.transparent,
+      color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
-        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
         onTap: () => _openItem(item, completed),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.sm + 2,
-            vertical: AppDimensions.sm,
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: _itemColor(item).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                ),
-                child: Icon(_itemIcon(item), size: 19, color: _itemColor(item)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 96,
+              width: double.infinity,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  item.isQuiz
+                      ? _quizThumb(item, isDark)
+                      : _contentThumb(item, isDark),
+                  if (completed)
+                    Positioned(
+                      top: 6,
+                      right: 6,
+                      child: Container(
+                        width: 22,
+                        height: 22,
+                        decoration: const BoxDecoration(
+                          color: AppColors.success,
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.check_rounded,
+                            size: 14, color: Colors.white),
+                      ),
+                    ),
+                  Positioned(
+                    left: 6,
+                    bottom: 6,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.6),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        item.isQuiz ? 'Quiz' : _itemTypeLabel(item),
+                        style: const TextStyle(
+                          fontSize: 10.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: AppDimensions.paddingSm + 2),
-              Expanded(
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(AppDimensions.sm + 2),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 13.5,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
                         color: isDark ? Colors.white : AppColors.textPrimary,
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 2),
+                    const Spacer(),
                     Text(
                       _itemSubtitle(item, previousResult),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 11.5,
-                        color:
-                            isDark ? Colors.grey[400] : AppColors.textMuted,
+                        fontSize: 10.5,
+                        color: isDark ? Colors.grey[400] : AppColors.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: AppDimensions.sm),
-              completed
-                  ? Container(
-                      width: 24,
-                      height: 24,
-                      decoration: const BoxDecoration(
-                        color: AppColors.success,
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(Icons.check_rounded,
-                          size: 15, color: Colors.white),
-                    )
-                  : Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: AppDimensions.sm,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Text(
-                        item.isQuiz ? 'Take quiz' : 'Open',
-                        style: const TextStyle(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primaryBlue,
-                        ),
-                      ),
-                    ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _quizThumb(CourseLessonItem item, bool isDark) {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            AppColors.primaryAmber.withValues(alpha: 0.85),
+            AppColors.primaryAmber.withValues(alpha: 0.3),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.quiz_rounded, size: 34, color: Colors.white),
+      ),
+    );
+  }
+
+  Widget _contentThumb(CourseLessonItem item, bool isDark) {
+    final url = item.content?.thumbnailUrl;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => _defaultItemThumb(item, isDark),
+      );
+    }
+    return _defaultItemThumb(item, isDark);
+  }
+
+  Widget _defaultItemThumb(CourseLessonItem item, bool isDark) {
+    final color = _itemColor(item);
+    return Container(
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+      ),
+      child: Center(
+        child: Icon(_itemIcon(item), size: 34, color: color),
+      ),
+    );
+  }
+
+  String _itemTypeLabel(CourseLessonItem item) {
+    switch (item.displayType) {
+      case 'video':
+        return 'Video';
+      case 'audio':
+        return 'Audio';
+      case 'pdf':
+        return 'PDF';
+      default:
+        return 'Article';
+    }
   }
 
   String _itemSubtitle(CourseLessonItem item, CourseQuizResult? result) {

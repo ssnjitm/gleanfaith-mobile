@@ -140,104 +140,122 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.only(
-        left: AppDimensions.paddingMd,
-        right: AppDimensions.paddingMd,
-        bottom: AppDimensions.paddingXl,
+    return GridView.builder(
+      padding: const EdgeInsets.fromLTRB(
+        AppDimensions.paddingMd,
+        AppDimensions.paddingSm,
+        AppDimensions.paddingMd,
+        AppDimensions.paddingXl,
+      ),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        mainAxisSpacing: AppDimensions.paddingMd,
+        crossAxisSpacing: AppDimensions.paddingMd,
+        childAspectRatio: 0.78,
       ),
       itemCount: state.items.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.sm),
       itemBuilder: (context, index) {
         final item = state.items[index];
-        return _ContentCard(item: item);
+        return _ContentGridCard(item: item, isDark: isDark);
       },
     );
   }
 }
 
-class _ContentCard extends StatelessWidget {
+class _ContentGridCard extends StatelessWidget {
   final ContentItem item;
+  final bool isDark;
 
-  const _ContentCard({required this.item});
+  const _ContentGridCard({required this.item, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      padding: const EdgeInsets.all(AppDimensions.paddingMd),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-        ),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          onTap: () => context.push(RouteNames.libraryDetail, extra: item),
-          child: Padding(
-            padding: const EdgeInsets.all(AppDimensions.paddingSm),
-            child: Row(
-              children: [
-                Container(
-                  width: 48,
-                  height: 48,
-                  decoration: BoxDecoration(
-                    color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                  ),
-                  child: Icon(icon, color: AppColors.primaryBlue, size: 24),
-                ),
-                const SizedBox(width: AppDimensions.paddingMd),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.title,
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                          color: isDark ? Colors.white : AppColors.textPrimary,
-                        ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+    return Material(
+      color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        onTap: () => context.push(RouteNames.libraryDetail, extra: item),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(
+              height: 112,
+              width: double.infinity,
+              child: _thumbnail(),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(AppDimensions.paddingSm + 4),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.25,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
                       ),
-                      const SizedBox(height: 2),
-                      Text(
-                        _typeLabel(item.type),
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: AppColors.primaryAmber,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                      if (item.readTimeMinutes != null) ...[
-                        const SizedBox(height: 2),
-                        Text(
-                          '${item.readTimeMinutes} min read',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: isDark ? Colors.grey[500] : AppColors.textLight,
+                    ),
+                    const Spacer(),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: accent.withValues(alpha: 0.14),
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Text(
+                            _typeLabel(item.type),
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              color: accent,
+                            ),
                           ),
                         ),
+                        const Spacer(),
+                        if (item.readTimeMinutes != null)
+                          Text(
+                            '${item.readTimeMinutes} min',
+                            style: TextStyle(
+                              fontSize: 10.5,
+                              color: isDark
+                                  ? Colors.grey[500]
+                                  : AppColors.textLight,
+                            ),
+                          ),
                       ],
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-                Icon(
-                  Icons.chevron_right,
-                  color: isDark ? Colors.grey[600] : AppColors.textLight,
-                ),
-              ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
+  }
+
+  Color get accent {
+    switch (item.type) {
+      case 'video':
+        return AppColors.errorLight;
+      case 'audio':
+        return AppColors.primaryAmber;
+      case 'pdf':
+        return AppColors.error;
+      default:
+        return AppColors.primaryBlue;
+    }
   }
 
   IconData get icon {
@@ -251,6 +269,42 @@ class _ContentCard extends StatelessWidget {
       default:
         return Icons.menu_book_rounded;
     }
+  }
+
+  Widget _thumbnail() {
+    final url = item.thumbnailUrl;
+    if (url != null && url.isNotEmpty) {
+      return Image.network(
+        url,
+        fit: BoxFit.cover,
+        loadingBuilder: (context, child, progress) {
+          if (progress == null) return child;
+          return _defaultThumb();
+        },
+        errorBuilder: (_, _, _) => _defaultThumb(),
+      );
+    }
+    return _defaultThumb();
+  }
+
+  Widget _defaultThumb() {
+    return Container(
+      width: double.infinity,
+      height: double.infinity,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            accent.withValues(alpha: 0.35),
+            accent.withValues(alpha: 0.08),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Center(
+        child: Icon(icon, size: 40, color: accent),
+      ),
+    );
   }
 
   String _typeLabel(String type) {

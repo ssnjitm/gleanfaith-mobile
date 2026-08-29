@@ -10,6 +10,7 @@ class ContentItem {
   final int? bibleChapter;
   final List<String> tags;
   final int? readTimeMinutes;
+  final List<String> categoryNames;
 
   const ContentItem({
     required this.id,
@@ -23,5 +24,11 @@ class ContentItem {
     this.bibleChapter,
     this.tags = const [],
     this.readTimeMinutes,
+    this.categoryNames = const [],
   });
+
+  bool get isCourseMaterial => categoryNames.any((n) {
+        final lower = n.trim().toLowerCase();
+        return lower == 'course' || lower == 'courses' || lower == 'course content';
+      });
 }
