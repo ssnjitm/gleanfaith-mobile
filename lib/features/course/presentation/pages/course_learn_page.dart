@@ -5,6 +5,8 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
 import '../../../../core/common/widgets/app_loading.dart';
+import '../../../../core/common/widgets/shimmer_placeholders.dart';
+import '../../../../core/common/widgets/shimmer_widget.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
@@ -63,7 +65,18 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
   Widget _buildBody(CourseDetailState state, bool isDark) {
     switch (state.phase) {
       case CourseDetailPhase.loading:
-        return const AppLoading(message: 'Loading course...');
+        return ListView(
+          padding: const EdgeInsets.all(AppDimensions.paddingMd),
+          children: const [
+            ShimmerWidget(width: double.infinity, height: 150, borderRadius: AppDimensions.radiusXl),
+            SizedBox(height: AppDimensions.paddingMd),
+            ShimmerWidget(width: double.infinity, height: 60, borderRadius: AppDimensions.radiusLg),
+            SizedBox(height: AppDimensions.paddingMd),
+            CourseCardShimmer(),
+            SizedBox(height: AppDimensions.paddingMd),
+            CourseCardShimmer(),
+          ],
+        );
       case CourseDetailPhase.error:
         return AppErrorWidget(
           message: state.message ?? 'Could not load this course',

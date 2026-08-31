@@ -23,23 +23,4 @@ class AppLoading extends StatelessWidget {
   }
 }
 
-class AppShimmerLoading extends StatelessWidget {
-  final int itemCount;
-  final Widget Function(int index) itemBuilder;
 
-  const AppShimmerLoading({
-    super.key,
-    this.itemCount = 4,
-    required this.itemBuilder,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView.builder(
-      itemCount: itemCount,
-      itemBuilder: (context, index) => itemBuilder(index),
-      physics: const NeverScrollableScrollPhysics(),
-      shrinkWrap: true,
-    );
-  }
-}

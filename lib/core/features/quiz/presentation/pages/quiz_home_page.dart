@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
+import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../../features/quiz/presentation/providers/quiz_provider.dart';
 import '../../../../../features/quiz/domain/entities/quiz_entities.dart';
 
@@ -67,12 +68,12 @@ class _QuizHomePageState extends ConsumerState<QuizHomePage> {
     final quizzes = quizState.upcomingQuizzes;
 
     if (quizState.status == QuizStatus.loading && quizzes.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-        child: Padding(
-          padding: EdgeInsets.all(AppDimensions.xl),
-          child: Center(child: CircularProgressIndicator()),
-        ),
+      return const Column(
+        children: [
+          QuizCardShimmer(),
+          QuizCardShimmer(),
+          QuizCardShimmer(),
+        ],
       );
     }
 

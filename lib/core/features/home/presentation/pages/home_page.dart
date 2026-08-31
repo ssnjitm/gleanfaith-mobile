@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
+import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../services/logger_service.dart';
 import '../../../../services/notification_service.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';

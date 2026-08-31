@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../domain/entities/crosspuzzle_entities.dart';
 import '../providers/crosspuzzle_provider.dart';
 
@@ -43,7 +44,12 @@ class _CrossPuzzleMyPuzzlesPageState extends ConsumerState<CrossPuzzleMyPuzzlesP
     final items = state.myProgress;
 
     if (state.status == CrossPuzzleStatus.loading && items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return ListView.separated(
+        padding: const EdgeInsets.all(AppDimensions.paddingMd),
+        itemCount: 4,
+        separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.paddingSm),
+        itemBuilder: (_, index) => const CrosswordPuzzleCardShimmer(),
+      );
     }
 
     if (items.isEmpty) {

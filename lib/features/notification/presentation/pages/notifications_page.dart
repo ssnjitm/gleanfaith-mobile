@@ -6,7 +6,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/common/widgets/app_empty_state.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
-import '../../../../core/common/widgets/app_loading.dart';
+import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../../features/notification/domain/entities/notification_entities.dart';
 import '../../../../../features/notification/presentation/providers/notification_provider.dart';
 
@@ -63,7 +63,12 @@ class _NotificationsPageState extends ConsumerState<NotificationsPage> {
   Widget _buildBody(BuildContext context, NotificationsState state) {
     if (state.status == NotificationStatus.loading &&
         state.notifications.isEmpty) {
-      return const AppLoading(message: 'Loading notifications...');
+      return ListView.separated(
+        padding: const EdgeInsets.all(AppDimensions.paddingMd),
+        itemCount: 5,
+        separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.sm),
+        itemBuilder: (_, index) => const NotificationTileShimmer(),
+      );
     }
 
     if (state.status == NotificationStatus.error &&

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
+import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../../features/course/presentation/pages/courses_page.dart';
 import '../../../../../features/library/presentation/providers/library_provider.dart';
 import '../../../../../features/library/domain/entities/content_item.dart';
@@ -113,7 +114,23 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
 
   Widget _buildContentList(LibraryState state, bool isDark) {
     if (state.status == LibraryStatus.loading && state.items.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return GridView.builder(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimensions.paddingMd,
+          AppDimensions.paddingSm,
+          AppDimensions.paddingMd,
+          AppDimensions.paddingXl,
+        ),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: AppDimensions.paddingMd,
+          crossAxisSpacing: AppDimensions.paddingMd,
+          childAspectRatio: 0.78,
+        ),
+        itemCount: 6,
+        physics: const NeverScrollableScrollPhysics(),
+        itemBuilder: (_, index) => const LibraryCardShimmer(),
+      );
     }
 
     if (state.items.isEmpty) {

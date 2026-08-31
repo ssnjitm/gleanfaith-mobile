@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
+import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
@@ -22,7 +23,10 @@ class BibleChapterListPage extends ConsumerWidget {
         centerTitle: true,
       ),
       body: chaptersAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const Padding(
+          padding: EdgeInsets.all(AppDimensions.md),
+          child: ChapterGridShimmer(),
+        ),
         error: (error, _) => Center(
           child: Padding(
             padding: const EdgeInsets.all(AppDimensions.lg),

@@ -5,7 +5,7 @@ import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../common/widgets/app_empty_state.dart';
 import '../../../../common/widgets/app_error_widget.dart';
-import '../../../../common/widgets/app_loading.dart';
+import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../common/widgets/shimmer_widget.dart';
 import '../../../home/presentation/widgets/stats_card.dart';
 import '../../../../../features/leaderboard/domain/entities/leaderboard_entities.dart';
@@ -68,7 +68,30 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (state.isLoading && state.data == null) {
-      return const AppLoading(message: 'Loading leaderboard...');
+      return ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: AppDimensions.paddingXl),
+        children: const [
+          SizedBox(height: AppDimensions.paddingSm),
+          _PeriodSelectorShimmer(),
+          SizedBox(height: AppDimensions.paddingMd),
+          StatsCardShimmer(),
+          SizedBox(height: AppDimensions.lg),
+          Padding(
+            padding: EdgeInsets.symmetric(vertical: AppDimensions.paddingLg),
+            child: Column(
+              children: [
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+              ],
+            ),
+          ),
+        ],
+      );
     }
 
     if (state.status == LeaderboardStatus.error && state.data == null) {
@@ -106,7 +129,16 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
         if (showInitialSpinner)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppDimensions.paddingLg),
-            child: ShimmerList(itemCount: 6, itemHeight: 72),
+            child: Column(
+              children: [
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+                LeaderboardEntryShimmer(),
+              ],
+            ),
           )
         else if (entries.isEmpty)
           AppEmptyState(
@@ -206,6 +238,43 @@ class _PeriodSelector extends StatelessWidget {
               ),
             );
           }).toList(),
+        ),
+      ),
+    );
+  }
+}
+
+class _PeriodSelectorShimmer extends StatelessWidget {
+  const _PeriodSelectorShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
+      child: Container(
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : AppColors.bgGray,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        ),
+        padding: const EdgeInsets.all(AppDimensions.xs),
+        child: Row(
+          children: List.generate(
+            3,
+            (_) => Expanded(
+              child: Padding(
+                padding: const EdgeInsets.all(2),
+                child: ShimmerWidget(
+                  width: double.infinity,
+                  height: 36,
+                  borderRadius: AppDimensions.radiusMd,
+                  baseColor: isDark ? const Color(0xFF334155) : null,
+                  highlightColor: isDark ? const Color(0xFF475569) : null,
+                ),
+              ),
+            ),
+          ),
         ),
       ),
     );

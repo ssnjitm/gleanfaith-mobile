@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../common/widgets/app_error_widget.dart';
+import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../common/extensions/datetime_extensions.dart';
 import '../../../../router/route_names.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
@@ -52,6 +53,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final email = profile?.email ?? authUser?.email ?? '';
     final avatarUrl = profile?.avatar ?? authUser?.avatar;
 
+    final isLoading = ref.watch(profileProvider).status == ProfileStatus.initial;
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('Profile'),
@@ -86,6 +89,12 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
                     ref.watch(profileProvider).message ?? 'Could not load profile.',
                 onRetry: () => ref.read(profileProvider.notifier).load(),
               )
+            else if (isLoading) ...[
+              const SizedBox(height: AppDimensions.paddingMd),
+              const ProfileHeaderShimmer(),
+              const SizedBox(height: AppDimensions.xl),
+              const StatsCardShimmer(),
+            ]
             else ...[
               const SizedBox(height: AppDimensions.paddingMd),
               Center(

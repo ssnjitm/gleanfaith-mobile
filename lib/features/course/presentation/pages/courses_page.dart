@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
+import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../providers/course_providers.dart';
 import '../widgets/course_card.dart';
 
@@ -114,7 +115,23 @@ class _CoursesGridBodyState extends ConsumerState<CoursesGridBody>
     bool isDark,
   ) {
     if (state.status == CoursesStatus.loading && state.courses.isEmpty) {
-      return const Center(child: CircularProgressIndicator());
+      return GridView.builder(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimensions.paddingMd,
+          AppDimensions.sm,
+          AppDimensions.paddingMd,
+          AppDimensions.paddingXl,
+        ),
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 2,
+          mainAxisSpacing: AppDimensions.paddingMd,
+          crossAxisSpacing: AppDimensions.paddingMd,
+          mainAxisExtent: 272,
+        ),
+        itemCount: 4,
+        physics: const NeverScrollableScrollPhysics(),
+        itemBuilder: (_, index) => const CourseCardShimmer(),
+      );
     }
 
     if (state.status == CoursesStatus.error && state.courses.isEmpty) {
