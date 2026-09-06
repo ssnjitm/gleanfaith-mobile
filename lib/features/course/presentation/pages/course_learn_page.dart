@@ -4,7 +4,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
-import '../../../../core/common/widgets/app_loading.dart';
+import '../../../../core/common/widgets/content_thumbnail.dart';
 import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/common/widgets/shimmer_widget.dart';
 import '../../../../core/router/route_names.dart';
@@ -13,6 +13,7 @@ import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/course_entities.dart';
 import '../../domain/entities/course_progress_entities.dart';
 import '../providers/course_detail_provider.dart';
+import '../providers/course_quiz_attempts.dart';
 
 class CourseLearnPage extends ConsumerStatefulWidget {
   final String courseId;
@@ -24,7 +25,7 @@ class CourseLearnPage extends ConsumerStatefulWidget {
 }
 
 class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
-  final Set<String> _collapsedLessonIds = {};
+  final Set<String> _expandedLessonIds = {};
 
   CourseDetailNotifier get _notifier =>
       ref.read(courseDetailProvider(widget.courseId).notifier);
@@ -461,7 +462,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
       status = LessonStatusInfo.compute(doneCount, lesson.items.length);
     }
 
-    final expanded = !_collapsedLessonIds.contains(lesson.id);
+    final expanded = _expandedLessonIds.contains(lesson.id);
 
     return Container(
       decoration: BoxDecoration(
@@ -479,9 +480,9 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
               borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               onTap: () => setState(() {
                 if (expanded) {
-                  _collapsedLessonIds.add(lesson.id);
+                  _expandedLessonIds.remove(lesson.id);
                 } else {
-                  _collapsedLessonIds.remove(lesson.id);
+                  _expandedLessonIds.add(lesson.id);
                 }
               }),
               child: Padding(
@@ -549,6 +550,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
                       childAspectRatio: 0.78,
                       children: lesson.items.map((item) {
                         return _buildItemGridCard(
+                          lesson,
                           item,
                           completedIds.contains(item.itemId),
                           progress?.resultForItem(item.itemId),
@@ -623,6 +625,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
   }
 
   Widget _buildItemGridCard(
+    CourseLesson lesson,
     CourseLessonItem item,
     bool completed,
     CourseQuizResult? previousResult,
@@ -633,7 +636,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
       borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => _openItem(item, completed),
+        onTap: () => _openItem(lesson, item, completed),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -643,9 +646,14 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  item.isQuiz
-                      ? _quizThumb(item, isDark)
-                      : _contentThumb(item, isDark),
+                  if (item.isQuiz)
+                    _quizThumb(item, isDark)
+                  else
+                    ContentThumbnail(
+                      type: item.displayType,
+                      thumbnailUrl: item.content?.thumbnailUrl,
+                      iconSize: 34,
+                    ),
                   if (completed)
                     Positioned(
                       top: 6,
@@ -741,30 +749,6 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
     );
   }
 
-  Widget _contentThumb(CourseLessonItem item, bool isDark) {
-    final url = item.content?.thumbnailUrl;
-    if (url != null && url.isNotEmpty) {
-      return Image.network(
-        url,
-        fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => _defaultItemThumb(item, isDark),
-      );
-    }
-    return _defaultItemThumb(item, isDark);
-  }
-
-  Widget _defaultItemThumb(CourseLessonItem item, bool isDark) {
-    final color = _itemColor(item);
-    return Container(
-      decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.12),
-      ),
-      child: Center(
-        child: Icon(_itemIcon(item), size: 34, color: color),
-      ),
-    );
-  }
-
   String _itemTypeLabel(CourseLessonItem item) {
     switch (item.displayType) {
       case 'video':
@@ -802,26 +786,6 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
     };
     final minutes = item.content?.readTimeMinutes;
     return minutes != null ? '$typeLabel · $minutes min' : typeLabel;
-  }
-
-  IconData _itemIcon(CourseLessonItem item) {
-    if (item.isQuiz) return Icons.quiz_rounded;
-    return switch (item.displayType) {
-      'video' => Icons.play_circle_outline_rounded,
-      'audio' => Icons.headphones_rounded,
-      'pdf' => Icons.picture_as_pdf_rounded,
-      _ => Icons.article_rounded,
-    };
-  }
-
-  Color _itemColor(CourseLessonItem item) {
-    if (item.isQuiz) return AppColors.primaryAmber;
-    return switch (item.displayType) {
-      'video' => AppColors.errorLight,
-      'audio' => AppColors.primaryAmber,
-      'pdf' => AppColors.error,
-      _ => AppColors.primaryBlue,
-    };
   }
 
   Color _difficultyColor(String difficulty) {
@@ -877,13 +841,41 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
     );
   }
 
-  Future<void> _openItem(CourseLessonItem item, bool completed) async {
+  Future<void> _openItem(
+    CourseLesson lesson,
+    CourseLessonItem item,
+    bool completed) async {
     if (ref.read(courseDetailProvider(widget.courseId)).progress == null) {
       await _notifier.startCourse();
       if (!mounted) return;
     }
 
+    final lessonContentArgs = _lessonContentArgs(lesson, completedIds());
+
     if (item.isQuiz) {
+      final best = await ref
+          .read(courseQuizAttemptsProvider.notifier)
+          .bestFor(item.itemId);
+      if (!mounted) return;
+
+      if (best != null && best.answeredCount > 0) {
+        final reviewArgs = CourseQuizReviewArgs(
+          courseId: widget.courseId,
+          itemId: item.itemId,
+          refId: item.refId,
+          title: item.title,
+          lessonContentArgs: lessonContentArgs,
+        );
+        final result = await context.push<Object?>(
+          RouteNames.courseQuizReview,
+          extra: reviewArgs,
+        );
+        if (result is CompleteCourseItemResult) {
+          await _handleCompletion(result);
+        }
+        return;
+      }
+
       final args = CourseQuizPlayArgs(
         courseId: widget.courseId,
         itemId: item.itemId,
@@ -894,6 +886,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
                 ?.resultForItem(item.itemId)
                 ?.attempts ??
             0,
+        lessonContentArgs: lessonContentArgs,
       );
       final result = await context.push<Object?>(
         RouteNames.courseQuizPlay,
@@ -922,6 +915,31 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
     if (result is CompleteCourseItemResult) {
       await _handleCompletion(result);
     }
+  }
+
+  Set<String> completedIds() {
+    final state = ref.read(courseDetailProvider(widget.courseId));
+    return state.progress?.completedItemIds ?? state.detail?.completedItemIds ?? {};
+  }
+
+  CourseContentViewArgs? _lessonContentArgs(
+    CourseLesson lesson,
+    Set<String> completedIds,
+  ) {
+    for (final item in lesson.items) {
+      if (item.isQuiz) continue;
+      final embedded = item.content != null && item.content!.isRenderable
+          ? item.content!.toDocument()
+          : null;
+      return CourseContentViewArgs(
+        courseId: widget.courseId,
+        itemId: item.itemId,
+        refId: item.refId,
+        alreadyCompleted: completedIds.contains(item.itemId),
+        embedded: embedded,
+      );
+    }
+    return null;
   }
 
   Future<void> _completeLesson(String lessonId) async {

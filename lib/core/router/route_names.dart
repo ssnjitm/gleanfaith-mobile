@@ -25,6 +25,7 @@ class RouteNames {
   static const String courseDetail = '/courses/detail';
   static const String courseContent = '/courses/content';
   static const String courseQuizPlay = '/courses/quiz-play';
+  static const String courseQuizReview = '/courses/quiz-review';
   static const String blog = '/blog';
   static const String blogDetail = '/blog/detail';
   static const String video = '/video';

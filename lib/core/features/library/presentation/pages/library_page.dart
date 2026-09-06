@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
+import '../../../../common/widgets/content_thumbnail.dart';
 import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../../features/course/presentation/pages/courses_page.dart';
 import '../../../../../features/library/presentation/providers/library_provider.dart';
@@ -39,7 +40,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
 
     return DefaultTabController(
       length: 2,
-      initialIndex: 1,
+      initialIndex: 0,
       child: Scaffold(
         backgroundColor: AppColors.bgGray,
         appBar: AppBar(
@@ -275,52 +276,10 @@ class _ContentGridCard extends StatelessWidget {
     }
   }
 
-  IconData get icon {
-    switch (item.type) {
-      case 'video':
-        return Icons.play_circle_outline_rounded;
-      case 'audio':
-        return Icons.headphones_rounded;
-      case 'pdf':
-        return Icons.picture_as_pdf_rounded;
-      default:
-        return Icons.menu_book_rounded;
-    }
-  }
-
   Widget _thumbnail() {
-    final url = item.thumbnailUrl;
-    if (url != null && url.isNotEmpty) {
-      return Image.network(
-        url,
-        fit: BoxFit.cover,
-        loadingBuilder: (context, child, progress) {
-          if (progress == null) return child;
-          return _defaultThumb();
-        },
-        errorBuilder: (_, _, _) => _defaultThumb(),
-      );
-    }
-    return _defaultThumb();
-  }
-
-  Widget _defaultThumb() {
-    return Container(
-      width: double.infinity,
-      height: double.infinity,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            accent.withValues(alpha: 0.35),
-            accent.withValues(alpha: 0.08),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Center(
-        child: Icon(icon, size: 40, color: accent),
-      ),
+    return ContentThumbnail(
+      type: item.type,
+      thumbnailUrl: item.thumbnailUrl,
     );
   }
 

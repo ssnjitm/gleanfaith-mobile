@@ -179,6 +179,7 @@ class CourseQuizPlayArgs {
   final String refId;
   final String title;
   final int attemptsBefore;
+  final CourseContentViewArgs? lessonContentArgs;
 
   const CourseQuizPlayArgs({
     required this.courseId,
@@ -186,5 +187,68 @@ class CourseQuizPlayArgs {
     required this.refId,
     required this.title,
     required this.attemptsBefore,
+    this.lessonContentArgs,
   });
+}
+
+class CourseQuizReviewArgs {
+  final String courseId;
+  final String itemId;
+  final String refId;
+  final String title;
+  final CourseContentViewArgs? lessonContentArgs;
+
+  const CourseQuizReviewArgs({
+    required this.courseId,
+    required this.itemId,
+    required this.refId,
+    required this.title,
+    this.lessonContentArgs,
+  });
+}
+
+class CourseQuizAttempt {
+  final double score;
+  final double maxScore;
+  final List<int?> answers;
+  final DateTime attemptedAt;
+
+  const CourseQuizAttempt({
+    required this.score,
+    required this.maxScore,
+    required this.answers,
+    required this.attemptedAt,
+  });
+
+  double get percentage => maxScore > 0 ? score / maxScore * 100 : 0;
+
+  bool get passed => percentage >= 70;
+
+  int get answeredCount => answers.where((a) => a != null).length;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'score': score,
+      'maxScore': maxScore,
+      'answers': answers,
+      'attemptedAt': attemptedAt.toIso8601String(),
+    };
+  }
+
+  factory CourseQuizAttempt.fromJson(Map<String, dynamic> json) {
+    final score = (json['score'] as num?)?.toDouble() ?? 0;
+    final maxScore = (json['maxScore'] as num?)?.toDouble() ?? 0;
+    final answers = <int?>[];
+    final raw = json['answers'];
+    if (raw is List) {
+      answers.addAll(raw.map((e) => e is num ? e.toInt() : null));
+    }
+    return CourseQuizAttempt(
+      score: score,
+      maxScore: maxScore,
+      answers: answers,
+      attemptedAt: DateTime.tryParse(json['attemptedAt'] as String? ?? '') ??
+          DateTime.now(),
+    );
+  }
 }

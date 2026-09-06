@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
+import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/course_entities.dart';
 import '../../domain/entities/course_progress_entities.dart';
 import '../providers/course_detail_provider.dart';
 import '../providers/course_providers.dart';
+import '../providers/course_quiz_attempts.dart';
 
 class CourseQuizPlayPage extends ConsumerStatefulWidget {
   const CourseQuizPlayPage({super.key, required this.args});
@@ -33,6 +36,8 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
   bool _completing = false;
   String? _completeError;
   CompleteCourseItemResult? _result;
+  CourseQuizAttempt? _bestAfter;
+  bool _isNewBest = false;
 
   CourseQuizSet? get _quiz => _set;
   double get _progress => _quiz == null || _quiz!.questions.isEmpty
@@ -85,11 +90,11 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
 
   void _select(int index) {
     if (_completing || _set == null) return;
+    if (_answers[_current] != null) return;
     HapticFeedback.selectionClick();
-    final wasAnswered = _answers[_current] != null;
     setState(() {
       _answers[_current] = index;
-      _answeredCount += wasAnswered ? 0 : 1;
+      _answeredCount += 1;
     });
   }
 
@@ -111,18 +116,54 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
     });
     final score = _computeScore();
     final maxScore = _quiz!.maxScore;
-    final result = await ref
-        .read(courseDetailProvider(args.courseId).notifier)
-        .completeItem(
-          args.itemId,
+    final snapshot = List<int?>.of(_answers);
+    final notifier = ref.read(courseQuizAttemptsProvider.notifier);
+    final isNewBest = await notifier.isNewBest(args.itemId, score);
+
+    CompleteCourseItemResult? result;
+    if (isNewBest) {
+      result = await ref
+          .read(courseDetailProvider(args.courseId).notifier)
+          .completeItem(
+            args.itemId,
+            score: score,
+            maxScore: maxScore,
+          );
+      if (result == null) {
+        if (mounted) {
+          setState(() {
+            _completing = false;
+            _completeError = 'Failed to save score. Try again.';
+          });
+        }
+        return;
+      }
+      await notifier.saveBest(
+        args.itemId,
+        CourseQuizAttempt(
           score: score,
           maxScore: maxScore,
-        );
+          answers: snapshot,
+          attemptedAt: DateTime.now(),
+        ),
+      );
+    }
+
+    final bestNow = await ref
+        .read(courseQuizAttemptsProvider.notifier)
+        .bestFor(args.itemId);
     if (!mounted) return;
     setState(() {
       _completing = false;
       _result = result;
-      if (result == null) _completeError = 'Failed to save score';
+      _bestAfter = bestNow ??
+          CourseQuizAttempt(
+            score: score,
+            maxScore: maxScore,
+            answers: snapshot,
+            attemptedAt: DateTime.now(),
+          );
+      _isNewBest = isNewBest;
     });
   }
 
@@ -138,9 +179,46 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
     return score;
   }
 
+  void _restart() {
+    final quiz = _quiz;
+    if (quiz == null) return;
+    setState(() {
+      _answers.clear();
+      _answers.addAll(List<int?>.filled(quiz.questions.length, null));
+      _answeredCount = 0;
+      _current = 0;
+      _result = null;
+      _bestAfter = null;
+      _isNewBest = false;
+      _completeError = null;
+    });
+    _pageController.jumpToPage(0);
+  }
+
+  Future<void> _openReview() async {
+    final args = widget.args;
+    if (args == null) return;
+    await context.push(
+      RouteNames.courseQuizReview,
+      extra: CourseQuizReviewArgs(
+        courseId: args.courseId,
+        itemId: args.itemId,
+        refId: args.refId,
+        title: args.title,
+        lessonContentArgs: args.lessonContentArgs,
+      ),
+    );
+  }
+
+  void _readLesson() {
+    final args = widget.args;
+    final target = args?.lessonContentArgs;
+    if (target == null) return;
+    context.push(RouteNames.courseContent, extra: target);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final args = widget.args;
 
     return PopScope(
@@ -157,22 +235,14 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
           ),
-          actions: [
-            if (_quiz != null && _result == null)
-              IconButton(
-                tooltip: 'Skip and finish',
-                onPressed: _completing ? null : _submit,
-                icon: const Icon(Icons.check_circle_outline_rounded),
-              ),
-          ],
           elevation: 0,
         ),
-        body: _buildBody(isDark),
+        body: _buildBody(),
       ),
     );
   }
 
-  Widget _buildBody(bool isDark) {
+  Widget _buildBody() {
     if (_loadError != null && _quiz == null) {
       return AppErrorWidget(
         message: _loadError!,
@@ -183,12 +253,13 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
       );
     }
     if (_quiz == null) return const AppLoading();
-    if (_result != null) return _buildResult(isDark);
-    return _buildPlaying(isDark);
+    if (_result != null || _bestAfter != null) return _buildResult();
+    return _buildPlaying();
   }
 
-  Widget _buildPlaying(bool isDark) {
+  Widget _buildPlaying() {
     final quiz = _quiz!;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Column(
       children: [
@@ -248,7 +319,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
             },
           ),
         ),
-        _buildBottomBar(isDark),
+        _buildBottomBar(),
       ],
     );
   }
@@ -256,6 +327,8 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
   Widget _buildQuestionPage(CourseQuizSet quiz, int index, bool isDark) {
     final q = quiz.questions[index];
     final selected = _answers.length > index ? _answers[index] : null;
+    final answered = selected != null;
+    final isCorrect = answered && selected == q.correctAnswerIndex;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
@@ -276,8 +349,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusSm),
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                 ),
                 child: Text(
                   'Question ${index + 1}',
@@ -299,13 +371,36 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                 ),
               ],
               const Spacer(),
-              if (selected != null)
-                const Text(
-                  'Answered',
-                  style: TextStyle(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.success,
+              if (answered)
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: (isCorrect ? AppColors.success : AppColors.error)
+                        .withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        isCorrect ? Icons.check_rounded : Icons.close_rounded,
+                        size: 13,
+                        color: isCorrect ? AppColors.success : AppColors.error,
+                      ),
+                      const SizedBox(width: 3),
+                      Text(
+                        isCorrect ? 'Correct' : 'Incorrect',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w800,
+                          color:
+                              isCorrect ? AppColors.success : AppColors.error,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
             ],
@@ -322,83 +417,17 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
           ),
           const SizedBox(height: AppDimensions.paddingLg),
           ...List.generate(q.options.length, (i) {
-            final isSelected = selected == i;
+            final isThis = selected == i;
+            final isCorrectOption = i == q.correctAnswerIndex;
             return Padding(
               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
-              child: Material(
-                color: isDark
-                    ? const Color(0xFF1E293B)
-                    : Colors.white,
-                borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                elevation: isSelected ? 2 : 1,
-                shadowColor: AppColors.shadowLight,
-                child: InkWell(
-                  borderRadius:
-                      BorderRadius.circular(AppDimensions.radiusLg),
-                  onTap: () => _select(i),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: AppDimensions.paddingMd,
-                      vertical: AppDimensions.paddingSm + 4,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          BorderRadius.circular(AppDimensions.radiusLg),
-                      border: Border.all(
-                        color: isSelected
-                            ? AppColors.primaryBlue
-                            : (isDark
-                                ? const Color(0xFF334155)
-                                : AppColors.borderLight),
-                        width: isSelected ? 2 : 1,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        AnimatedContainer(
-                          duration: const Duration(milliseconds: 200),
-                          width: 32,
-                          height: 32,
-                          decoration: BoxDecoration(
-                            color: isSelected
-                                ? AppColors.primaryBlue
-                                : AppColors.primaryBlue
-                                    .withValues(alpha: 0.12),
-                            shape: BoxShape.circle,
-                          ),
-                          child: Center(
-                            child: Text(
-                              String.fromCharCode(65 + i),
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w800,
-                                color: isSelected
-                                    ? Colors.white
-                                    : AppColors.primaryBlue,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: AppDimensions.paddingMd),
-                        Expanded(
-                          child: Text(
-                            q.options[i],
-                            style: TextStyle(
-                              fontSize: 15,
-                              fontWeight: isSelected
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: isDark
-                                  ? Colors.white
-                                  : AppColors.textPrimary,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+              child: _optionTile(
+                letter: String.fromCharCode(65 + i),
+                text: q.options[i],
+                isThis: isThis,
+                answered: answered,
+                isCorrectOption: isCorrectOption,
+                onTap: () => _select(i),
               ),
             );
           }),
@@ -407,9 +436,112 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
     );
   }
 
-  Widget _buildBottomBar(bool isDark) {
+  Widget _optionTile({
+    required String letter,
+    required String text,
+    required bool isThis,
+    required bool answered,
+    required bool isCorrectOption,
+    required VoidCallback onTap,
+  }) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    Color? borderColor;
+    Color? circleColor;
+    IconData? markIcon;
+    Color? markColor;
+    Color? tileColor;
+
+    if (answered) {
+      if (isCorrectOption) {
+        borderColor = AppColors.success;
+        circleColor = AppColors.success;
+        markIcon = Icons.check_rounded;
+        markColor = AppColors.success;
+        tileColor = AppColors.success.withValues(alpha: 0.06);
+      } else if (isThis) {
+        borderColor = AppColors.error;
+        circleColor = AppColors.error;
+        markIcon = Icons.close_rounded;
+        markColor = AppColors.error;
+        tileColor = AppColors.error.withValues(alpha: 0.06);
+      }
+    } else if (isThis) {
+      borderColor = AppColors.primaryBlue;
+      circleColor = AppColors.primaryBlue;
+    }
+
+    return Material(
+      color: tileColor ?? (isDark ? const Color(0xFF1E293B) : Colors.white),
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(
+            horizontal: AppDimensions.paddingMd,
+            vertical: AppDimensions.paddingSm + 4,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            border: Border.all(
+              color: borderColor ??
+                  (isDark ? const Color(0xFF334155) : AppColors.borderLight),
+              width: borderColor != null ? 2 : 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: circleColor ??
+                      AppColors.primaryBlue.withValues(alpha: 0.12),
+                  shape: BoxShape.circle,
+                ),
+                child: Center(
+                  child: markIcon != null
+                      ? Icon(markIcon,
+                          size: 18, color: markColor ?? Colors.white)
+                      : Text(
+                          letter,
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: circleColor != null
+                                ? Colors.white
+                                : AppColors.primaryBlue,
+                          ),
+                        ),
+                ),
+              ),
+              const SizedBox(width: AppDimensions.paddingMd),
+              Expanded(
+                child: Text(
+                  text,
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: isThis || isCorrectOption
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomBar() {
     final quiz = _quiz;
     if (quiz == null) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isFirst = _current == 0;
     final isLast = _current == quiz.questions.length - 1;
 
@@ -453,9 +585,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
             style: OutlinedButton.styleFrom(
               foregroundColor: AppColors.primaryBlue,
               side: BorderSide(
-                color: isDark
-                    ? const Color(0xFF334155)
-                    : AppColors.borderLight,
+                color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
               ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
@@ -494,14 +624,14 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                     ),
                   )
                 else ...[
-                  buildButton(
-                    label: isFirst ? 'Prev' : 'Prev',
-                    icon: const Icon(Icons.chevron_left_rounded, size: 20),
-                    onPressed: isFirst
-                        ? null
-                        : () => _goTo(_current - 1),
-                  ),
-                  const SizedBox(width: AppDimensions.sm),
+                  if (!isFirst) ...[
+                    buildButton(
+                      label: 'Prev',
+                      icon: const Icon(Icons.chevron_left_rounded, size: 20),
+                      onPressed: () => _goTo(_current - 1),
+                    ),
+                    const SizedBox(width: AppDimensions.sm),
+                  ],
                   if (isLast)
                     buildButton(
                       label: 'Finish',
@@ -511,19 +641,10 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                     )
                   else
                     buildButton(
-                      label: _current == quiz.questions.length - 2
-                          ? 'Finish'
-                          : 'Next',
-                      icon: Icon(
-                        _current == quiz.questions.length - 2
-                            ? Icons.check_rounded
-                            : Icons.chevron_right_rounded,
-                        size: 20,
-                      ),
+                      label: 'Next',
+                      icon: const Icon(Icons.chevron_right_rounded, size: 20),
                       primary: true,
-                      onPressed: _current == quiz.questions.length - 2
-                          ? _submit
-                          : () => _goTo(_current + 1),
+                      onPressed: () => _goTo(_current + 1),
                     ),
                 ],
               ],
@@ -534,12 +655,15 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
     );
   }
 
-  Widget _buildResult(bool isDark) {
-    final r = _result!;
-    final score = _computeScore();
-    final maxScore = _quiz!.maxScore;
-    final pct = maxScore > 0 ? (score / maxScore * 100).round() : 0;
-    final passed = pct >= 70;
+  Widget _buildResult() {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final attempt = _bestAfter!;
+    final pct = attempt.percentage.round();
+    final passed = attempt.passed;
+    final thisPct = _computeScore();
+    final thisMax = _quiz!.maxScore;
+    final thisPctValue =
+        thisMax > 0 ? (thisPct / thisMax * 100).round() : 0;
 
     return Center(
       child: SingleChildScrollView(
@@ -548,30 +672,43 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
           mainAxisSize: MainAxisSize.min,
           children: [
             SizedBox(
-              width: 140,
-              height: 140,
+              width: 150,
+              height: 150,
               child: Stack(
                 alignment: Alignment.center,
                 children: [
                   SizedBox(
-                    width: 140,
-                    height: 140,
+                    width: 150,
+                    height: 150,
                     child: CircularProgressIndicator(
-                      value: pct / 100,
-                      strokeWidth: 10,
+                      value: (attempt.percentage / 100).clamp(0.0, 1.0),
+                      strokeWidth: 11,
                       backgroundColor:
                           isDark ? const Color(0xFF1E293B) : AppColors.bgGray,
                       color: passed ? AppColors.success : AppColors.error,
                       strokeCap: StrokeCap.round,
                     ),
                   ),
-                  Text(
-                    '$pct%',
-                    style: TextStyle(
-                      fontSize: 36,
-                      fontWeight: FontWeight.w800,
-                      color: passed ? AppColors.success : AppColors.error,
-                    ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        '$pct%',
+                        style: TextStyle(
+                          fontSize: 34,
+                          fontWeight: FontWeight.w800,
+                          height: 1.1,
+                          color: passed ? AppColors.success : AppColors.error,
+                        ),
+                      ),
+                      const Text(
+                        'Best score',
+                        style: TextStyle(
+                          fontSize: 11.5,
+                          color: AppColors.textMuted,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -589,25 +726,27 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                 borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
               ),
               child: Text(
-                passed ? 'Great job! You passed!' : 'Keep practicing!',
+                _isNewBest
+                    ? (passed ? 'New best score! You passed!' : 'New best score!')
+                    : (passed ? 'Best score kept — keep practicing!' : 'Not this time'),
                 style: TextStyle(
                   fontWeight: FontWeight.w700,
-                  fontSize: 16,
+                  fontSize: 15,
                   color: passed ? AppColors.success : AppColors.error,
                 ),
               ),
             ),
             const SizedBox(height: AppDimensions.paddingMd),
             Text(
-              '${score.round()} / ${maxScore.round()} points · '
+              'This attempt: $thisPctValue% (${thisPct.round()} / ${thisMax.round()} pts) · '
               '$_answeredCount/${_quiz!.questions.length} answered',
               textAlign: TextAlign.center,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 13.5,
                 color: isDark ? Colors.white54 : AppColors.textMuted,
               ),
             ),
-            if (r.newlyAwarded) ...[
+            if (_result?.newlyAwarded == true) ...[
               const SizedBox(height: AppDimensions.paddingLg),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -628,7 +767,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                         color: AppColors.primaryAmber, size: 22),
                     const SizedBox(width: AppDimensions.sm),
                     Text(
-                      '+${r.pointsEarned} XP earned',
+                      '+${_result!.pointsEarned} XP earned',
                       style: const TextStyle(
                         fontWeight: FontWeight.w700,
                         color: AppColors.primaryAmber,
@@ -638,7 +777,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                 ),
               ),
             ],
-            if (r.courseCompleted) ...[
+            if (_result?.courseCompleted == true) ...[
               const SizedBox(height: AppDimensions.paddingMd),
               Container(
                 padding: const EdgeInsets.symmetric(
@@ -666,38 +805,69 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                 ),
               ),
             ],
-            if (r.level != null) ...[
-              const SizedBox(height: AppDimensions.paddingMd),
-              Text(
-                'Level ${r.level!.level}',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: isDark ? Colors.white54 : AppColors.textMuted,
-                ),
-              ),
-            ],
-            const SizedBox(height: 40),
-            SizedBox(
-              width: double.infinity,
-              height: 52,
-              child: ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(_result);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primaryBlue,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius:
-                        BorderRadius.circular(AppDimensions.radiusLg),
+            const SizedBox(height: 36),
+            Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton.icon(
+                    onPressed: _completing ? null : _openReview,
+                    icon: const Icon(Icons.fact_check_outlined, size: 20),
+                    label: const Text('Review Attempt'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusLg),
+                      ),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Back to Course',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                const SizedBox(height: AppDimensions.sm),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: OutlinedButton.icon(
+                    onPressed: _completing ? null : _restart,
+                    icon: const Icon(Icons.refresh_rounded, size: 20),
+                    label: const Text('Re-attempt Quiz'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: AppColors.primaryBlue,
+                      side: const BorderSide(color: AppColors.primaryBlue),
+                      shape: RoundedRectangleBorder(
+                        borderRadius:
+                            BorderRadius.circular(AppDimensions.radiusLg),
+                      ),
+                    ),
+                  ),
                 ),
-              ),
+                if (widget.args?.lessonContentArgs != null) ...[
+                  const SizedBox(height: AppDimensions.sm),
+                  SizedBox(
+                    width: double.infinity,
+                    height: 50,
+                    child: OutlinedButton.icon(
+                      onPressed: _completing ? null : _readLesson,
+                      icon: const Icon(Icons.menu_book_rounded, size: 20),
+                      label: const Text('Read Lesson'),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.success,
+                        side: const BorderSide(color: AppColors.success),
+                        shape: RoundedRectangleBorder(
+                          borderRadius:
+                              BorderRadius.circular(AppDimensions.radiusLg),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+                TextButton(
+                  onPressed: () => Navigator.of(context).pop(_result),
+                  child: const Text('Back to Course'),
+                ),
+              ],
             ),
           ],
         ),

@@ -2,22 +2,31 @@ import 'dart:async';
 
 import 'package:chewie/chewie.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:pdfx/pdfx.dart';
 import 'package:video_player/video_player.dart';
 
+import '../../../../core/common/widgets/shimmer_widget.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 
-Future<PdfPageImage?> _renderPdfPageSharp(PdfPage page) => page.render(
-      width: page.width * 3,
-      height: page.height * 3,
-      format: PdfPageImageFormat.png,
-      backgroundColor: '#ffffff',
-      quality: 100,
-    );
+typedef PdfPageRenderer = Future<PdfPageImage?> Function(PdfPage page);
+
+/// Renders pages at a DPR-aware resolution so text stays sharp on
+/// high-density screens. Base scale adapts to the device pixel ratio.
+PdfPageRenderer pdfRendererFor(double dpr) {
+  final scale = (1.0 + dpr).clamp(2.5, 4.0).toDouble();
+  return (page) => page.render(
+        width: page.width * scale,
+        height: page.height * scale,
+        format: PdfPageImageFormat.png,
+        backgroundColor: '#ffffff',
+        quality: 100,
+      );
+}
 
 class LibraryContentPlayer extends StatefulWidget {
   final String type;
@@ -369,7 +378,7 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
           _pdfError!,
         );
       }
-      return _buildLoading(isDark, 'Loading PDF...');
+      return _buildPdfLoading(isDark);
     }
     final controller = _pdfController;
     if (controller == null) {
@@ -379,6 +388,7 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
         'PDF unavailable',
       );
     }
+    final dpr = MediaQuery.devicePixelRatioOf(context);
     return ClipRRect(
       borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
       child: Container(
@@ -441,7 +451,7 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
               child: PdfView(
                 controller: controller,
                 scrollDirection: Axis.vertical,
-                renderer: _renderPdfPageSharp,
+                renderer: pdfRendererFor(dpr),
                 builders: PdfViewBuilders<DefaultBuilderOptions>(
                   options: const DefaultBuilderOptions(),
                   documentLoaderBuilder: (context) => const Center(
@@ -461,6 +471,48 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildPdfLoading(bool isDark) {
+    return Container(
+      width: double.infinity,
+      height: 420,
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(AppDimensions.paddingMd),
+            child: Row(
+              children: [
+                const Icon(
+                  Icons.picture_as_pdf_outlined,
+                  color: AppColors.error,
+                  size: 20,
+                ),
+                const SizedBox(width: AppDimensions.sm),
+                Text(
+                  'Loading PDF...',
+                  style: TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const Divider(height: 1),
+          const Expanded(child: ShimmerWidget(width: double.infinity, height: double.infinity)),
+        ],
       ),
     );
   }
@@ -562,7 +614,7 @@ class FullScreenPdfPage extends StatefulWidget {
 }
 
 class _FullScreenPdfPageState extends State<FullScreenPdfPage> {
-  late final PdfController _controller;
+  late final PdfControllerPinch _controller;
   late int _page;
   int? _pagesCount;
 
@@ -570,7 +622,7 @@ class _FullScreenPdfPageState extends State<FullScreenPdfPage> {
   void initState() {
     super.initState();
     _page = widget.initialPage < 1 ? 1 : widget.initialPage;
-    _controller = PdfController(
+    _controller = PdfControllerPinch(
       document: PdfDocument.openData(Uint8List.fromList(widget.bytes)),
       initialPage: _page,
     );
@@ -592,18 +644,21 @@ class _FullScreenPdfPageState extends State<FullScreenPdfPage> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          PdfView(
+          PdfViewPinch(
             controller: _controller,
             scrollDirection: Axis.vertical,
-            renderer: _renderPdfPageSharp,
+            padding: 4,
+            maxScale: 12.0,
             onDocumentLoaded: (doc) {
               if (mounted) setState(() => _pagesCount = doc.pagesCount);
             },
             onPageChanged: (page) {
               if (mounted) setState(() => _page = page);
             },
-            builders: PdfViewBuilders<DefaultBuilderOptions>(
-              options: const DefaultBuilderOptions(),
+            builders: PdfViewPinchBuilders<DefaultBuilderOptions>(
+              options: const DefaultBuilderOptions(
+                loaderSwitchDuration: Duration(milliseconds: 200),
+              ),
               documentLoaderBuilder: (_) => const Center(
                 child: CircularProgressIndicator(color: Colors.white),
               ),

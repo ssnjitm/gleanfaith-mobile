@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/common/widgets/shimmer_widget.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../library/presentation/widgets/library_content_player.dart';
@@ -124,7 +125,39 @@ class _CourseContentPageState extends ConsumerState<CourseContentPage> {
 
   Widget _buildBody(bool isDark) {
     if (_loading) {
-      return const Center(child: CircularProgressIndicator());
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(
+          AppDimensions.paddingLg,
+          AppDimensions.paddingMd,
+          AppDimensions.paddingLg,
+          AppDimensions.paddingXl,
+        ),
+        children: const [
+          ShimmerWidget(
+            width: double.infinity,
+            height: 36,
+            borderRadius: AppDimensions.radiusSm,
+          ),
+          SizedBox(height: AppDimensions.paddingSm),
+          ShimmerWidget(
+            width: 90,
+            height: 14,
+            borderRadius: AppDimensions.radiusSm,
+          ),
+          SizedBox(height: AppDimensions.paddingMd),
+          ShimmerWidget(
+            width: double.infinity,
+            height: 320,
+            borderRadius: AppDimensions.radiusLg,
+          ),
+          SizedBox(height: AppDimensions.paddingLg),
+          ShimmerTextLine(width: 1.0),
+          SizedBox(height: AppDimensions.xs),
+          ShimmerTextLine(width: 0.92),
+          SizedBox(height: AppDimensions.xs),
+          ShimmerTextLine(width: 0.6),
+        ],
+      );
     }
 
     final doc = _doc;
