@@ -199,8 +199,5 @@ class CrossPuzzleWithProgress {
   final CrossPuzzle puzzle;
   final CrossPuzzleProgress progress;
 
-  const CrossPuzzleWithProgress({
-    required this.puzzle,
-    required this.progress,
-  });
+  const CrossPuzzleWithProgress({required this.puzzle, required this.progress});
 }

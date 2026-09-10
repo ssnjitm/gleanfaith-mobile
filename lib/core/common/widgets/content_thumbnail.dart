@@ -40,16 +40,29 @@ class ContentThumbnail extends StatelessWidget {
     }
   }
 
-  String get _label {
+  // String get _label {
+  //   switch (type) {
+  //     case 'video':
+  //       return 'Video';
+  //     case 'audio':
+  //       return 'Audio';
+  //     case 'pdf':
+  //       return 'PDF';
+  //     default:
+  //       return 'Article';
+  //   }
+  // }
+
+   String get _label {
     switch (type) {
       case 'video':
-        return 'Video';
+        return 'Read The Content';
       case 'audio':
-        return 'Audio';
+        return 'Read The Content';
       case 'pdf':
-        return 'PDF';
+        return 'Read The Content';
       default:
-        return 'Article';
+        return 'Read The Content';
     }
   }
 

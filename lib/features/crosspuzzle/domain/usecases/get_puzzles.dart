@@ -12,6 +12,10 @@ class GetPuzzlesUseCase {
     int limit = 10,
     String? difficulty,
   }) {
-    return _repository.getPuzzles(page: page, limit: limit, difficulty: difficulty);
+    return _repository.getPuzzles(
+      page: page,
+      limit: limit,
+      difficulty: difficulty,
+    );
   }
 }

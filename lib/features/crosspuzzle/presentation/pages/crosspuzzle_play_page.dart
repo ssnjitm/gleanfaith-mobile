@@ -5,13 +5,17 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../core/theme/colors.dart';
-import '../../../../core/theme/dimensions.dart';
+import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/theme/colors.dart';
 import '../../domain/entities/crosspuzzle_entities.dart';
 import '../models/crossword_board.dart';
 import '../providers/crosspuzzle_provider.dart';
+import '../widgets/crossword_clue_bar.dart';
 import '../widgets/crossword_grid.dart';
+import '../widgets/crossword_keyboard.dart';
+
+enum _BottomPanel { questions, keyboard }
 
 class CrossPuzzlePlayPage extends ConsumerStatefulWidget {
   final String puzzleId;
@@ -24,7 +28,8 @@ class CrossPuzzlePlayPage extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<CrossPuzzlePlayPage> createState() => _CrossPuzzlePlayPageState();
+  ConsumerState<CrossPuzzlePlayPage> createState() =>
+      _CrossPuzzlePlayPageState();
 }
 
 class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
@@ -32,27 +37,17 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
   CrossPuzzleDetail? _detail;
   bool _loading = true;
   String? _error;
+  bool _saving = false;
+
+  _BottomPanel _bottomPanel = _BottomPanel.keyboard;
 
   int _mistakes = 0;
   int _hintsUsed = 0;
   int _timeSpentSeconds = 0;
-
   Timer? _ticker;
   Timer? _autosaveTimer;
   bool _autosaveInFlight = false;
-  int _lastSavedFilled = -1;
-  bool _saving = false;
-
-  String _activeSheet = 'across';
-  String? _lastActiveClueKey;
-
-  final FocusNode _keyboardFocusNode = FocusNode();
-  final FocusNode _hiddenInputFocusNode = FocusNode();
-  final TextEditingController _hiddenInputController =
-      TextEditingController(text: ' ');
-  final ScrollController _clueListController = ScrollController();
-
-  static const double _clueItemExtent = 46;
+  bool _disposed = false;
 
   @override
   void initState() {
@@ -65,51 +60,44 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       _loading = true;
       _error = null;
     });
+
     final result = await ref
         .read(getPuzzleDetailUseCaseProvider)(widget.puzzleId)
         .run();
+
     if (!mounted) return;
 
-    final detail = result.fold(
-      (failure) {
-        setState(() {
-          _loading = false;
-          _error = failure.message;
-        });
-        return null;
-      },
-      (detail) => detail,
-    );
+    final detail = result.fold((failure) {
+      setState(() {
+        _loading = false;
+        _error = failure.message;
+      });
+      return null;
+    }, (detail) => detail);
     if (detail == null) return;
 
     try {
       final board = CrosswordBoard.fromPuzzle(detail.puzzle);
-      board.restore(
-        detail.progress?.gridState,
-        detail.progress?.revealedCells,
-      );
-      // Surface any incorrect letters saved from an earlier session
-      // immediately, otherwise submit would stay locked with no visual cue.
+      board.restore(detail.progress?.gridState, detail.progress?.revealedCells);
       board.markIncorrectCells();
+
       if (detail.progress != null) {
         _mistakes = detail.progress!.mistakes;
         _hintsUsed = detail.progress!.hintsUsed;
         _timeSpentSeconds = detail.progress!.timeSpentSeconds;
       }
-      _lastActiveClueKey = _clueKey(board);
 
       setState(() {
         _detail = detail;
         _board = board;
         _loading = false;
       });
-      _syncActiveSheet(board);
 
       _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted) return;
+        if (!mounted || _disposed) return;
         setState(() => _timeSpentSeconds += 1);
-        _scheduleAutosave();
       });
+      _startAutosave();
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -119,23 +107,58 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
     }
   }
 
-  void _scheduleAutosave() {
+  void _startAutosave() {
     _autosaveTimer?.cancel();
-    _autosaveTimer = Timer(const Duration(seconds: 2), _autosave);
+    _autosaveTimer = Timer.periodic(
+      const Duration(seconds: 2),
+      (_) => _autosave(),
+    );
   }
 
   Future<void> _autosave() async {
     final board = _board;
-    final detail = _detail;
-    if (board == null || detail == null || _autosaveInFlight) return;
-
-    final filled = board.filledCellCount;
-    if (filled == _lastSavedFilled && _timeSpentSeconds % 15 != 0) return;
+    if (board == null ||
+        _autosaveInFlight ||
+        _saving ||
+        _disposed ||
+        !mounted) {
+      return;
+    }
 
     _autosaveInFlight = true;
-    _lastSavedFilled = filled;
     final snapshotTime = _timeSpentSeconds;
-    await ref
+    final snapshotBoard = board.copy();
+    try {
+      await ref
+          .read(saveProgressUseCaseProvider)
+          .call(
+            puzzleId: widget.puzzleId,
+            gridState: snapshotBoard.toGridState(),
+            revealedCells: snapshotBoard.toRevealedCells(),
+            mistakes: _mistakes,
+            hintsUsed: _hintsUsed,
+            timeSpentSeconds: snapshotTime,
+          )
+          .run();
+    } finally {
+      _autosaveInFlight = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _ticker?.cancel();
+    _autosaveTimer?.cancel();
+    if (_board != null && _detail != null) {
+      _persistFinalState();
+    }
+    super.dispose();
+  }
+
+  void _persistFinalState() {
+    final board = _board!;
+    ref
         .read(saveProgressUseCaseProvider)
         .call(
           puzzleId: widget.puzzleId,
@@ -143,161 +166,132 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
           revealedCells: board.toRevealedCells(),
           mistakes: _mistakes,
           hintsUsed: _hintsUsed,
-          timeSpentSeconds: snapshotTime,
+          timeSpentSeconds: _timeSpentSeconds,
         )
         .run();
-    _autosaveInFlight = false;
   }
 
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    _autosaveTimer?.cancel();
-    _keyboardFocusNode.dispose();
-    _hiddenInputFocusNode.dispose();
-    _hiddenInputController.dispose();
-    _clueListController.dispose();
-    if (_board != null && _detail != null) {
-      ref.read(saveProgressUseCaseProvider).call(
-            puzzleId: widget.puzzleId,
-            gridState: _board!.toGridState(),
-            revealedCells: _board!.toRevealedCells(),
-            mistakes: _mistakes,
-            hintsUsed: _hintsUsed,
-            timeSpentSeconds: _timeSpentSeconds,
-          ).run();
+  void _onBoardUpdated(CrosswordBoard board) {
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  void _handleLetter(String letter) {
+    final board = _board;
+    if (board == null) return;
+
+    final char = letter.toUpperCase();
+    if (!RegExp(r'^[A-Z]$').hasMatch(char)) return;
+
+    if (!board.pencilMode && board.hasAnswers) {
+      final cell = _selectedCell(board);
+      if (cell != null && cell.value.trim().isEmpty) {
+        final expected = board.answerCells[cell.key];
+        if (expected != null && expected != char) {
+          setState(() => _mistakes += 1);
+        }
+      }
     }
-    super.dispose();
+
+    board.inputLetter(char);
+    _onBoardUpdated(board);
   }
 
-  void _requestFocusForInput() {
-    if (_hiddenInputFocusNode.hasFocus) return;
-    _hiddenInputFocusNode.requestFocus();
-    // Some devices drop focus while the layout settles (keyboard animating
-    // in, rebuilds) — retry shortly after to keep the keyboard up.
-    Future.delayed(const Duration(milliseconds: 120), () {
-      if (!mounted) return;
-      if (!_hiddenInputFocusNode.hasFocus) {
-        _hiddenInputFocusNode.requestFocus();
+  CrosswordCell? _selectedCell(CrosswordBoard board) {
+    final r = board.selectedRow;
+    final c = board.selectedCol;
+    if (r == null || c == null) return null;
+    return board.grid[r][c];
+  }
+
+  void _handleBackspace() {
+    final board = _board;
+    if (board == null) return;
+    board.handleBackspace();
+    _onBoardUpdated(board);
+  }
+
+  void _toggleMode() {
+    final board = _board;
+    if (board == null) return;
+    board.setPencilMode(!board.pencilMode);
+    _onBoardUpdated(board);
+  }
+
+  void _onClearAll() {
+    final board = _board;
+    if (board == null) return;
+    final confirmed = AlertDialog(
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1E293B)
+          : Colors.white,
+      title: const Text('Clear entire grid?'),
+      content: const Text('All your answers in this puzzle will be erased.'),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: const Text('Clear', style: TextStyle(color: AppColors.error)),
+        ),
+      ],
+    );
+    showDialog<bool>(context: context, builder: (_) => confirmed).then((ok) {
+      if (ok == true && _board != null) {
+        _board!.clearAll();
+        _onBoardUpdated(_board!);
       }
     });
   }
 
-  void _syncActiveSheet(CrosswordBoard board) {
-    _activeSheet = board.activeDirection ?? 'across';
-  }
-
-  void _onCellChanged(int filledCount) {
+  void _onGridTapped(int row, int col, bool isTapOnSelected) {
     final board = _board;
-    setState(() {});
-    if (board != null) {
-      _syncActiveSheet(board);
-      _ensureActiveClueVisible(board);
+    if (board == null) return;
+    if (isTapOnSelected) {
+      board.toggleDirection();
+    } else {
+      board.selectCell(row, col);
     }
-    _requestFocusForInput();
-    _scheduleAutosave();
+    _onBoardUpdated(board);
   }
 
-  void _ensureActiveClueVisible(CrosswordBoard board) {
-    final key = _clueKey(board);
-    if (key == _lastActiveClueKey) return;
-    _lastActiveClueKey = key;
-
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted || !_clueListController.hasClients) return;
-      final clues =
-          _activeSheet == 'across' ? board.acrossClues : board.downClues;
-      final index =
-          clues.indexWhere((c) => c.number == board.activeClueNumber);
-      if (index < 0) return;
-      final target = (index * _clueItemExtent)
-          .clamp(0.0, _clueListController.position.maxScrollExtent);
-      _clueListController.animateTo(
-        target,
-        duration: const Duration(milliseconds: 220),
-        curve: Curves.easeOutCubic,
-      );
-    });
-  }
-
-  String _clueKey(CrosswordBoard board) =>
-      '${board.activeDirection ?? ''}-${board.activeClueNumber ?? ''}';
-
-  void _handleTextInput(String value) {
+  void _cycleClue(int delta) {
     final board = _board;
     if (board == null) return;
 
-    if (value.isEmpty) {
-      board.handleBackspace();
-      _resetHiddenController();
-      _onCellChanged(board.filledCellCount);
+    final isAcross = (board.activeDirection ?? 'across') == 'across';
+    final primary = isAcross ? board.acrossClues : board.downClues;
+    final secondary = isAcross ? board.downClues : board.acrossClues;
+
+    final all = [...primary, ...secondary];
+    if (all.isEmpty) return;
+
+    final currentIndex = all.indexWhere(
+      (c) =>
+          c.number == board.activeClueNumber &&
+          c.direction == board.activeDirection,
+    );
+    if (currentIndex < 0) return;
+
+    final next = all[(currentIndex + delta + all.length) % all.length];
+    board.selectClue(next.number, next.direction);
+    _onBoardUpdated(board);
+  }
+
+  Future<void> _handleComplete() async {
+    final board = _board;
+    if (board == null || _saving) return;
+    if (!_canSubmit(board)) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Fill all boxes correctly to submit'),
+          backgroundColor: AppColors.error,
+        ),
+      );
       return;
     }
-
-    // inputLetter places the letter and advances the cursor — it must NOT
-    // be called again here.
-    final char = value.substring(value.length - 1);
-    if (RegExp(r'^[a-zA-Z]$').hasMatch(char)) {
-      board.inputLetter(char);
-    }
-    _resetHiddenController();
-    _onCellChanged(board.filledCellCount);
-  }
-
-  void _resetHiddenController() {
-    _hiddenInputController.value = const TextEditingValue(
-      text: ' ',
-      selection: TextSelection.collapsed(offset: 1),
-    );
-  }
-
-  void _handleKeyEvent(KeyEvent event) {
-    final board = _board;
-    if (board == null) return;
-    if (event is! KeyDownEvent) return;
-    final key = event.logicalKey;
-
-    if (key == LogicalKeyboardKey.arrowRight) {
-      board.moveBy(0, 1);
-      _onCellChanged(board.filledCellCount);
-    } else if (key == LogicalKeyboardKey.arrowLeft) {
-      board.moveBy(0, -1);
-      _onCellChanged(board.filledCellCount);
-    } else if (key == LogicalKeyboardKey.arrowDown) {
-      board.moveBy(1, 0);
-      _onCellChanged(board.filledCellCount);
-    } else if (key == LogicalKeyboardKey.arrowUp) {
-      board.moveBy(-1, 0);
-      _onCellChanged(board.filledCellCount);
-    } else if (key == LogicalKeyboardKey.backspace ||
-        key == LogicalKeyboardKey.delete) {
-      board.handleBackspace();
-      _onCellChanged(board.filledCellCount);
-    } else if (key == LogicalKeyboardKey.space) {
-      board.toggleDirection();
-      _onCellChanged(board.filledCellCount);
-    } else if (key == LogicalKeyboardKey.tab) {
-      if (event.character == null) {
-        board.toggleDirection();
-        _onCellChanged(board.filledCellCount);
-      }
-    } else if (key == LogicalKeyboardKey.enter) {
-      _complete();
-    }
-  }
-
-  /// Submission is only allowed once every box is filled — and, when the
-  /// puzzle ships answers, every letter is correct (no red cells).
-  bool _canSubmit(CrosswordBoard board) {
-    if (board.hasAnswers) {
-      return board.isFullyCorrect;
-    }
-    return board.filledCellCount >= board.totalActiveCells;
-  }
-
-  Future<void> _complete() async {
-    final board = _board;
-    if (board == null || _saving || !_canSubmit(board)) return;
 
     setState(() => _saving = true);
     final result = await ref
@@ -313,18 +307,22 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
     if (!mounted) return;
     setState(() => _saving = false);
 
-    final completed = result.fold(
-      (failure) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(failure.message)),
-        );
-        return null;
-      },
-      (result) => result,
-    );
+    final completed = result.fold((failure) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(failure.message)));
+      return null;
+    }, (result) => result);
     if (completed == null) return;
 
     context.pushReplacement(RouteNames.crossPuzzleResult, extra: completed);
+  }
+
+  bool _canSubmit(CrosswordBoard board) {
+    if (board.hasAnswers) {
+      return board.isFullyCorrect;
+    }
+    return board.filledCellCount >= board.totalActiveCells;
   }
 
   String get _elapsedLabel {
@@ -338,449 +336,379 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
-      appBar: AppBar(
-        title: Text(widget.title),
-        actions: [
-          Padding(
-            padding: const EdgeInsets.only(right: AppDimensions.paddingMd),
-            child: Center(
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryAmber.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.timer_outlined,
-                        size: 14, color: AppColors.primaryAmber),
-                    const SizedBox(width: 4),
-                    Text(
-                      _elapsedLabel,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.primaryAmber,
-                        fontFeatures: [FontFeature.tabularFigures()],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-      body: _buildBody(context),
+      backgroundColor: Theme.of(context).brightness == Brightness.dark
+          ? const Color(0xFF1E293B)
+          : const Color(0xFFF1F5F9),
+      body: _loading
+          ? _buildLoading()
+          : _error != null
+          ? _buildError()
+          : _buildGame(),
     );
   }
 
-  Widget _buildBody(BuildContext context) {
-    if (_loading) {
-      return const Center(child: CircularProgressIndicator());
-    }
-    if (_error != null) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.all(AppDimensions.paddingXl),
+  Widget _buildLoading() {
+    return const Center(
+      child: CircularProgressIndicator(color: AppColors.primaryBlue),
+    );
+  }
+
+  Widget _buildError() {
+    return SafeArea(
+      child: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 48, color: AppColors.error),
-            const SizedBox(height: AppDimensions.paddingMd),
-            Text(
-              _error!,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 14),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 48,
+              color: AppColors.error,
             ),
-            const SizedBox(height: AppDimensions.lg),
-            ElevatedButton(
-              onPressed: _loadDetail,
-              child: const Text('Retry'),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Text(_error!, textAlign: TextAlign.center),
             ),
-          ],
-        ),
-      );
-    }
-
-    final board = _board!;
-
-    return KeyboardListener(
-      focusNode: _keyboardFocusNode,
-      autofocus: true,
-      onKeyEvent: _handleKeyEvent,
-        child: SafeArea(
-          child: Stack(
-            children: [
-              // Invisible but fully laid-out input capture field. Kept inside
-              // the tree (not offstage) so it can hold focus and summon the
-              // software keyboard reliably on Android/iOS.
-              IgnorePointer(
-                child: Opacity(
-                  opacity: 0,
-                  child: SizedBox(
-                    width: 1,
-                    height: 1,
-                    child: TextField(
-                      focusNode: _hiddenInputFocusNode,
-                      controller: _hiddenInputController,
-                      keyboardType: TextInputType.text,
-                      textCapitalization: TextCapitalization.characters,
-                      autocorrect: false,
-                      enableSuggestions: false,
-                      onChanged: _handleTextInput,
-                    ),
-                  ),
-                ),
-              ),
-            Column(
-              children: [
-                _buildTopBar(context, board),
-                Expanded(child: _buildGridArea(context, board)),
-                _buildBottomPanel(context, board),
-              ],
-            ),
+            const SizedBox(height: 16),
+            ElevatedButton(onPressed: _loadDetail, child: const Text('Retry')),
           ],
         ),
       ),
     );
   }
 
-  /// Progress strip + current-clue banner.
-  Widget _buildTopBar(BuildContext context, CrosswordBoard board) {
+  Widget _buildGame() {
+    final board = _board!;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return SafeArea(
+      child: Column(
+        children: [
+          _buildHeader(board, isDark),
+          Expanded(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final maxGridWidth = constraints.maxWidth - 16;
+                const paddingTotal = CrosswordGrid.defaultPadding * 2;
+                final gapByCols = (board.cols - 1) * CrosswordGrid.cellGap;
+                final byWidth =
+                    (maxGridWidth - gapByCols - paddingTotal) / board.cols;
+                final cellSize = byWidth.clamp(24.0, 44.0).floorToDouble();
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        FittedBox(
+                          fit: BoxFit.contain,
+                          alignment: Alignment.center,
+                          child: CrosswordGrid(
+                            board: board,
+                            cellSize: cellSize,
+                            padding: const EdgeInsets.all(
+                              CrosswordGrid.defaultPadding,
+                            ),
+                            onCellTapped: _onGridTapped,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        _buildProgressRow(board, isDark),
+                        const SizedBox(height: 4),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+          _buildBottomPanel(board, isDark),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBottomPanel(CrosswordBoard board, bool isDark) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _buildClueBar(board, isDark),
+        const SizedBox(height: 8),
+        _PanelToggle(
+          isDark: isDark,
+          value: _bottomPanel,
+          onChanged: (v) => setState(() => _bottomPanel = v),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          height: 178,
+          child: _bottomPanel == _BottomPanel.questions
+              ? _QuestionsList(
+                  board: board,
+                  isDark: isDark,
+                  onClueTap: (number, direction) {
+                    board.selectClue(number, direction);
+                    _onBoardUpdated(board);
+                    setState(() => _bottomPanel = _BottomPanel.keyboard);
+                  },
+                )
+              : CrosswordKeyboard(
+                  mode: board.pencilMode
+                      ? CrosswordInputMode.pencil
+                      : CrosswordInputMode.pen,
+                  onLetterTap: _handleLetter,
+                  onBackspace: _handleBackspace,
+                  onToggleMode: _toggleMode,
+                ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHeader(CrosswordBoard board, bool isDark) {
     final progress = board.totalActiveCells == 0
         ? 0.0
         : board.filledCellCount / board.totalActiveCells;
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(
-        AppDimensions.paddingMd,
-        AppDimensions.paddingSm,
-        AppDimensions.paddingMd,
-        0,
-      ),
+      padding: const EdgeInsets.fromLTRB(16, 10, 16, 6),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Row(
-            children: [
-              Icon(
-                Icons.grid_on_rounded,
-                size: 16,
-                color: isDark ? Colors.grey[400] : AppColors.textMuted,
-              ),
-              const SizedBox(width: 6),
-              Text(
-                'Progress',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.grey[400] : AppColors.textMuted,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${board.filledCellCount} / ${board.totalActiveCells}',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w800,
-                  color: isDark ? Colors.grey[200] : AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(width: AppDimensions.sm),
-              _StatBadge(
-                icon: Icons.close_rounded,
-                label: '$_mistakes',
-                color: AppColors.error,
-              ),
-            ],
-          ),
-          const SizedBox(height: 6),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: progress,
-              minHeight: 5,
-              backgroundColor:
-                  isDark ? const Color(0xFF334155) : AppColors.borderLight,
-              valueColor: const AlwaysStoppedAnimation<Color>(AppColors.success),
-            ),
-          ),
-          const SizedBox(height: AppDimensions.paddingSm),
-          _ClueBanner(board: board, onTap: () => _toggleDirection(board)),
-        ],
-      ),
-    );
-  }
-
-  void _toggleDirection(CrosswordBoard board) {
-    board.toggleDirection();
-    _onCellChanged(board.filledCellCount);
-  }
-
-  Widget _buildGridArea(BuildContext context, CrosswordBoard board) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return Center(
-          child: FittedBox(
-            fit: BoxFit.contain,
-            child: GestureDetector(
-              onTap: _requestFocusForInput,
-              child: Container(
-                margin: const EdgeInsets.all(AppDimensions.paddingSm),
-                child: CrosswordGrid(board: board, onCellChanged: _onCellChanged),
-              ),
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  /// Clue tabs + scrollable clue list + submit action.
-  Widget _buildBottomPanel(BuildContext context, CrosswordBoard board) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Container(
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF16233B) : Colors.white,
-        borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-        border: Border(
-          top: BorderSide(
-            color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-          ),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.06),
-            blurRadius: 12,
-            offset: const Offset(0, -4),
-          ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.paddingMd,
-              AppDimensions.paddingMd,
-              AppDimensions.paddingMd,
-              AppDimensions.sm,
-            ),
-            child: Row(
-              children: [
-                Expanded(
-                  child: _TabChip(
-                    label: 'Across',
-                    count: board.acrossClues.length,
-                    active: _activeSheet == 'across',
-                    color: AppColors.primaryBlue,
-                    onTap: () => setState(() => _activeSheet = 'across'),
-                  ),
-                ),
-                const SizedBox(width: AppDimensions.sm),
-                Expanded(
-                  child: _TabChip(
-                    label: 'Down',
-                    count: board.downClues.length,
-                    active: _activeSheet == 'down',
-                    color: AppColors.primaryAmber,
-                    onTap: () => setState(() => _activeSheet = 'down'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Flexible(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                maxHeight: _clueItemExtent * 3.6,
-              ),
-              child: _ClueList(
-                controller: _clueListController,
-                board: board,
-                activeSheet: _activeSheet,
-                itemExtent: _clueItemExtent,
-                onClueTap: (number, direction) {
-                  board.selectClue(number, direction);
-                  _onCellChanged(board.filledCellCount);
-                },
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(
-              AppDimensions.paddingMd,
-              AppDimensions.sm,
-              AppDimensions.paddingMd,
-              AppDimensions.paddingMd,
-            ),
-            child: SizedBox(
-              width: double.infinity,
-              height: 46,
-              child: Builder(builder: (context) {
-                final ready = _canSubmit(board);
-                return ElevatedButton.icon(
-                  onPressed: (_saving || !ready) ? null : _complete,
-                  icon: _saving
-                      ? const SizedBox(
-                          width: 16,
-                          height: 16,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Icon(
-                          ready ? Icons.check_rounded : Icons.lock_outline_rounded,
-                          size: 20,
-                        ),
-                  label: Text(
-                    _saving
-                        ? 'Submitting…'
-                        : ready
-                            ? 'Submit Puzzle'
-                            : 'Fill every box correctly to submit',
-                    style:
-                        const TextStyle(fontSize: 14, fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primaryBlue,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor:
-                        isDark ? const Color(0xFF334155) : AppColors.borderLight,
-                    disabledForegroundColor:
-                        isDark ? Colors.grey[500] : AppColors.textMuted,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _ClueBanner extends StatelessWidget {
-  final CrosswordBoard board;
-  final VoidCallback onTap;
-
-  const _ClueBanner({required this.board, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final clue = board.activeClue;
-    final isAcross = (board.activeDirection ?? 'across') == 'across';
-    final dirColor = isAcross ? AppColors.primaryBlue : AppColors.primaryAmber;
-
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppDimensions.md,
-            vertical: AppDimensions.sm + 2,
-          ),
-          decoration: BoxDecoration(
-            color: isDark ? const Color(0xFF1E293B) : AppColors.bgWhite,
-            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-            border: Border.all(
-              color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
-                blurRadius: 8,
-                offset: const Offset(0, 2),
-              ),
-            ],
-          ),
-          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
-                width: 4,
-                height: 38,
                 decoration: BoxDecoration(
-                  color: dirColor,
-                  borderRadius: BorderRadius.circular(2),
+                  color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : const Color(0xFFE2E8F0),
+                  ),
+                ),
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back_ios_new_rounded),
+                  iconSize: 18,
+                  color: isDark ? Colors.white : AppColors.textSecondary,
+                  onPressed: () => context.pop(),
                 ),
               ),
-              const SizedBox(width: AppDimensions.md),
+              const SizedBox(width: 12),
               Expanded(
+                flex: 1,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          clue == null
-                              ? '—'
-                              : '${clue.number} ${isAcross ? 'ACROSS' : 'DOWN'}',
-                          style: TextStyle(
-                            fontSize: 11,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.8,
-                            color: dirColor,
-                          ),
-                        ),
-                        if (clue != null) ...[
-                          const SizedBox(width: 8),
-                          Text(
-                            '${clue.answerLength} letters · tap to flip',
-                            style: TextStyle(
-                              fontSize: 10,
-                              color: isDark
-                                  ? Colors.grey[500]
-                                  : AppColors.textLight,
-                            ),
-                          ),
-                        ],
-                      ],
+                    Text(
+                      widget.title,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : AppColors.textPrimary,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      clue?.clue ?? 'Select a word to begin',
-                      maxLines: 2,
+                      '${board.filledCellCount} of ${board.totalActiveCells} filled',
+                      maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 15,
+                        fontSize: 11,
                         fontWeight: FontWeight.w600,
-                        height: 1.25,
-                        color:
-                            isDark ? Colors.grey[100] : AppColors.textPrimary,
+                        color: isDark ? Colors.grey[400] : AppColors.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
+              const SizedBox(width: 8),
+              Tooltip(
+                message:
+                    'Lights up a correct letter. Remaining: ${board.currentHintsNeeded}',
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(20),
+                  onTap: _useHint,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 9,
+                      vertical: 6,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlue.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.lightbulb_rounded,
+                          size: 14,
+                          color: AppColors.primaryBlue,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '$_hintsUsed',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.primaryBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 4),
+              _OverflowMenu(
+                isDark: isDark,
+                canSubmit: _canSubmit(board),
+                onClear: _onClearAll,
+                onSubmit: () => _handleComplete(),
+              ),
             ],
           ),
-        ),
+          const SizedBox(height: 10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              _HeaderStat(
+                icon: Icons.timer_outlined,
+                label: _elapsedLabel,
+                color: AppColors.primaryAmber,
+              ),
+              const SizedBox(width: 8),
+              _HeaderStat(
+                icon: Icons.close_rounded,
+                label: '$_mistakes',
+                color: AppColors.error,
+              ),
+              const Spacer(),
+              _HeaderStat(
+                icon: Icons.grid_view_rounded,
+                label: '${board.filledCellCount}/${board.totalActiveCells}',
+                color: AppColors.primaryBlue,
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress,
+              minHeight: 4,
+              backgroundColor: isDark
+                  ? const Color(0xFF334155)
+                  : const Color(0xFFE2E8F0),
+              valueColor: const AlwaysStoppedAnimation<Color>(
+                AppColors.success,
+              ),
+            ),
+          ),
+        ],
       ),
+    );
+  }
+
+  Future<void> _useHint() async {
+    final board = _board;
+    if (board == null) return;
+
+    final detail = _detail;
+    if (detail != null && !detail.revealAnswers) {
+      AlertWidget.showInfo(context, 'Hints are disabled for this puzzle');
+      return;
+    }
+
+    final next = board.revealNextHint();
+    if (next == null) return;
+
+    setState(() => _hintsUsed += 1);
+    _onBoardUpdated(board);
+
+    if (Theme.of(context).brightness == Brightness.dark) {
+      await HapticFeedback.lightImpact();
+    }
+  }
+
+  Widget _buildProgressRow(CrosswordBoard board, bool isDark) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          _Pill(
+            icon: Icons.flag_outlined,
+            label:
+                'Hint ${board.activeClueNumber?.toString() ?? '-'} ${_directionLabel(board.activeDirection ?? 'across')}',
+            color: AppColors.primaryBlue,
+            isDark: isDark,
+          ),
+          _Pill(
+            icon: Icons.check_rounded,
+            label: '${board.filledCellCount}/${board.totalActiveCells}',
+            color: AppColors.success,
+            isDark: isDark,
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _directionLabel(String direction) => direction == 'across' ? 'A' : 'D';
+
+  Widget _buildClueBar(CrosswordBoard board, bool isDark) {
+    final isAcross = (board.activeDirection ?? 'across') == 'across';
+    final primary = isAcross ? board.acrossClues : board.downClues;
+    final secondary = isAcross ? board.downClues : board.acrossClues;
+    final all = [...primary, ...secondary];
+
+    final currentIndex = all.indexWhere(
+      (c) =>
+          c.number == board.activeClueNumber &&
+          c.direction == board.activeDirection,
+    );
+
+    final clue = board.activeClue;
+
+    return CrosswordClueBar(
+      clueText: clue?.clue,
+      clueNumber: clue?.number,
+      direction: clue?.direction,
+      answerLength: clue?.answerLength,
+      canGoPrev: all.length > 1 && currentIndex > 0,
+      canGoNext:
+          all.length > 1 && currentIndex >= 0 && currentIndex < all.length - 1,
+      mode: board.pencilMode
+          ? CrosswordInputMode.pencil
+          : CrosswordInputMode.pen,
+      onPrev: () => _cycleClue(-1),
+      onNext: () => _cycleClue(1),
+      onToggleMode: _toggleMode,
+      onClueTap: () {
+        final b = _board;
+        if (b == null) return;
+        b.toggleDirection();
+        _onBoardUpdated(b);
+      },
     );
   }
 }
 
-class _StatBadge extends StatelessWidget {
+class _HeaderStat extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
 
-  const _StatBadge({
+  const _HeaderStat({
     required this.icon,
     required this.label,
     required this.color,
@@ -789,7 +717,7 @@ class _StatBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(20),
@@ -802,8 +730,49 @@ class _StatBadge extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              fontSize: 12,
+              fontSize: 11,
               fontWeight: FontWeight.w800,
+              color: color,
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Pill extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final bool isDark;
+
+  const _Pill({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: color),
+          const SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.w700,
               color: color,
             ),
           ),
@@ -813,211 +782,325 @@ class _StatBadge extends StatelessWidget {
   }
 }
 
-class _TabChip extends StatelessWidget {
-  final String label;
-  final int count;
-  final bool active;
-  final Color color;
-  final VoidCallback onTap;
+class _OverflowMenu extends StatelessWidget {
+  final bool isDark;
+  final bool canSubmit;
+  final VoidCallback onClear;
+  final VoidCallback onSubmit;
 
-  const _TabChip({
-    required this.label,
-    required this.count,
-    required this.active,
-    required this.color,
-    required this.onTap,
+  const _OverflowMenu({
+    required this.isDark,
+    required this.canSubmit,
+    required this.onClear,
+    required this.onSubmit,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(vertical: 9),
-        decoration: BoxDecoration(
-          color: active
-              ? color.withValues(alpha: 0.14)
-              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F2F4)),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(
-            color: active ? color : Colors.transparent,
-            width: 1.2,
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+        ),
+      ),
+      child: PopupMenuButton<String>(
+        tooltip: 'More options',
+        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(14),
+          side: BorderSide(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
           ),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              label.toUpperCase(),
-              style: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-                letterSpacing: 0.6,
-                color: active
-                    ? color
-                    : (isDark ? Colors.grey[400] : AppColors.textMuted),
-              ),
-            ),
-            const SizedBox(width: 5),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-              decoration: BoxDecoration(
-                color: active
-                    ? color
-                    : (isDark ? const Color(0xFF334155) : AppColors.borderLight),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Text(
-                '$count',
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w800,
-                  color: active
-                      ? Colors.white
-                      : (isDark ? Colors.grey[400] : AppColors.textMuted),
+        onSelected: (value) {
+          if (value == 'clear') {
+            onClear();
+          } else if (value == 'submit') {
+            onSubmit();
+          }
+        },
+        icon: Icon(
+          Icons.more_vert_rounded,
+          size: 20,
+          color: isDark ? Colors.white : AppColors.textSecondary,
+        ),
+        itemBuilder: (context) => [
+          PopupMenuItem<String>(
+            value: 'submit',
+            enabled: canSubmit,
+            child: Row(
+              children: [
+                Icon(
+                  Icons.check_circle_rounded,
+                  size: 18,
+                  color: canSubmit ? AppColors.success : Colors.grey,
                 ),
-              ),
+                const SizedBox(width: 10),
+                Text(
+                  canSubmit ? 'Submit puzzle' : 'Fill all boxes correctly',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const PopupMenuItem<String>(
+            value: 'clear',
+            child: Row(
+              children: [
+                Icon(
+                  Icons.delete_sweep_outlined,
+                  size: 18,
+                  color: AppColors.error,
+                ),
+                SizedBox(width: 10),
+                Text(
+                  'Clear grid',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.error,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PanelToggle extends StatelessWidget {
+  final bool isDark;
+  final _BottomPanel value;
+  final ValueChanged<_BottomPanel> onChanged;
+
+  const _PanelToggle({
+    required this.isDark,
+    required this.value,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      child: Container(
+        height: 40,
+        padding: const EdgeInsets.all(3),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF0F172A) : Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 1),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            _segment(
+              _BottomPanel.questions,
+              Icons.menu_book_rounded,
+              'Questions',
+              AppColors.primaryBlue,
+            ),
+            _segment(
+              _BottomPanel.keyboard,
+              Icons.keyboard_alt_outlined,
+              'Keyboard',
+              AppColors.primaryAmber,
             ),
           ],
         ),
       ),
     );
   }
+
+  Widget _segment(_BottomPanel v, IconData icon, String label, Color accent) {
+    final active = value == v;
+    final inactiveColor = isDark ? Colors.grey[400]! : AppColors.textMuted;
+    return Expanded(
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        decoration: BoxDecoration(
+          color: active ? accent.withValues(alpha: 0.16) : Colors.transparent,
+          borderRadius: BorderRadius.circular(19),
+        ),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(19),
+          onTap: () => onChanged(v),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, size: 17, color: active ? accent : inactiveColor),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w800,
+                  color: active ? accent : inactiveColor,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
-class _ClueList extends StatelessWidget {
-  final ScrollController controller;
+class _QuestionsList extends StatelessWidget {
   final CrosswordBoard board;
-  final String activeSheet;
-  final double itemExtent;
+  final bool isDark;
   final void Function(int number, String direction) onClueTap;
 
-  const _ClueList({
-    required this.controller,
+  const _QuestionsList({
     required this.board,
-    required this.activeSheet,
-    required this.itemExtent,
+    required this.isDark,
     required this.onClueTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final isAcross = activeSheet == 'across';
-    final clues = isAcross ? board.acrossClues : board.downClues;
-    final clueMap = isAcross ? board.acrossCells : board.downCells;
-
-    if (clues.isEmpty) {
-      return Center(
-        child: Text(
-          'No ${isAcross ? 'across' : 'down'} words',
-          style: TextStyle(
-            fontSize: 13,
-            color: isDark ? Colors.grey[500] : AppColors.textLight,
+    return Container(
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF0F172A) : Colors.white,
+        border: Border(
+          top: BorderSide(
+            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB),
           ),
         ),
-      );
-    }
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: isDark ? 0.31 : 0.05),
+            blurRadius: 16,
+            offset: const Offset(0, -4),
+          ),
+        ],
+      ),
+      child: ListView(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        children: [
+          _sectionHeader('Across', AppColors.primaryBlue),
+          for (final clue in board.acrossClues)
+            _questionTile(clue, AppColors.primaryBlue),
+          _sectionHeader('Down', AppColors.primaryAmber),
+          for (final clue in board.downClues)
+            _questionTile(clue, AppColors.primaryAmber),
+        ],
+      ),
+    );
+  }
 
-    final activeDirection = board.activeDirection ?? (isAcross ? 'across' : 'down');
-
-    return ListView.builder(
-      controller: controller,
-      itemExtent: itemExtent,
-      itemCount: clues.length,
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-      itemBuilder: (context, index) {
-        final clue = clues[index];
-        final isActive = board.activeClueNumber == clue.number &&
-            activeDirection == (isAcross ? 'across' : 'down');
-        final cells = clueMap[clue.number] ?? [];
-        final filledInClue =
-            cells.where((c) => c.value.trim().isNotEmpty).length;
-        final solved = cells.isNotEmpty && filledInClue == cells.length;
-        final clueColor = isAcross ? AppColors.primaryBlue : AppColors.primaryAmber;
-
-        return InkWell(
-          onTap: () => onClueTap(clue.number, activeSheet),
-          borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.paddingSm,
-              vertical: 4,
-            ),
-            decoration: BoxDecoration(
-              color: isActive
-                  ? clueColor.withValues(alpha: 0.12)
-                  : Colors.transparent,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 24,
-                  height: 24,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: isActive
-                        ? clueColor
-                        : (isDark
-                            ? const Color(0xFF334155)
-                            : AppColors.bgGray),
-                  ),
-                  child: Center(
-                    child: Text(
-                      '${clue.number}',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w800,
-                        color: isActive ? Colors.white : clueColor,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: AppDimensions.paddingSm),
-                Expanded(
-                  child: Text(
-                    clue.clue,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
-                      color: solved
-                          ? (isDark ? Colors.grey[500] : AppColors.textLight)
-                          : (isDark
-                              ? Colors.grey[300]
-                              : AppColors.textSecondary),
-                      decoration: solved ? TextDecoration.lineThrough : null,
-                    ),
-                  ),
-                ),
-                Icon(
-                  filledInClue == cells.length && cells.isNotEmpty
-                      ? Icons.check_circle_rounded
-                      : Icons.radio_button_unchecked_rounded,
-                  size: 14,
-                  color: filledInClue == cells.length && cells.isNotEmpty
-                      ? AppColors.success
-                      : (isDark ? Colors.grey[600] : AppColors.borderLight),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  '$filledInClue/${clue.answerLength}',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w800,
-                    fontFeatures: const [FontFeature.tabularFigures()],
-                    color: isDark ? Colors.grey[500] : AppColors.textMuted,
-                  ),
-                ),
-              ],
+  Widget _sectionHeader(String label, Color accent) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+      child: Row(
+        children: [
+          Text(
+            label.toUpperCase(),
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 1.2,
+              color: accent,
             ),
           ),
-        );
-      },
+          const SizedBox(width: 10),
+          Expanded(
+            child: Divider(color: accent.withValues(alpha: 0.3), height: 1),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _questionTile(CrossClue clue, Color accent) {
+    final isActive =
+        clue.number == board.activeClueNumber &&
+        clue.direction == board.activeDirection;
+    final correct = board.isClueFilledCorrectly(clue.number, clue.direction);
+    final filled = board.isClueFilled(clue.number, clue.direction);
+
+    return InkWell(
+      onTap: () => onClueTap(clue.number, clue.direction),
+      child: Container(
+        color: isActive ? accent.withValues(alpha: 0.10) : Colors.transparent,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        child: Row(
+          children: [
+            Container(
+              width: 26,
+              height: 26,
+              alignment: Alignment.center,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: correct
+                    ? AppColors.success
+                    : filled
+                    ? accent.withValues(alpha: 0.18)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: correct
+                      ? AppColors.success
+                      : accent.withValues(alpha: filled ? 0 : 0.7),
+                  width: 1.4,
+                ),
+              ),
+              child: Text(
+                '${clue.number}',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  height: 1,
+                  color: correct
+                      ? Colors.white
+                      : filled
+                      ? accent
+                      : isDark
+                      ? Colors.grey[400]
+                      : AppColors.textSecondary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                clue.clue,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.25,
+                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            if (correct)
+              const Icon(
+                Icons.check_circle_rounded,
+                size: 16,
+                color: AppColors.success,
+              ),
+          ],
+        ),
+      ),
     );
   }
 }

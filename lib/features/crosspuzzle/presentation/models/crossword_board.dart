@@ -1,62 +1,61 @@
+// crossword_board.dart
 import '../../domain/entities/crosspuzzle_entities.dart';
 
-/// A single cell in the crossword grid.
 class CrosswordCell {
   final int row;
   final int col;
-
-  /// Clue number to display in the top-left corner (if this starts a clue).
   int? number;
-
-  /// The letter the user has placed.
   String value;
-
-  /// Whether this cell was revealed by a hint.
+  String pencilValue;
   bool revealed;
-
-  /// Whether this cell is active (covered by at least one clue).
   bool isActive;
-
-  /// True when this cell is currently selected.
   bool isSelected;
-
-  /// True when this cell is part of the actively selected clue.
   bool inActiveClue;
-
-  /// True when this cell has a wrong letter (marked on check).
   bool isWrong;
+  bool justCorrected;
 
   CrosswordCell({
     required this.row,
     required this.col,
     this.value = '',
+    this.pencilValue = '',
     this.revealed = false,
     this.isActive = false,
     this.isSelected = false,
     this.inActiveClue = false,
     this.isWrong = false,
+    this.justCorrected = false,
   });
 
   String get key => '$row,$col';
+
+  bool get isFilled => value.trim().isNotEmpty;
+
+  CrosswordCell copy() {
+    return CrosswordCell(
+      row: row,
+      col: col,
+      value: value,
+      pencilValue: pencilValue,
+      revealed: revealed,
+      isActive: isActive,
+      isSelected: isSelected,
+      inActiveClue: inActiveClue,
+      isWrong: isWrong,
+      justCorrected: justCorrected,
+    )..number = number;
+  }
 }
 
-/// Builds and manages the crossword board from puzzle clues.
 class CrosswordBoard {
   final CrossPuzzle puzzle;
   final List<List<CrosswordCell>> grid;
   final int rows;
   final int cols;
-
-  /// clue number -> list of cells (in order) for across clues.
   final Map<int, List<CrosswordCell>> acrossCells;
-
-  /// clue number -> list of cells (in order) for down clues.
   final Map<int, List<CrosswordCell>> downCells;
-
   final List<CrossClue> acrossClues;
   final List<CrossClue> downClues;
-
-  /// Total number of solvable (active) cells.
   late final int totalActiveCells;
 
   bool _isAcross = true;
@@ -64,22 +63,26 @@ class CrosswordBoard {
   String? _activeDirection;
   int? _selectedRow;
   int? _selectedCol;
+  bool _pencilMode = false;
+  final String sessionId;
 
-  CrosswordBoard(
-    this.puzzle,
-    this.grid,
-    this.acrossCells,
-    this.downCells,
-    this.acrossClues,
-    this.downClues,
-  )   : rows = puzzle.gridRows,
-        cols = puzzle.gridCols {
+  CrosswordBoard._({
+    required this.puzzle,
+    required this.grid,
+    required this.acrossCells,
+    required this.downCells,
+    required this.acrossClues,
+    required this.downClues,
+    required this.rows,
+    required this.cols,
+    required this.sessionId,
+  }) {
     totalActiveCells = grid.fold<int>(0, (sum, row) {
       return sum + row.where((c) => c.isActive).length;
     });
   }
 
-  factory CrosswordBoard.fromPuzzle(CrossPuzzle puzzle) {
+  factory CrosswordBoard.fromPuzzle(CrossPuzzle puzzle, {String? sessionId}) {
     final rows = puzzle.gridRows;
     final cols = puzzle.gridCols;
 
@@ -119,19 +122,64 @@ class CrosswordBoard {
     acrossClues.sort((a, b) => a.number.compareTo(b.number));
     downClues.sort((a, b) => a.number.compareTo(b.number));
 
-    final board = CrosswordBoard(
-      puzzle,
-      grid,
-      acrossCells,
-      downCells,
-      acrossClues,
-      downClues,
+    final board = CrosswordBoard._(
+      puzzle: puzzle,
+      grid: grid,
+      acrossCells: acrossCells,
+      downCells: downCells,
+      acrossClues: acrossClues,
+      downClues: downClues,
+      rows: rows,
+      cols: cols,
+      sessionId: sessionId ?? DateTime.now().millisecondsSinceEpoch.toString(),
     );
+
     if (puzzle.clues.isNotEmpty) {
       board._selectClue(
         acrossClues.isNotEmpty ? acrossClues.first : downClues.first,
       );
     }
+    return board;
+  }
+
+  CrosswordBoard copy() {
+    final newGrid = grid
+        .map((row) => row.map((cell) => cell.copy()).toList())
+        .toList();
+
+    final newAcrossCells = <int, List<CrosswordCell>>{};
+    final newDownCells = <int, List<CrosswordCell>>{};
+
+    for (final entry in acrossCells.entries) {
+      newAcrossCells[entry.key] = entry.value
+          .map((c) => newGrid[c.row][c.col])
+          .toList();
+    }
+    for (final entry in downCells.entries) {
+      newDownCells[entry.key] = entry.value
+          .map((c) => newGrid[c.row][c.col])
+          .toList();
+    }
+
+    final board = CrosswordBoard._(
+      puzzle: puzzle,
+      grid: newGrid,
+      acrossCells: newAcrossCells,
+      downCells: newDownCells,
+      acrossClues: acrossClues,
+      downClues: downClues,
+      rows: rows,
+      cols: cols,
+      sessionId: sessionId,
+    );
+
+    board._isAcross = _isAcross;
+    board._activeClueNumber = _activeClueNumber;
+    board._activeDirection = _activeDirection;
+    board._selectedRow = _selectedRow;
+    board._selectedCol = _selectedCol;
+    board._pencilMode = _pencilMode;
+
     return board;
   }
 
@@ -143,31 +191,32 @@ class CrosswordBoard {
   ) {
     final cells = <CrosswordCell>[];
     if (clue.direction == 'across') {
-      for (var c = clue.col; c < cols && c < clue.col + clue.answerLength; c++) {
+      for (
+        var c = clue.col;
+        c < cols && c < clue.col + clue.answerLength;
+        c++
+      ) {
         cells.add(grid[clue.row][c]);
       }
     } else {
-      for (var r = clue.row; r < rows && r < clue.row + clue.answerLength; r++) {
+      for (
+        var r = clue.row;
+        r < rows && r < clue.row + clue.answerLength;
+        r++
+      ) {
         cells.add(grid[r][clue.col]);
       }
     }
     return cells;
   }
 
-  // --- State reads -------------------------------------------------------
-
   bool get isAcross => _isAcross;
-
   String? get activeDirection => _activeDirection;
-
   int? get activeClueNumber => _activeClueNumber;
-
   int? get selectedRow => _selectedRow;
-
   int? get selectedCol => _selectedCol;
-
+  bool get pencilMode => _pencilMode;
   List<CrosswordCell>? get activeCells => currentClueCells;
-
   List<CrosswordCell>? get currentClueCells {
     if (_activeClueNumber == null || _activeDirection == null) return null;
     final map = _activeDirection == 'across' ? acrossCells : downCells;
@@ -195,17 +244,14 @@ class CrosswordBoard {
 
   int get emptyCellCount => totalActiveCells - filledCellCount;
 
-  // --- Answer verification ----------------------------------------------
-
-  /// Expected letter for every active cell, derived from the clue answers.
-  /// Only populated when the puzzle ships answers (local datasets always do).
   Map<String, String> get answerCells {
     final map = <String, String>{};
     for (final clue in [...acrossClues, ...downClues]) {
       final answer = clue.answer;
       if (answer == null || answer.isEmpty) continue;
-      final cells =
-          clue.direction == 'across' ? acrossCells[clue.number] : downCells[clue.number];
+      final cells = clue.direction == 'across'
+          ? acrossCells[clue.number]
+          : downCells[clue.number];
       if (cells == null) continue;
       for (var i = 0; i < cells.length && i < answer.length; i++) {
         map[cells[i].key] = answer[i].toUpperCase();
@@ -214,15 +260,11 @@ class CrosswordBoard {
     return map;
   }
 
-  /// True when every active cell has a known expected letter, so the board
-  /// can be graded locally. Remote puzzles hide answers until completed.
   bool get hasAnswers {
     if (totalActiveCells == 0) return false;
     return answerCells.length >= totalActiveCells;
   }
 
-  /// True when every active cell holds the correct letter (all empty or wrong
-  /// cells fail this). Only meaningful when [hasAnswers] is true.
   bool get isFullyCorrect {
     final answers = answerCells;
     for (final row in grid) {
@@ -236,7 +278,6 @@ class CrosswordBoard {
     return true;
   }
 
-  /// Number of filled cells whose letter does not match the expected answer.
   int get wrongCellCount {
     final answers = answerCells;
     var count = 0;
@@ -251,8 +292,6 @@ class CrosswordBoard {
     return count;
   }
 
-  /// Marks every filled-and-incorrect cell as wrong so the UI can highlight
-  /// them. Correct/empty cells are cleared. No-op when answers are unknown.
   void markIncorrectCells() {
     final answers = answerCells;
     for (final row in grid) {
@@ -268,7 +307,6 @@ class CrosswordBoard {
     }
   }
 
-  /// All filled cells in [row, col, value] form.
   List<GridCell> toGridState() {
     final result = <GridCell>[];
     for (final row in grid) {
@@ -308,9 +346,8 @@ class CrosswordBoard {
     }
   }
 
-  bool _inBounds(int row, int col) => row >= 0 && row < rows && col >= 0 && col < cols;
-
-  // --- Input -------------------------------------------------------------
+  bool _inBounds(int row, int col) =>
+      row >= 0 && row < rows && col >= 0 && col < cols;
 
   void selectCell(int row, int col, {String? preferDirection}) {
     if (!_inBounds(row, col)) return;
@@ -327,9 +364,6 @@ class CrosswordBoard {
     _selectedRow = row;
     _selectedCol = col;
 
-    // Prefer a clue of the direction we were already typing in so the
-    // cursor flows naturally through down answers instead of snapping
-    // back to an intersecting across word.
     final dir = preferDirection ?? _activeDirection ?? 'across';
     final clue = _clueAtCell(row, col, preferredDirection: dir);
     if (clue != null) {
@@ -339,7 +373,6 @@ class CrosswordBoard {
     }
   }
 
-  /// Move selection: [dy, dx] steps in the ACTIVE direction only.
   bool moveBy(int dy, int dx) {
     if (_selectedRow == null || _selectedCol == null) return false;
     final dir = _activeDirection ?? 'across';
@@ -357,28 +390,45 @@ class CrosswordBoard {
   }
 
   void moveToNext() => moveBy(0, 1);
-
   void moveToPrev() => moveBy(0, -1);
-
   void moveDown() => moveBy(1, 0);
-
   void moveUp() => moveBy(-1, 0);
 
   bool inputLetter(String letter) {
-    if (_selectedRow == null || _selectedCol == null || letter.isEmpty) return false;
+    if (_selectedRow == null || _selectedCol == null || letter.isEmpty) {
+      return false;
+    }
     final cell = grid[_selectedRow!][_selectedCol!];
     if (!cell.isActive) return false;
 
     final upper = letter.toUpperCase();
-    if (!RegExp(r'^[A-Z]$').hasMatch(upper)) return false;
+    if (!RegExp(r'^[A-Z0-9]$').hasMatch(upper)) return false;
+
+    if (_pencilMode) {
+      if (cell.pencilValue == upper) {
+        cell.pencilValue = '';
+      } else {
+        cell.pencilValue = upper;
+      }
+      return true;
+    }
 
     cell.value = upper;
-    // Live feedback: flag incorrect letters immediately so the user can
-    // self-correct and submission unlocks naturally on a perfect grid.
     cell.isWrong = _isWrongLetter(cell);
     _markInActiveClue();
     _advanceCursor();
     return true;
+  }
+
+  void setPencilMode(bool enabled) {
+    _pencilMode = enabled;
+    if (enabled) {
+      for (final row in grid) {
+        for (final cell in row) {
+          cell.isWrong = false;
+        }
+      }
+    }
   }
 
   bool _isWrongLetter(CrosswordCell cell) {
@@ -387,8 +437,6 @@ class CrosswordBoard {
     return expected != null && expected != cell.value;
   }
 
-  /// Places the cursor on the next empty cell of the active word, jumping to
-  /// the next unfinished word once the current one is exhausted.
   void _advanceCursor() {
     final cells = currentClueCells;
     if (cells == null || cells.isEmpty) return;
@@ -409,8 +457,6 @@ class CrosswordBoard {
     );
   }
 
-  /// Jumps to the next word with empty cells — continues in the current
-  /// direction first, then switches direction; wraps around the puzzle.
   void _jumpToNextIncompleteClue() {
     final dir = _activeDirection ?? 'across';
     final sameDir = dir == 'across' ? acrossClues : downClues;
@@ -418,8 +464,9 @@ class CrosswordBoard {
     final map = dir == 'across' ? acrossCells : downCells;
     final otherMap = dir == 'across' ? downCells : acrossCells;
 
-    final currentIndex =
-        sameDir.indexWhere((c) => c.number == _activeClueNumber);
+    final currentIndex = sameDir.indexWhere(
+      (c) => c.number == _activeClueNumber,
+    );
 
     CrossClue? target;
     for (var i = 1; i <= sameDir.length; i++) {
@@ -450,12 +497,15 @@ class CrosswordBoard {
     return cells.every((c) => c.value.trim().isNotEmpty);
   }
 
-  /// Backspace: clears the current letter, or steps back and clears the
-  /// previous letter when the current cell is already empty.
   void handleBackspace() {
     if (_selectedRow == null || _selectedCol == null) return;
     final cell = grid[_selectedRow!][_selectedCol!];
     if (!cell.isActive) return;
+
+    if (_pencilMode && cell.pencilValue.isNotEmpty) {
+      cell.pencilValue = '';
+      return;
+    }
 
     if (cell.value.trim().isNotEmpty) {
       cell.value = '';
@@ -471,6 +521,7 @@ class CrosswordBoard {
       final prev = cells[idx - 1];
       selectCell(prev.row, prev.col);
       prev.value = '';
+      prev.pencilValue = '';
       prev.isWrong = false;
       _markInActiveClue();
     }
@@ -485,13 +536,46 @@ class CrosswordBoard {
     _markInActiveClue();
   }
 
+  void clearCurrentClue() {
+    final cells = currentClueCells;
+    if (cells == null || cells.isEmpty) return;
+    for (final cell in cells) {
+      cell.value = '';
+      cell.pencilValue = '';
+      cell.isWrong = false;
+    }
+    selectCell(cells.first.row, cells.first.col);
+  }
+
+  void clearAll() {
+    for (final row in grid) {
+      for (final cell in row) {
+        if (!cell.isActive) continue;
+        cell.value = '';
+        cell.pencilValue = '';
+        cell.isWrong = false;
+      }
+    }
+    _selectFirstActiveCell();
+  }
+
+  void _selectFirstActiveCell() {
+    for (final row in grid) {
+      for (final cell in row) {
+        if (cell.isActive) {
+          selectCell(cell.row, cell.col);
+          return;
+        }
+      }
+    }
+  }
+
   void toggleDirection() {
     if (_selectedRow == null || _selectedCol == null) {
       return;
     }
     final currentDir = _activeDirection ?? 'across';
     final newDir = currentDir == 'across' ? 'down' : 'across';
-    // Find a clue of the new direction covering the selected cell.
     CrossClue? candidate;
     for (final clue in (newDir == 'across' ? acrossClues : downClues)) {
       if (_covers(clue, _selectedRow!, _selectedCol!)) {
@@ -574,11 +658,6 @@ class CrosswordBoard {
     }
   }
 
-  /// Reveal the first empty/reported-wrong cell of the active clue.
-  /// Fills the correct letter when the clue's answer is available
-  /// (i.e. `revealAnswers` is true); otherwise it only marks the cell
-  /// as revealed — the server grades the final grid anyway.
-  /// Returns the revealed cell, or null if the whole clue is already filled.
   CrosswordCell? revealNextHint() {
     final clue = activeClue;
     final cells = currentClueCells;
@@ -589,6 +668,7 @@ class CrosswordBoard {
       if (cell.value.trim().isEmpty || cell.isWrong) {
         cell.revealed = true;
         cell.isWrong = false;
+        cell.pencilValue = '';
         if (answer != null && i < answer.length) {
           cell.value = answer[i].toUpperCase();
         }
@@ -603,6 +683,41 @@ class CrosswordBoard {
     final cells = currentClueCells;
     if (cells == null) return 0;
     return cells.where((c) => c.value.trim().isEmpty || c.isWrong).length;
+  }
+
+  bool get activeClueFilledCorrectly {
+    final cells = currentClueCells;
+    if (cells == null || cells.isEmpty) return false;
+    if (!cells.every((c) => c.value.trim().isNotEmpty)) return false;
+    final answers = answerCells;
+    return cells.every((c) => answers[c.key] == c.value);
+  }
+
+  bool get currentClueFilled {
+    final cells = currentClueCells;
+    if (cells == null || cells.isEmpty) return false;
+    return cells.every((c) => c.value.trim().isNotEmpty);
+  }
+
+  List<CrosswordCell>? clueCells(int number, String direction) {
+    final map = direction == 'across' ? acrossCells : downCells;
+    return map[number];
+  }
+
+  bool isClueFilled(int number, String direction) {
+    final cells = clueCells(number, direction);
+    if (cells == null || cells.isEmpty) return false;
+    return cells.every((c) => c.value.trim().isNotEmpty);
+  }
+
+  bool isClueFilledCorrectly(int number, String direction) {
+    final cells = clueCells(number, direction);
+    if (cells == null || cells.isEmpty) return false;
+    final answers = answerCells;
+    if (!cells.every((c) => answers[c.key] != null)) return false;
+    return cells.every(
+      (c) => c.value.trim().isNotEmpty && answers[c.key] == c.value,
+    );
   }
 }
 

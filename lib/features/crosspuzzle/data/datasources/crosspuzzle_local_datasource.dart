@@ -1,13 +1,10 @@
 import 'dart:convert';
-
 import 'package:flutter/services.dart';
-
 import '../../../../core/services/storage_service.dart';
 import '../../domain/entities/crosspuzzle_entities.dart';
 
-/// Local-progress record persisted in secure storage for a puzzle.
 class LocalProgressRecord {
-  final String status; // in_progress | completed
+  final String status;
   final List<GridCell> gridState;
   final List<RevealedCell> revealedCells;
   final int mistakes;
@@ -46,16 +43,22 @@ class LocalProgressRecord {
       status: json['status'] as String? ?? 'in_progress',
       gridState: gridList
           .whereType<Map<String, dynamic>>()
-          .map((e) => GridCell(
-                row: e['row'] as int? ?? 0,
-                col: e['col'] as int? ?? 0,
-                value: e['value'] as String? ?? '',
-              ))
+          .map(
+            (e) => GridCell(
+              row: e['row'] as int? ?? 0,
+              col: e['col'] as int? ?? 0,
+              value: e['value'] as String? ?? '',
+            ),
+          )
           .toList(),
       revealedCells: revealedList
           .whereType<Map<String, dynamic>>()
-          .map((e) =>
-              RevealedCell(row: e['row'] as int? ?? 0, col: e['col'] as int? ?? 0))
+          .map(
+            (e) => RevealedCell(
+              row: e['row'] as int? ?? 0,
+              col: e['col'] as int? ?? 0,
+            ),
+          )
           .toList(),
       mistakes: json['mistakes'] as int? ?? 0,
       hintsUsed: json['hintsUsed'] as int? ?? 0,
@@ -64,7 +67,8 @@ class LocalProgressRecord {
       pointsEarned: json['pointsEarned'] as int? ?? 0,
       completions: json['completions'] as int? ?? 0,
       bestTimeSpentSeconds: json['bestTimeSpentSeconds'] as int?,
-      startedAt: json['startedAt'] as String? ?? DateTime.now().toIso8601String(),
+      startedAt:
+          json['startedAt'] as String? ?? DateTime.now().toIso8601String(),
       completedAt: json['completedAt'] as String?,
       lastSavedAt: json['lastSavedAt'] as String?,
     );
@@ -76,8 +80,9 @@ class LocalProgressRecord {
       'gridState': gridState
           .map((c) => {'row': c.row, 'col': c.col, 'value': c.value})
           .toList(),
-      'revealedCells':
-          revealedCells.map((c) => {'row': c.row, 'col': c.col}).toList(),
+      'revealedCells': revealedCells
+          .map((c) => {'row': c.row, 'col': c.col})
+          .toList(),
       'mistakes': mistakes,
       'hintsUsed': hintsUsed,
       'timeSpentSeconds': timeSpentSeconds,
@@ -92,25 +97,25 @@ class LocalProgressRecord {
   }
 }
 
-/// Reads the bundled 50-level crossword dataset and provides
-/// local-only progress persistence + grading (used as a fallback
-/// when the backend has no published puzzles).
 class CrossPuzzleLocalDataSource {
   final StorageService _storageService;
-  static const String _assetPath = 'assets/databases/bible_crossword_50_sets.json';
-  static const String _progressKey = 'crossword_local_progress';
+  final String? _userId;
+  static const String _assetPath =
+      'assets/databases/bible_crossword_50_sets.json';
+  static const String _progressKeyPrefix = 'crossword_local_progress_';
   static const String _idPrefix = 'local_';
 
-  CrossPuzzleLocalDataSource(this._storageService);
+  CrossPuzzleLocalDataSource(this._storageService, [this._userId]);
 
-  /// Builds a stable local id for a set, e.g. `local_1`.
+  String _getProgressKey() {
+    return _userId != null && _userId.isNotEmpty
+        ? '$_progressKeyPrefix$_userId'
+        : '${_progressKeyPrefix}default';
+  }
+
   static String localIdFor(int setNumber) => '$_idPrefix$setNumber';
-
-  /// True when the puzzle id belongs to the local bundled dataset.
   static bool isLocalId(String puzzleId) => puzzleId.startsWith(_idPrefix);
 
-  /// Reads the asset and returns each set as a [CrossPuzzle]
-  /// (answers included — it is graded locally).
   Future<List<CrossPuzzle>> getLocalPuzzles() async {
     final sets = await _parseAsset();
     final progress = await _readAllProgress();
@@ -125,7 +130,6 @@ class CrossPuzzleLocalDataSource {
     final sets = await _parseAsset();
     final set = sets.where((s) => localIdFor(s.setId) == puzzleId).firstOrNull;
     if (set == null) {
-      // Fall back to the first set if the id is unknown.
       if (sets.isEmpty) {
         throw Exception('No local crossword sets available');
       }
@@ -149,10 +153,12 @@ class CrossPuzzleLocalDataSource {
       if (record == null || record.gridState.isEmpty && !record.isCompleted) {
         continue;
       }
-      result.add(CrossPuzzleWithProgress(
-        puzzle: _buildPuzzle(set),
-        progress: _progressFromRecord(record),
-      ));
+      result.add(
+        CrossPuzzleWithProgress(
+          puzzle: _buildPuzzle(set),
+          progress: _progressFromRecord(record),
+        ),
+      );
     }
     return result;
   }
@@ -166,7 +172,8 @@ class CrossPuzzleLocalDataSource {
     required int timeSpentSeconds,
   }) async {
     final all = await _readAllProgress();
-    final existing = all[puzzleId] ??
+    final existing =
+        all[puzzleId] ??
         LocalProgressRecord(
           startedAt: DateTime.now().toIso8601String(),
           bestTimeSpentSeconds: null,
@@ -192,8 +199,6 @@ class CrossPuzzleLocalDataSource {
     return _progressFromRecord(updated);
   }
 
-  /// Grades the submitted grid locally using the bundled answers and
-  /// returns a result shaped exactly like the backend's complete payload.
   Future<CrossPuzzleCompleteResult> completeLocalPuzzle({
     required String puzzleId,
     required List<GridCell> gridState,
@@ -230,23 +235,24 @@ class CrossPuzzleLocalDataSource {
       }
     }
 
-    final accuracy = totalCells > 0 ? ((correctCells / totalCells) * 100).round() : 0;
+    final accuracy = totalCells > 0
+        ? ((correctCells / totalCells) * 100).round()
+        : 0;
     final isSolved = totalCells > 0 && correctCells == totalCells;
     final pointsEarned = ((puzzle.points * accuracy) / 100).round();
 
     final all = await _readAllProgress();
-    final existing = all[puzzleId] ??
-        LocalProgressRecord(
-          startedAt: DateTime.now().toIso8601String(),
-        );
+    final existing =
+        all[puzzleId] ??
+        LocalProgressRecord(startedAt: DateTime.now().toIso8601String());
     final wasCompleted = existing.status == 'completed';
     final newlyAwarded = isSolved && !wasCompleted;
     final completions = existing.completions + (isSolved ? 1 : 0);
     final prevBest = existing.bestTimeSpentSeconds;
     final bestTime = isSolved
         ? (prevBest == null
-            ? timeSpentSeconds
-            : (timeSpentSeconds < prevBest ? timeSpentSeconds : prevBest))
+              ? timeSpentSeconds
+              : (timeSpentSeconds < prevBest ? timeSpentSeconds : prevBest))
         : prevBest;
 
     final now = DateTime.now().toIso8601String();
@@ -258,7 +264,9 @@ class CrossPuzzleLocalDataSource {
       hintsUsed: hintsUsed,
       timeSpentSeconds: timeSpentSeconds,
       accuracy: accuracy,
-      pointsEarned: newlyAwarded ? existing.pointsEarned + pointsEarned : existing.pointsEarned,
+      pointsEarned: newlyAwarded
+          ? existing.pointsEarned + pointsEarned
+          : existing.pointsEarned,
       completions: completions,
       bestTimeSpentSeconds: bestTime,
       startedAt: existing.startedAt,
@@ -291,8 +299,6 @@ class CrossPuzzleLocalDataSource {
     return removed;
   }
 
-  // --- Internals ---------------------------------------------------------
-
   Future<List<_LocalSet>> _parseAsset() async {
     final raw = await rootBundle.loadString(_assetPath);
     final json = jsonDecode(raw) as Map<String, dynamic>;
@@ -303,22 +309,26 @@ class CrossPuzzleLocalDataSource {
   }
 
   Future<Map<String, LocalProgressRecord>> _readAllProgress() async {
-    final raw = await _storageService.read(_progressKey);
+    final key = _getProgressKey();
+    final raw = await _storageService.read(key);
     if (raw == null || raw.isEmpty) return {};
     try {
       final decoded = jsonDecode(raw) as Map<String, dynamic>;
-      return decoded.map((key, value) => MapEntry(
-            key,
-            LocalProgressRecord.fromJson(value as Map<String, dynamic>),
-          ));
+      return decoded.map(
+        (key, value) => MapEntry(
+          key,
+          LocalProgressRecord.fromJson(value as Map<String, dynamic>),
+        ),
+      );
     } catch (_) {
       return {};
     }
   }
 
   Future<void> _writeAllProgress(Map<String, LocalProgressRecord> all) async {
+    final key = _getProgressKey();
     final json = all.map((key, value) => MapEntry(key, value.toJson()));
-    await _storageService.write(_progressKey, jsonEncode(json));
+    await _storageService.write(key, jsonEncode(json));
   }
 
   CrossPuzzle _buildPuzzle(_LocalSet set) {
@@ -327,7 +337,6 @@ class CrossPuzzleLocalDataSource {
     }
 
     final layout = _buildCrosswordLayout(set.questions);
-
     final difficulty = _majorityDifficulty(set.questions);
 
     return CrossPuzzle(
@@ -348,11 +357,6 @@ class CrossPuzzleLocalDataSource {
     );
   }
 
-  /// Builds an interlocking across/down crossword layout from the set's
-  /// questions. Words are placed greedily (longest first), crossing at
-  /// shared letters; clue numbers follow classic reading order
-  /// (top-left first), with a shared number when across + down words start
-  /// on the same cell.
   _CrosswordLayout _buildCrosswordLayout(List<_LocalQuestion> questions) {
     final placed = <_LayoutWord>[];
     final occupied = <String, String>{};
@@ -360,14 +364,10 @@ class CrossPuzzleLocalDataSource {
     final sorted = [...questions]
       ..sort((a, b) => b.answer.length.compareTo(a.answer.length));
 
-    // Place the longest word horizontally in the top-left corner.
     final first = sorted.first;
-    placed.add(_LayoutWord(
-      question: first,
-      direction: 'across',
-      row: 0,
-      col: 0,
-    ));
+    placed.add(
+      _LayoutWord(question: first, direction: 'across', row: 0, col: 0),
+    );
     for (var c = 0; c < first.answer.length; c++) {
       occupied['0,$c'] = first.answer[c];
     }
@@ -379,7 +379,6 @@ class CrossPuzzleLocalDataSource {
         placed.add(best);
         _markPlaced(best, occupied);
       } else {
-        // No intersection found — start a fresh island below the grid.
         final startRow = _maxOccupiedRow(occupied) + 2;
         final fallback = _LayoutWord(
           question: word,
@@ -392,7 +391,6 @@ class CrossPuzzleLocalDataSource {
       }
     }
 
-    // Normalize coordinates to a 0-based grid.
     var minRow = 0, minCol = 0, maxRow = 0, maxCol = 0;
     for (final word in placed) {
       for (var i = 0; i < word.answer.length; i++) {
@@ -405,7 +403,6 @@ class CrossPuzzleLocalDataSource {
       }
     }
 
-    // Assign clue numbers in reading order over the normalized grid.
     final numbers = <String, int>{};
     final startKeys = placed.map((w) {
       final r = w.row - minRow;
@@ -449,7 +446,6 @@ class CrossPuzzleLocalDataSource {
     _LayoutWord? best;
     var bestScore = -1;
 
-    // Try every cell of every placed word as a crossing point.
     final placedCells = occupied.keys.toList();
     for (final key in placedCells) {
       final parts = key.split(',');
@@ -459,15 +455,8 @@ class CrossPuzzleLocalDataSource {
       for (var li = 0; li < word.answer.length; li++) {
         if (word.answer[li] != letter) continue;
 
-        // Try placing this word vertically, crossing at (pr, pc).
         final vStartRow = pr - li;
-        final vScore = _scorePlacement(
-          word,
-          vStartRow,
-          pc,
-          'down',
-          occupied,
-        );
+        final vScore = _scorePlacement(word, vStartRow, pc, 'down', occupied);
         if (vScore != null && vScore > bestScore) {
           bestScore = vScore;
           best = _LayoutWord(
@@ -478,15 +467,8 @@ class CrossPuzzleLocalDataSource {
           );
         }
 
-        // Try placing this word horizontally, crossing at (pr, pc).
         final hStartCol = pc - li;
-        final hScore = _scorePlacement(
-          word,
-          pr,
-          hStartCol,
-          'across',
-          occupied,
-        );
+        final hScore = _scorePlacement(word, pr, hStartCol, 'across', occupied);
         if (hScore != null && hScore > bestScore) {
           bestScore = hScore;
           best = _LayoutWord(
@@ -501,9 +483,6 @@ class CrossPuzzleLocalDataSource {
     return best;
   }
 
-  /// Validates a candidate placement and returns a score (or null when
-  /// invalid). Higher = better: prefers more shared letters and a more
-  /// compact result.
   int? _scorePlacement(
     _LocalQuestion word,
     int row,
@@ -527,7 +506,6 @@ class CrossPuzzleLocalDataSource {
         if (existing != word.answer[i]) return null;
         intersections++;
       } else {
-        // Perpendicular neighbours must be empty (no parallel touch).
         final pr = direction == 'down' ? 0 : 1;
         final pc = direction == 'down' ? 1 : 0;
         if (occupied.containsKey('${r - pr},${c - pc}') ||
@@ -541,7 +519,6 @@ class CrossPuzzleLocalDataSource {
       if (c > maxCol) maxCol = c;
     }
 
-    // Words must not merge: empty cell right before/after the word.
     if (occupied.containsKey('${row - dr},${col - dc}') ||
         occupied.containsKey('${row + dr * length},${col + dc * length}')) {
       return null;
@@ -722,7 +699,8 @@ class _LocalQuestion {
       numberInLevel: json['number_in_level'] as int? ?? json['id'] as int? ?? 1,
       clue: json['clue'] as String? ?? '',
       answer: json['answer'] as String? ?? '',
-      length: json['length'] as int? ?? (json['answer'] as String? ?? '').length,
+      length:
+          json['length'] as int? ?? (json['answer'] as String? ?? '').length,
       reference: json['reference'] as String? ?? '',
       category: json['category'] as String? ?? '',
       difficulty: json['difficulty'] as String? ?? 'easy',
@@ -730,7 +708,6 @@ class _LocalQuestion {
   }
 }
 
-/// Result of [CrossPuzzleLocalDataSource._buildCrosswordLayout].
 class _CrosswordLayout {
   final List<CrossClue> clues;
   final int rows;
@@ -743,11 +720,10 @@ class _CrosswordLayout {
   });
 }
 
-/// A single word placed on the crossword grid.
 class _LayoutWord {
   final _LocalQuestion question;
   final String answer;
-  final String direction; // across | down
+  final String direction;
   final int row;
   final int col;
 

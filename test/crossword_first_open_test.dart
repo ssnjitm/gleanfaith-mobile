@@ -231,4 +231,147 @@ void main() {
     final refreshedPuzzle = refreshed.firstWhere((p) => p.id == puzzle.id);
     expect(refreshedPuzzle.userProgress?.isCompleted, isTrue);
   });
+
+  test('numeric-answer puzzles can be fully solved via the board input API',
+      () async {
+    final puzzles = await datasource.getLocalPuzzles();
+    final numericPuzzles = puzzles.where((p) {
+      return p.clues.any((c) => c.answer != null && c.answer!.contains(RegExp(r'[0-9]')));
+    }).toList();
+
+    expect(numericPuzzles.length, 2, reason: 'sets 35 and 44 must ship digits');
+
+    for (final puzzle in numericPuzzles) {
+      final board = CrosswordBoard.fromPuzzle(puzzle);
+      final answers = answersFor(puzzle);
+
+      // Choose the first cell of the first clue so the active clue is set.
+      board.selectClue(puzzle.clues.first.number, puzzle.clues.first.direction);
+
+      var filled = 0;
+      // Fill every answer cell by navigating the grid the way a user would.
+      for (final entry in answers.entries) {
+        final parts = entry.key.split(',');
+        final row = int.parse(parts[0]);
+        final col = int.parse(parts[1]);
+        board.selectCell(row, col);
+        final before = filled;
+        expect(board.inputLetter(entry.value), isTrue,
+            reason: '${puzzle.id} should accept `$entry`');
+        if (board.grid[row][col].value.trim().isNotEmpty) {
+          filled++;
+        }
+        expect(board.grid[row][col].value, entry.value.toUpperCase(),
+            reason: '${puzzle.id} cell $row,$col holds `$entry`');
+        expect(filled, greaterThan(before),
+            reason: '${puzzle.id} should advance after an accepted letter');
+      }
+
+      expect(board.isFullyCorrect, isTrue,
+          reason: '${puzzle.id} must be fully solvable (digits included)');
+      expect(board.filledCellCount, board.totalActiveCells);
+    }
+  });
+
+  test('numeric answers are accepted by inputLetter one character per cell',
+      () async {
+    final puzzles = await datasource.getLocalPuzzles();
+    final puzzle = puzzles.firstWhere((p) => p.id == 'local_35');
+
+    final board = CrosswordBoard.fromPuzzle(puzzle);
+    final digitClue = puzzle.clues.firstWhere(
+      (c) => c.answer != null && c.answer!.contains(RegExp(r'[0-9]')),
+    );
+    final answer = digitClue.answer!;
+
+    for (var i = 0; i < answer.length; i++) {
+      board.selectCell(
+        digitClue.row + (digitClue.direction == 'down' ? i : 0),
+        digitClue.col + (digitClue.direction == 'across' ? i : 0),
+      );
+      expect(board.inputLetter(answer[i]), isTrue,
+          reason: 'digit `${answer[i]}` must be accepted');
+    }
+
+    final cells = digitClue.direction == 'across'
+        ? board.acrossCells[digitClue.number]!
+        : board.downCells[digitClue.number]!;
+    final actual = cells.map((c) => c.value).join();
+    expect(actual, answer, reason: 'board should store the full numeric word');
+  });
+
+  void fillClue(CrosswordBoard board, CrossClue clue, String letter) {
+    board.selectClue(clue.number, clue.direction);
+    final cells = clue.direction == 'across'
+        ? board.acrossCells[clue.number]!
+        : board.downCells[clue.number]!;
+    for (final cell in cells) {
+      board.selectCell(cell.row, cell.col);
+      expect(board.inputLetter(letter), isTrue);
+    }
+  }
+
+  test('clearCurrentClue empties only the active word and reselects its start',
+      () async {
+    final puzzles = await datasource.getLocalPuzzles();
+    final puzzle = puzzles.first;
+    final board = CrosswordBoard.fromPuzzle(puzzle);
+
+    final first = puzzle.clues.first;
+    final second = puzzle.clues.last;
+    fillClue(board, first, 'A');
+    fillClue(board, second, 'B');
+
+    final firstCells = first.direction == 'across'
+        ? board.acrossCells[first.number]!
+        : board.downCells[first.number]!;
+    final secondCells = second.direction == 'across'
+        ? board.acrossCells[second.number]!
+        : board.downCells[second.number]!;
+
+    expect(firstCells.every((c) => c.value.trim().isNotEmpty), isTrue);
+    expect(secondCells.every((c) => c.value.trim().isNotEmpty), isTrue);
+
+    board.selectClue(first.number, first.direction);
+    board.clearCurrentClue();
+
+    expect(firstCells.every((c) => c.value.trim().isEmpty), isTrue,
+        reason: 'active clue cells must be emptied');
+    expect(board.grid[first.row][first.col].isSelected, isTrue,
+        reason: 'selection returns to the start of the cleared word');
+    expect(secondCells.every((c) => c.value.trim().isNotEmpty), isTrue,
+        reason: 'other words must remain filled');
+  });
+
+  test('clearAll empties the whole grid and keeps revealed hints', () async {
+    final puzzles = await datasource.getLocalPuzzles();
+    final puzzle = puzzles.first;
+    final board = CrosswordBoard.fromPuzzle(puzzle);
+
+    final answers = answersFor(puzzle);
+    for (final entry in answers.entries) {
+      final parts = entry.key.split(',');
+      final row = int.parse(parts[0]);
+      final col = int.parse(parts[1]);
+      board.selectCell(row, col);
+      board.inputLetter(entry.value);
+    }
+    expect(board.filledCellCount, board.totalActiveCells);
+
+    final firstKey = answers.keys.first;
+    final firstParts = firstKey.split(',');
+    final firstCell =
+        board.grid[int.parse(firstParts[0])][int.parse(firstParts[1])];
+    firstCell.revealed = true;
+
+    board.clearAll();
+
+    expect(board.filledCellCount, 0,
+        reason: 'grid must be empty after clearAll');
+    expect(firstCell.revealed, isTrue,
+        reason: 'revealed hints survive clearAll');
+    expect(firstCell.value, '');
+    expect(board.selectedRow, isNotNull,
+        reason: 'a cell stays selected after clearing');
+  });
 }

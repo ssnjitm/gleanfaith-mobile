@@ -16,7 +16,10 @@ class CrossPuzzleRemoteDataSource {
     if (difficulty != null && difficulty.isNotEmpty) {
       query['difficulty'] = difficulty;
     }
-    final response = await _dio.get(ApiConstants.crossPuzzle, queryParameters: query);
+    final response = await _dio.get(
+      ApiConstants.crossPuzzle,
+      queryParameters: query,
+    );
     final list = _extractList(response.data, 'puzzles');
     return list
         .map((e) => CrossPuzzleModel.fromJson(e as Map<String, dynamic>))
@@ -29,7 +32,9 @@ class CrossPuzzleRemoteDataSource {
   }
 
   Future<Map<String, dynamic>?> getPuzzleProgress(String puzzleId) async {
-    final response = await _dio.get('${ApiConstants.crossPuzzle}/$puzzleId/progress');
+    final response = await _dio.get(
+      '${ApiConstants.crossPuzzle}/$puzzleId/progress',
+    );
     return _extractMapNullable(response.data);
   }
 
@@ -43,7 +48,10 @@ class CrossPuzzleRemoteDataSource {
     );
     final list = _extractList(response.data, 'progress');
     return list
-        .map((e) => CrossPuzzleWithProgressModel.fromJson(e as Map<String, dynamic>))
+        .map(
+          (e) =>
+              CrossPuzzleWithProgressModel.fromJson(e as Map<String, dynamic>),
+        )
         .toList();
   }
 
@@ -88,7 +96,9 @@ class CrossPuzzleRemoteDataSource {
   }
 
   Future<String> resetPuzzle(String puzzleId) async {
-    final response = await _dio.post('${ApiConstants.crossPuzzle}/$puzzleId/reset');
+    final response = await _dio.post(
+      '${ApiConstants.crossPuzzle}/$puzzleId/reset',
+    );
     final map = _extractMap(response.data);
     return (map['status'] as String?) ?? 'reset';
   }

@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-
 import '../../../../core/common/providers/core_providers.dart';
+import '../../../auth/presentation/providers/auth_provider.dart';
 import '../../data/datasources/crosspuzzle_local_datasource.dart';
 import '../../data/datasources/crosspuzzle_remote_datasource.dart';
 import '../../data/repositories/crosspuzzle_repository_impl.dart';
@@ -19,9 +19,14 @@ enum CrossPuzzleStatus { initial, loading, success, error }
 final crossPuzzleRepositoryProvider = Provider<CrossPuzzleRepository>((ref) {
   final dio = ref.watch(dioProvider);
   final storage = ref.watch(storageProvider);
+  final authState = ref.watch(authProvider);
+
+  final userId = authState.user?.id;
+  final localDataSource = CrossPuzzleLocalDataSource(storage, userId);
+
   return CrossPuzzleRepositoryImpl(
     CrossPuzzleRemoteDataSource(dio),
-    CrossPuzzleLocalDataSource(storage),
+    localDataSource,
   );
 });
 
@@ -33,7 +38,9 @@ final getPuzzleDetailUseCaseProvider = Provider<GetPuzzleDetailUseCase>((ref) {
   return GetPuzzleDetailUseCase(ref.watch(crossPuzzleRepositoryProvider));
 });
 
-final getPuzzleProgressUseCaseProvider = Provider<GetPuzzleProgressUseCase>((ref) {
+final getPuzzleProgressUseCaseProvider = Provider<GetPuzzleProgressUseCase>((
+  ref,
+) {
   return GetPuzzleProgressUseCase(ref.watch(crossPuzzleRepositoryProvider));
 });
 
@@ -89,9 +96,10 @@ class CrossPuzzleState {
   }
 }
 
-final crossPuzzleProvider = StateNotifierProvider<CrossPuzzleNotifier, CrossPuzzleState>((ref) {
-  return CrossPuzzleNotifier(ref);
-});
+final crossPuzzleProvider =
+    StateNotifierProvider<CrossPuzzleNotifier, CrossPuzzleState>((ref) {
+      return CrossPuzzleNotifier(ref);
+    });
 
 class CrossPuzzleNotifier extends StateNotifier<CrossPuzzleState> {
   final Ref _ref;
@@ -137,7 +145,9 @@ class CrossPuzzleNotifier extends StateNotifier<CrossPuzzleState> {
 
   Future<CrossPuzzleDetail?> loadPuzzleDetail(String puzzleId) async {
     state = state.copyWith(status: CrossPuzzleStatus.loading, message: null);
-    final result = await _ref.read(getPuzzleDetailUseCaseProvider)(puzzleId).run();
+    final result = await _ref
+        .read(getPuzzleDetailUseCaseProvider)(puzzleId)
+        .run();
     return result.fold(
       (failure) {
         state = state.copyWith(
@@ -164,21 +174,21 @@ class CrossPuzzleNotifier extends StateNotifier<CrossPuzzleState> {
     required int hintsUsed,
     required int timeSpentSeconds,
   }) async {
-    final result = await _ref.read(saveProgressUseCaseProvider).call(
+    final result = await _ref
+        .read(saveProgressUseCaseProvider)
+        .call(
           puzzleId: puzzleId,
           gridState: gridState,
           revealedCells: revealedCells,
           mistakes: mistakes,
           hintsUsed: hintsUsed,
           timeSpentSeconds: timeSpentSeconds,
-        ).run();
-    return result.fold(
-      (failure) {
-        state = state.copyWith(message: failure.message);
-        return null;
-      },
-      (progress) => progress,
-    );
+        )
+        .run();
+    return result.fold((failure) {
+      state = state.copyWith(message: failure.message);
+      return null;
+    }, (progress) => progress);
   }
 
   Future<CrossPuzzleCompleteResult?> completePuzzle({
@@ -189,13 +199,16 @@ class CrossPuzzleNotifier extends StateNotifier<CrossPuzzleState> {
     required int timeSpentSeconds,
   }) async {
     state = state.copyWith(status: CrossPuzzleStatus.loading, message: null);
-    final result = await _ref.read(completePuzzleUseCaseProvider).call(
+    final result = await _ref
+        .read(completePuzzleUseCaseProvider)
+        .call(
           puzzleId: puzzleId,
           gridState: gridState,
           mistakes: mistakes,
           hintsUsed: hintsUsed,
           timeSpentSeconds: timeSpentSeconds,
-        ).run();
+        )
+        .run();
     return result.fold(
       (failure) {
         state = state.copyWith(
@@ -216,13 +229,10 @@ class CrossPuzzleNotifier extends StateNotifier<CrossPuzzleState> {
 
   Future<bool> resetPuzzle(String puzzleId) async {
     final result = await _ref.read(resetPuzzleUseCaseProvider)(puzzleId).run();
-    return result.fold(
-      (failure) {
-        state = state.copyWith(message: failure.message);
-        return false;
-      },
-      (_) => true,
-    );
+    return result.fold((failure) {
+      state = state.copyWith(message: failure.message);
+      return false;
+    }, (_) => true);
   }
 
   void clearActiveDetail() {

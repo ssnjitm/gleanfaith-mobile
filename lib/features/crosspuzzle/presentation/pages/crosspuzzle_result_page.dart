@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -36,52 +38,80 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
               child: Column(
                 children: [
                   const SizedBox(height: AppDimensions.paddingMd),
-                  _buildTrophy(accuracy, isDark),
+                  _AnimatedEntrance(
+                    delay: const Duration(milliseconds: 80),
+                    offset: const Offset(0, 24),
+                    child: _buildTrophy(accuracy, isDark),
+                  ),
                   const SizedBox(height: AppDimensions.lg),
-                  Text(
-                    isCompleted
-                        ? (newlyAwarded ? 'Congratulations!' : 'Completed Again!')
-                        : 'Keep Going!',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: isCompleted ? AppColors.success : AppColors.primaryAmber,
+                  _AnimatedEntrance(
+                    delay: const Duration(milliseconds: 160),
+                    offset: const Offset(0, 16),
+                    child: Text(
+                      isCompleted
+                          ? (newlyAwarded
+                                ? 'Congratulations!'
+                                : 'Completed Again!')
+                          : 'Keep Going!',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: isCompleted
+                            ? AppColors.success
+                            : AppColors.primaryAmber,
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppDimensions.sm),
-                  Text(
-                    isCompleted
-                        ? (newlyAwarded
-                            ? 'You solved the puzzle and earned XP!'
-                            : 'Nice replay — no extra XP this time.')
-                        : 'Not quite — every letter must be correct to unlock the next level.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
-                      color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                  _AnimatedEntrance(
+                    delay: const Duration(milliseconds: 240),
+                    offset: const Offset(0, 12),
+                    child: Text(
+                      isCompleted
+                          ? (newlyAwarded
+                                ? 'You solved the puzzle and earned XP!'
+                                : 'Nice replay — no extra XP this time.')
+                          : 'Not quite — every letter must be correct to unlock the next level.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                      ),
                     ),
                   ),
                   const SizedBox(height: AppDimensions.xl),
-                  _buildProgressRing(accuracy, isDark),
+                  _AnimatedEntrance(
+                    delay: const Duration(milliseconds: 320),
+                    offset: const Offset(0, 20),
+                    child: _buildProgressRing(accuracy, isDark),
+                  ),
                   const SizedBox(height: AppDimensions.xl),
-                  _buildStats(result, isDark),
+                  _AnimatedEntrance(
+                    delay: const Duration(milliseconds: 400),
+                    offset: const Offset(0, 20),
+                    child: _buildStats(result, isDark),
+                  ),
                   if (level != null) ...[
                     const SizedBox(height: AppDimensions.xl),
-                    _buildLevelCard(level, isDark),
+                    _AnimatedEntrance(
+                      delay: const Duration(milliseconds: 480),
+                      offset: const Offset(0, 20),
+                      child: _buildLevelCard(level, isDark),
+                    ),
                   ],
                   const SizedBox(height: AppDimensions.xl),
-                  _buildButtons(context),
+                  _AnimatedEntrance(
+                    delay: const Duration(milliseconds: 560),
+                    offset: const Offset(0, 20),
+                    child: _buildButtons(context),
+                  ),
                 ],
               ),
             ),
             if (newlyAwarded && accuracy >= 80)
-              const Positioned.fill(
-                child: IgnorePointer(
-                  child: _Confetti(),
-                ),
-              ),
+              const Positioned.fill(child: IgnorePointer(child: _Confetti())),
           ],
         ),
       ),
@@ -132,8 +162,12 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
               value: accuracy / 100,
               strokeWidth: 12,
               strokeCap: StrokeCap.round,
-              backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
-              color: accuracy >= 70 ? AppColors.success : AppColors.primaryAmber,
+              backgroundColor: isDark
+                  ? const Color(0xFF334155)
+                  : const Color(0xFFE2E8F0),
+              color: accuracy >= 70
+                  ? AppColors.success
+                  : AppColors.primaryAmber,
             ),
           ),
           Column(
@@ -228,8 +262,11 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
         children: [
           Row(
             children: [
-              const Icon(Icons.military_tech_rounded,
-                  color: AppColors.primaryAmber, size: 22),
+              const Icon(
+                Icons.military_tech_rounded,
+                color: AppColors.primaryAmber,
+                size: 22,
+              ),
               const SizedBox(width: AppDimensions.sm),
               Text(
                 'Level ${level.level}',
@@ -256,7 +293,9 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
             child: LinearProgressIndicator(
               value: progress.clamp(0.0, 1.0),
               minHeight: 8,
-              backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+              backgroundColor: isDark
+                  ? const Color(0xFF334155)
+                  : const Color(0xFFE2E8F0),
               color: AppColors.primaryGradient.colors.first,
             ),
           ),
@@ -357,6 +396,75 @@ class _CrossPuzzleResultPageState extends ConsumerState<CrossPuzzleResultPage> {
   }
 }
 
+class _AnimatedEntrance extends StatefulWidget {
+  final Widget child;
+  final Duration delay;
+  final Offset offset;
+
+  const _AnimatedEntrance({
+    required this.child,
+    this.delay = Duration.zero,
+    this.offset = const Offset(0, 16),
+  });
+
+  @override
+  State<_AnimatedEntrance> createState() => _AnimatedEntranceState();
+}
+
+class _AnimatedEntranceState extends State<_AnimatedEntrance>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+  Timer? _timer;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+    );
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeOutCubic,
+    );
+    if (widget.delay == Duration.zero) {
+      _controller.forward();
+    } else {
+      _timer = Timer(widget.delay, () {
+        if (mounted) {
+          _controller.forward();
+        }
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, childWidget) {
+        final value = _animation.value;
+        return Opacity(
+          opacity: value,
+          child: Transform.translate(
+            offset: widget.offset * (1 - value),
+            child: childWidget,
+          ),
+        );
+      },
+      child: widget.child,
+    );
+  }
+}
+
 class _Stat extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -416,7 +524,8 @@ class _Confetti extends StatefulWidget {
   State<_Confetti> createState() => _ConfettiState();
 }
 
-class _ConfettiState extends State<_Confetti> with SingleTickerProviderStateMixin {
+class _ConfettiState extends State<_Confetti>
+    with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
 
   @override

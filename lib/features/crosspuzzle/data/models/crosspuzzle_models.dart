@@ -57,7 +57,11 @@ class GridCellModel {
   final int col;
   final String value;
 
-  const GridCellModel({required this.row, required this.col, required this.value});
+  const GridCellModel({
+    required this.row,
+    required this.col,
+    required this.value,
+  });
 
   factory GridCellModel.fromJson(Map<String, dynamic> json) {
     return GridCellModel(

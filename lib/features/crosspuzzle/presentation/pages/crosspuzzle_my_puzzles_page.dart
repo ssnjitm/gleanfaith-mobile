@@ -1,3 +1,4 @@
+// crosspuzzle_my_puzzles_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -17,7 +18,8 @@ class CrossPuzzleMyPuzzlesPage extends ConsumerStatefulWidget {
       _CrossPuzzleMyPuzzlesPageState();
 }
 
-class _CrossPuzzleMyPuzzlesPageState extends ConsumerState<CrossPuzzleMyPuzzlesPage> {
+class _CrossPuzzleMyPuzzlesPageState
+    extends ConsumerState<CrossPuzzleMyPuzzlesPage> {
   @override
   void initState() {
     super.initState();
@@ -34,7 +36,8 @@ class _CrossPuzzleMyPuzzlesPageState extends ConsumerState<CrossPuzzleMyPuzzlesP
     return Scaffold(
       appBar: AppBar(title: const Text('My Puzzles')),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(crossPuzzleProvider.notifier).loadMyProgress(),
+        onRefresh: () =>
+            ref.read(crossPuzzleProvider.notifier).loadMyProgress(),
         child: _buildBody(context, state, isDark),
       ),
     );
@@ -47,7 +50,8 @@ class _CrossPuzzleMyPuzzlesPageState extends ConsumerState<CrossPuzzleMyPuzzlesP
       return ListView.separated(
         padding: const EdgeInsets.all(AppDimensions.paddingMd),
         itemCount: 4,
-        separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.paddingSm),
+        separatorBuilder: (_, _) =>
+            const SizedBox(height: AppDimensions.paddingSm),
         itemBuilder: (_, index) => const CrosswordPuzzleCardShimmer(),
       );
     }
@@ -57,8 +61,11 @@ class _CrossPuzzleMyPuzzlesPageState extends ConsumerState<CrossPuzzleMyPuzzlesP
         padding: const EdgeInsets.all(AppDimensions.paddingMd),
         children: [
           const SizedBox(height: AppDimensions.xl),
-          const Icon(Icons.collections_bookmark_outlined,
-              size: 56, color: AppColors.textLight),
+          const Icon(
+            Icons.collections_bookmark_outlined,
+            size: 56,
+            color: AppColors.textLight,
+          ),
           const SizedBox(height: AppDimensions.paddingMd),
           Text(
             state.message ?? 'No puzzles started yet',
@@ -81,8 +88,10 @@ class _CrossPuzzleMyPuzzlesPageState extends ConsumerState<CrossPuzzleMyPuzzlesP
     return ListView.separated(
       padding: const EdgeInsets.all(AppDimensions.paddingMd),
       itemCount: items.length,
-      separatorBuilder: (_, _) => const SizedBox(height: AppDimensions.paddingSm),
-      itemBuilder: (context, index) => _ProgressCard(item: items[index], isDark: isDark),
+      separatorBuilder: (_, _) =>
+          const SizedBox(height: AppDimensions.paddingSm),
+      itemBuilder: (context, index) =>
+          _ProgressCard(item: items[index], isDark: isDark),
     );
   }
 }
@@ -107,10 +116,7 @@ class _ProgressCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         onTap: () => context.push(
           RouteNames.crossPuzzlePlay,
-          extra: {
-            'id': puzzle.id,
-            'title': puzzle.title,
-          },
+          extra: {'id': puzzle.id, 'title': puzzle.title},
         ),
         child: Container(
           padding: const EdgeInsets.all(AppDimensions.paddingMd),
@@ -130,9 +136,7 @@ class _ProgressCard extends StatelessWidget {
                   shape: BoxShape.circle,
                 ),
                 child: Icon(
-                  isCompleted
-                      ? Icons.check_circle_rounded
-                      : Icons.edit_rounded,
+                  isCompleted ? Icons.check_circle_rounded : Icons.edit_rounded,
                   color: color,
                   size: 22,
                 ),
@@ -163,7 +167,10 @@ class _ProgressCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(Icons.chevron_right_rounded, color: AppColors.textLight),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.textLight,
+              ),
             ],
           ),
         ),

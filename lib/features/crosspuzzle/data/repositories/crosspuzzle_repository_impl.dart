@@ -27,35 +27,28 @@ class CrossPuzzleRepositoryImpl implements CrossPuzzleRepository {
     int limit = 10,
     String? difficulty,
   }) {
-    return TaskEither.tryCatch(
-      () async {
-        var puzzles = <CrossPuzzle>[];
-        try {
-          final result = await _remoteDataSource
-              .getPuzzles(
-                page: page,
-                limit: limit,
-                difficulty: difficulty,
-              )
-              .timeout(_remoteTimeout);
-          puzzles = result.map((e) => e.toEntity()).toList();
-        } catch (_) {
-          // Offline or backend error -> fall back to the bundled dataset.
-        }
+    return TaskEither.tryCatch(() async {
+      var puzzles = <CrossPuzzle>[];
+      try {
+        final result = await _remoteDataSource
+            .getPuzzles(page: page, limit: limit, difficulty: difficulty)
+            .timeout(_remoteTimeout);
+        puzzles = result.map((e) => e.toEntity()).toList();
+      } catch (_) {
+        // Offline or backend error -> fall back to the bundled dataset.
+      }
 
-        if (puzzles.isEmpty) {
-          puzzles = await _localDataSource.getLocalPuzzles();
-        }
+      if (puzzles.isEmpty) {
+        puzzles = await _localDataSource.getLocalPuzzles();
+      }
 
-        if (difficulty != null && difficulty.isNotEmpty) {
-          puzzles = puzzles
-              .where((p) => p.difficulty.toLowerCase() == difficulty)
-              .toList();
-        }
-        return puzzles;
-      },
-      (error, stackTrace) => handleError(error),
-    );
+      if (difficulty != null && difficulty.isNotEmpty) {
+        puzzles = puzzles
+            .where((p) => p.difficulty.toLowerCase() == difficulty)
+            .toList();
+      }
+      return puzzles;
+    }, (error, stackTrace) => handleError(error));
   }
 
   @override
@@ -67,27 +60,24 @@ class CrossPuzzleRepositoryImpl implements CrossPuzzleRepository {
       );
     }
 
-    return TaskEither.tryCatch(
-      () async {
-        final result = await _remoteDataSource.getPuzzleDetail(puzzleId);
-        final puzzleRaw = result['puzzle'] is Map<String, dynamic>
-            ? result['puzzle'] as Map<String, dynamic>
-            : <String, dynamic>{};
-        final progressRaw = result['progress'];
-        final revealAnswers = result['revealAnswers'] as bool? ?? false;
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.getPuzzleDetail(puzzleId);
+      final puzzleRaw = result['puzzle'] is Map<String, dynamic>
+          ? result['puzzle'] as Map<String, dynamic>
+          : <String, dynamic>{};
+      final progressRaw = result['progress'];
+      final revealAnswers = result['revealAnswers'] as bool? ?? false;
 
-        final puzzle = CrossPuzzleModel.fromJson(puzzleRaw).toEntity();
-        final progress = progressRaw is Map<String, dynamic>
-            ? CrossPuzzleProgressModel.fromJson(progressRaw).toEntity()
-            : null;
-        return CrossPuzzleDetail(
-          puzzle: puzzle,
-          progress: progress,
-          revealAnswers: revealAnswers,
-        );
-      },
-      (error, stackTrace) => handleError(error),
-    );
+      final puzzle = CrossPuzzleModel.fromJson(puzzleRaw).toEntity();
+      final progress = progressRaw is Map<String, dynamic>
+          ? CrossPuzzleProgressModel.fromJson(progressRaw).toEntity()
+          : null;
+      return CrossPuzzleDetail(
+        puzzle: puzzle,
+        progress: progress,
+        revealAnswers: revealAnswers,
+      );
+    }, (error, stackTrace) => handleError(error));
   }
 
   @override
@@ -99,15 +89,12 @@ class CrossPuzzleRepositoryImpl implements CrossPuzzleRepository {
       );
     }
 
-    return TaskEither.tryCatch(
-      () async {
-        final result = await _remoteDataSource.getPuzzleProgress(puzzleId);
-        return result == null
-            ? null
-            : CrossPuzzleProgressModel.fromJson(result).toEntity();
-      },
-      (error, stackTrace) => handleError(error),
-    );
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.getPuzzleProgress(puzzleId);
+      return result == null
+          ? null
+          : CrossPuzzleProgressModel.fromJson(result).toEntity();
+    }, (error, stackTrace) => handleError(error));
   }
 
   @override
@@ -115,23 +102,20 @@ class CrossPuzzleRepositoryImpl implements CrossPuzzleRepository {
     int page = 1,
     int limit = 10,
   }) {
-    return TaskEither.tryCatch(
-      () async {
-        List<CrossPuzzleWithProgress> progress;
-        try {
-          final result = await _remoteDataSource.getMyProgress(
-            page: page,
-            limit: limit,
-          );
-          progress = result.map((e) => e.toEntity()).toList();
-        } catch (_) {
-          // Offline or backend error -> fall back to local progress.
-          progress = await _localDataSource.getMyLocalProgress();
-        }
-        return progress;
-      },
-      (error, stackTrace) => handleError(error),
-    );
+    return TaskEither.tryCatch(() async {
+      List<CrossPuzzleWithProgress> progress;
+      try {
+        final result = await _remoteDataSource.getMyProgress(
+          page: page,
+          limit: limit,
+        );
+        progress = result.map((e) => e.toEntity()).toList();
+      } catch (_) {
+        // Offline or backend error -> fall back to local progress.
+        progress = await _localDataSource.getMyLocalProgress();
+      }
+      return progress;
+    }, (error, stackTrace) => handleError(error));
   }
 
   @override
@@ -157,26 +141,27 @@ class CrossPuzzleRepositoryImpl implements CrossPuzzleRepository {
       );
     }
 
-    return TaskEither.tryCatch(
-      () async {
-        final result = await _remoteDataSource.saveProgress(
-          puzzleId: puzzleId,
-          gridState: gridState
-              .map(
-                (c) => GridCellModel(row: c.row, col: c.col, value: c.value).toJson(),
-              )
-              .toList(),
-          revealedCells: revealedCells
-              .map((c) => RevealedCellModel(row: c.row, col: c.col).toJson())
-              .toList(),
-          mistakes: mistakes,
-          hintsUsed: hintsUsed,
-          timeSpentSeconds: timeSpentSeconds,
-        );
-        return result.toEntity();
-      },
-      (error, stackTrace) => handleError(error),
-    );
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.saveProgress(
+        puzzleId: puzzleId,
+        gridState: gridState
+            .map(
+              (c) => GridCellModel(
+                row: c.row,
+                col: c.col,
+                value: c.value,
+              ).toJson(),
+            )
+            .toList(),
+        revealedCells: revealedCells
+            .map((c) => RevealedCellModel(row: c.row, col: c.col).toJson())
+            .toList(),
+        mistakes: mistakes,
+        hintsUsed: hintsUsed,
+        timeSpentSeconds: timeSpentSeconds,
+      );
+      return result.toEntity();
+    }, (error, stackTrace) => handleError(error));
   }
 
   @override
@@ -200,35 +185,33 @@ class CrossPuzzleRepositoryImpl implements CrossPuzzleRepository {
       );
     }
 
-    return TaskEither.tryCatch(
-      () async {
-        final result = await _remoteDataSource.completePuzzle(
-          puzzleId: puzzleId,
-          gridState: gridState
-              .map(
-                (c) => GridCellModel(row: c.row, col: c.col, value: c.value).toJson(),
-              )
-              .toList(),
-          mistakes: mistakes,
-          hintsUsed: hintsUsed,
-          timeSpentSeconds: timeSpentSeconds,
-        );
-        return result.toEntity();
-      },
-      (error, stackTrace) => handleError(error),
-    );
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.completePuzzle(
+        puzzleId: puzzleId,
+        gridState: gridState
+            .map(
+              (c) => GridCellModel(
+                row: c.row,
+                col: c.col,
+                value: c.value,
+              ).toJson(),
+            )
+            .toList(),
+        mistakes: mistakes,
+        hintsUsed: hintsUsed,
+        timeSpentSeconds: timeSpentSeconds,
+      );
+      return result.toEntity();
+    }, (error, stackTrace) => handleError(error));
   }
 
   @override
   TaskEither<Failure, String> resetPuzzle(String puzzleId) {
     if (CrossPuzzleLocalDataSource.isLocalId(puzzleId)) {
-      return TaskEither.tryCatch(
-        () async {
-          await _localDataSource.resetLocalProgress(puzzleId);
-          return 'reset';
-        },
-        (error, stackTrace) => handleError(error),
-      );
+      return TaskEither.tryCatch(() async {
+        await _localDataSource.resetLocalProgress(puzzleId);
+        return 'reset';
+      }, (error, stackTrace) => handleError(error));
     }
 
     return TaskEither.tryCatch(

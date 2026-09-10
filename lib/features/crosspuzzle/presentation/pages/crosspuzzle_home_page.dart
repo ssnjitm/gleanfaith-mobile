@@ -1,8 +1,10 @@
+// crosspuzzle_home_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/common/widgets/alert_widget.dart';
+import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/app_router.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
@@ -15,7 +17,8 @@ class CrossPuzzleHomePage extends ConsumerStatefulWidget {
   const CrossPuzzleHomePage({super.key});
 
   @override
-  ConsumerState<CrossPuzzleHomePage> createState() => _CrossPuzzleHomePageState();
+  ConsumerState<CrossPuzzleHomePage> createState() =>
+      _CrossPuzzleHomePageState();
 }
 
 class _CrossPuzzleHomePageState extends ConsumerState<CrossPuzzleHomePage>
@@ -48,8 +51,6 @@ class _CrossPuzzleHomePageState extends ConsumerState<CrossPuzzleHomePage>
   @override
   void didPopNext() {
     super.didPopNext();
-    // Returned from a play/result page — reload so completion + unlock
-    // state on the journey path stays fresh.
     ref.read(crossPuzzleProvider.notifier).loadPuzzles();
   }
 
@@ -77,8 +78,7 @@ class _CrossPuzzleHomePageState extends ConsumerState<CrossPuzzleHomePage>
         ],
       ),
       body: RefreshIndicator(
-        onRefresh: () =>
-            ref.read(crossPuzzleProvider.notifier).loadPuzzles(),
+        onRefresh: () => ref.read(crossPuzzleProvider.notifier).loadPuzzles(),
         child: ListView(
           padding: const EdgeInsets.only(bottom: AppDimensions.paddingXl),
           children: [
@@ -220,14 +220,22 @@ class _CrossPuzzleHomePageState extends ConsumerState<CrossPuzzleHomePage>
 
     if (state.status == CrossPuzzleStatus.loading && puzzles.isEmpty) {
       return const Padding(
-        padding: EdgeInsets.all(AppDimensions.xl),
-        child: Center(child: CircularProgressIndicator()),
+        padding: EdgeInsets.all(AppDimensions.xs),
+        child: Column(
+          children: [
+            CrosswordPuzzleCardShimmer(),
+            CrosswordPuzzleCardShimmer(),
+            CrosswordPuzzleCardShimmer(),
+          ],
+        ),
       );
     }
 
     if (puzzles.isEmpty) {
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.paddingMd,
+        ),
         child: Container(
           padding: const EdgeInsets.all(AppDimensions.xl),
           decoration: BoxDecoration(
@@ -259,8 +267,6 @@ class _CrossPuzzleHomePageState extends ConsumerState<CrossPuzzleHomePage>
     );
   }
 
-  /// Sorts puzzles by level number so the journey is always in order,
-  /// even when the provider returns them unsorted.
   List<CrossPuzzle> _orderPuzzles(List<CrossPuzzle> puzzles) {
     int levelOf(CrossPuzzle p) {
       if (CrossPuzzleLocalDataSource.isLocalId(p.id)) {
@@ -270,28 +276,28 @@ class _CrossPuzzleHomePageState extends ConsumerState<CrossPuzzleHomePage>
       return puzzles.indexOf(p) + 1;
     }
 
-    final sorted = [...puzzles]..sort((a, b) => levelOf(a).compareTo(levelOf(b)));
+    final sorted = [...puzzles]
+      ..sort((a, b) => levelOf(a).compareTo(levelOf(b)));
     return sorted;
   }
 
   void _openPuzzle(CrossPuzzle puzzle, bool unlocked) {
     if (!unlocked) {
-      AlertWidget.showInfo(context, 'Solve the previous level to unlock this one');
+      AlertWidget.showInfo(
+        context,
+        'Solve the previous level to unlock this one',
+      );
       return;
     }
     context.push(
       RouteNames.crossPuzzlePlay,
-      extra: {
-        'id': puzzle.id,
-        'title': puzzle.title,
-      },
+      extra: {'id': puzzle.id, 'title': puzzle.title},
     );
   }
 }
 
 enum _LevelState { locked, unlocked, current, completed }
 
-/// Candy Crush style serpentine journey path with sequential unlock.
 class JourneyMap extends StatelessWidget {
   final List<CrossPuzzle> puzzles;
   final Animation<double> pulse;
@@ -314,14 +320,12 @@ class JourneyMap extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final perRow = ((width - 2 * _edgeMargin - _nodeSize) / _hStep)
-                .floor() +
-            1;
+        final perRow =
+            ((width - 2 * _edgeMargin - _nodeSize) / _hStep).floor() + 1;
         final cols = perRow.clamp(3, 6);
 
         final rows = (puzzles.length / cols).ceil();
-        final mapWidth =
-            _edgeMargin * 2 + (cols - 1) * _hStep + _nodeSize;
+        final mapWidth = _edgeMargin * 2 + (cols - 1) * _hStep + _nodeSize;
         final mapHeight = _edgeMargin * 2 + (rows - 1) * _vStep + _nodeSize;
 
         final centers = <Offset>[];
@@ -329,10 +333,12 @@ class JourneyMap extends StatelessWidget {
           final row = i ~/ cols;
           var col = i % cols;
           if (row.isOdd) col = cols - 1 - col;
-          centers.add(Offset(
-            _edgeMargin + col * _hStep + _nodeSize / 2,
-            _edgeMargin + row * _vStep + _nodeSize / 2,
-          ));
+          centers.add(
+            Offset(
+              _edgeMargin + col * _hStep + _nodeSize / 2,
+              _edgeMargin + row * _vStep + _nodeSize / 2,
+            ),
+          );
         }
 
         final states = _computeStates();
@@ -346,10 +352,7 @@ class JourneyMap extends StatelessWidget {
               children: [
                 Positioned.fill(
                   child: CustomPaint(
-                    painter: _JourneyPainter(
-                      centers: centers,
-                      states: states,
-                    ),
+                    painter: _JourneyPainter(centers: centers, states: states),
                   ),
                 ),
                 for (var i = 0; i < puzzles.length; i++)
@@ -363,10 +366,8 @@ class JourneyMap extends StatelessWidget {
                       state: states[i],
                       isLast: i == puzzles.length - 1,
                       pulse: pulse,
-                      onTap: () => onTap(
-                        puzzles[i],
-                        states[i] != _LevelState.locked,
-                      ),
+                      onTap: () =>
+                          onTap(puzzles[i], states[i] != _LevelState.locked),
                     ),
                   ),
               ],
@@ -419,8 +420,6 @@ class _JourneyPainter extends CustomPainter {
     }
     canvas.drawPath(basePath, base);
 
-    // Progress path: segments between two non-locked nodes that are either
-    // completed or the current (first unlocked) level.
     final progressPaint = Paint()
       ..color = AppColors.success
       ..strokeWidth = 5
