@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -388,35 +389,53 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
           Expanded(
             child: LayoutBuilder(
               builder: (context, constraints) {
-                final maxGridWidth = constraints.maxWidth - 16;
-                const paddingTotal = CrosswordGrid.defaultPadding * 2;
-                final gapByCols = (board.cols - 1) * CrosswordGrid.cellGap;
-                final byWidth =
-                    (maxGridWidth - gapByCols - paddingTotal) / board.cols;
-                final cellSize = byWidth.clamp(24.0, 44.0).floorToDouble();
+                final double availableWidth = constraints.maxWidth;
+                final double availableHeight = constraints.maxHeight;
 
-                return SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        FittedBox(
-                          fit: BoxFit.contain,
-                          alignment: Alignment.center,
-                          child: CrosswordGrid(
-                            board: board,
-                            cellSize: cellSize,
-                            padding: const EdgeInsets.all(
-                              CrosswordGrid.defaultPadding,
+                const double outerPadding = 16.0;
+                const double gridPadding = CrosswordGrid.defaultPadding * 2;
+                final double gapTotalWidth =
+                    (board.cols - 1) * CrosswordGrid.cellGap;
+                final double gapTotalHeight =
+                    (board.rows - 1) * CrosswordGrid.cellGap;
+
+                // Calculate cell size bound by both width and height available
+                final double maxCellWidth =
+                    (availableWidth - outerPadding - gridPadding - gapTotalWidth) /
+                        board.cols;
+                final double maxCellHeight =
+                    (availableHeight - 50 - gridPadding - gapTotalHeight) /
+                        board.rows;
+
+                final double cellSize = math
+                    .min(maxCellWidth, maxCellHeight)
+                    .floorToDouble()
+                    .clamp(1.0, 44.0);
+
+                return Center(
+                  child: SingleChildScrollView(
+                    physics: const ClampingScrollPhysics(),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 4),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.center,
+                            child: CrosswordGrid(
+                              board: board,
+                              cellSize: cellSize,
+                              padding: const EdgeInsets.all(
+                                CrosswordGrid.defaultPadding,
+                              ),
+                              onCellTapped: _onGridTapped,
                             ),
-                            onCellTapped: _onGridTapped,
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildProgressRow(board, isDark),
-                        const SizedBox(height: 4),
-                      ],
+                          const SizedBox(height: 8),
+                          _buildProgressRow(board, isDark),
+                        ],
+                      ),
                     ),
                   ),
                 );

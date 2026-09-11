@@ -75,37 +75,44 @@ class _CrosswordGridState extends State<CrosswordGrid> {
           ),
         ],
       ),
-      child: Column(
-        children: [
-          for (var r = 0; r < board.rows; r++)
-            Padding(
-              padding: EdgeInsets.only(bottom: r == board.rows - 1 ? 0.0 : gap),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  for (var c = 0; c < board.cols; c++)
-                    Padding(
-                      padding: EdgeInsets.only(
-                        right: c == board.cols - 1 ? 0.0 : gap,
-                      ),
-                      child: _GridCell(
-                        key: ValueKey('cell-$r-$c-$_flashCounter'),
-                        view: _CellView.fromCell(board.grid[r][c]),
-                        isDark: isDark,
-                        cellSize: size,
-                        flashGreen:
-                            _flashWordGreen && board.grid[r][c].inActiveClue,
-                        onTap: () => widget.onCellTapped(
-                          r,
-                          c,
-                          board.selectedRow == r && board.selectedCol == c,
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.center,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            for (var r = 0; r < board.rows; r++)
+              Padding(
+                padding: EdgeInsets.only(
+                  bottom: r == board.rows - 1 ? 0.0 : gap,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    for (var c = 0; c < board.cols; c++)
+                      Padding(
+                        padding: EdgeInsets.only(
+                          right: c == board.cols - 1 ? 0.0 : gap,
+                        ),
+                        child: _GridCell(
+                          key: ValueKey('cell-$r-$c-$_flashCounter'),
+                          view: _CellView.fromCell(board.grid[r][c]),
+                          isDark: isDark,
+                          cellSize: size,
+                          flashGreen:
+                              _flashWordGreen && board.grid[r][c].inActiveClue,
+                          onTap: () => widget.onCellTapped(
+                            r,
+                            c,
+                            board.selectedRow == r && board.selectedCol == c,
+                          ),
                         ),
                       ),
-                    ),
-                ],
+                  ],
+                ),
               ),
-            ),
-        ],
+          ],
+        ),
       ),
     );
   }
