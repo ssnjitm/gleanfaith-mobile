@@ -151,7 +151,7 @@ void main() {
     test('every option list contains its correct answer', () {
       final engine = BibleGameEngine(random: Random(6));
       final rounds = engine.funFactRounds(_books, extremes);
-      expect(rounds.length, greaterThanOrEqualTo(4));
+      expect(rounds.length, greaterThanOrEqualTo(12));
       for (final round in rounds) {
         expect(round.options, contains(round.correct));
         expect(round.options.toSet().length, round.options.length);
@@ -166,20 +166,28 @@ void main() {
       final mostRound = rounds.firstWhere((r) => r.prompt.contains('MOST'));
       expect(mostRound.correct, 'Psalms');
     });
+
+    test('facts are deterministic — same data, same order', () {
+      final engine = BibleGameEngine(random: Random(1));
+      final first = engine.funFactRounds(_books, extremes);
+      final second = engine.funFactRounds(_books, extremes);
+      expect(first.map((f) => f.prompt), second.map((f) => f.prompt));
+      expect(first.map((f) => f.correct), second.map((f) => f.correct));
+    });
   });
 
   group('bookHint', () {
-    test('maps books to their genre section without naming them', () {
+    test('hints by book size without naming the book or its section', () {
       final engine = BibleGameEngine(random: Random(1));
       String hintFor(String name) =>
           engine.bookHint(_books.firstWhere((b) => b.name == name));
 
-      expect(hintFor('Genesis'), 'Old Testament · the Law (Pentateuch)');
-      expect(hintFor('Amos'), 'Old Testament · Minor Prophets');
-      expect(hintFor('Psalms'), 'Old Testament · Poetry & Wisdom');
-      expect(hintFor('Matthew'), 'New Testament · the Gospels');
-      expect(hintFor('John'), 'New Testament · the Gospels');
-      expect(hintFor('Revelation'), 'New Testament · Revelation');
+      expect(hintFor('Genesis'), 'One of the longer books of the Bible');
+      expect(hintFor('Psalms'), 'One of the longer books of the Bible');
+      expect(hintFor('Matthew'), 'A mid-sized book');
+      expect(hintFor('John'), 'A mid-sized book');
+      expect(hintFor('Revelation'), 'A mid-sized book');
+      expect(hintFor('Amos'), 'A shorter book');
     });
   });
 

@@ -10,6 +10,7 @@ import '../../../../services/logger_service.dart';
 import '../../../../services/notification_service.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../../features/bible/presentation/providers/bible_providers.dart';
+import '../../../../../features/bible_games/presentation/widgets/home_fun_facts_card.dart';
 import '../../domain/entities/home_data.dart';
 import '../providers/main_tab_provider.dart';
 import '../widgets/promo_carousel.dart';
@@ -112,6 +113,8 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               _buildSectionHeader(context, 'Quick Actions', isDark),
               const SizedBox(height: AppDimensions.paddingSm),
               _buildQuickActionGrid(context, isDark),
+              const SizedBox(height: AppDimensions.paddingMd),
+              const HomeFunFactsCard(),
               const SizedBox(height: AppDimensions.paddingLg),
               _buildSectionHeader(context, 'Upcoming Quizzes', isDark),
               const SizedBox(height: AppDimensions.paddingSm),

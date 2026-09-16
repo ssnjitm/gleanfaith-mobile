@@ -57,5 +57,4 @@ class RouteNames {
   static const String higherLower = '/games/higher-lower';
   static const String bookOrderRace = '/games/book-order';
   static const String findTheChapter = '/games/find-chapter';
-  static const String funFacts = '/games/fun-facts';
 }

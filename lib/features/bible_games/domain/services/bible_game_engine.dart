@@ -38,7 +38,7 @@ class BibleGameEngine {
 
   /// Guess the Book — show the complete [verse] and offer four book options
   /// (distractors prefer the same testament so the game is fair, not trivially
-  /// resolved by testament). A non-revealing genre hint helps narrow the field.
+  /// resolved by testament). A subtle, non-revealing hint helps a little.
   GuessBookRound guessBookRound({
     required List<BibleGameBook> books,
     required List<BibleGameVerse> verses,
@@ -74,22 +74,14 @@ class BibleGameEngine {
     );
   }
 
-  /// A gentle, non-revealing hint about a book's genre/section — enough to
-  /// help pick between options without naming the answer.
+  /// A gentle hint about a book's SIZE (short / mid / long). It never names
+  /// the book nor gives away its canonical section, so several options always
+  /// stay plausible.
   String bookHint(BibleGameBook book) {
-    final index = book.canonicalIndex;
-    if (book.testament != 'Old Testament') {
-      if (index <= 42) return 'New Testament · the Gospels';
-      if (index == 43) return 'New Testament · Acts';
-      if (index <= 56) return 'New Testament · Paul’s letters';
-      if (index <= 64) return 'New Testament · General letters';
-      return 'New Testament · Revelation';
-    }
-    if (index <= 4) return 'Old Testament · the Law (Pentateuch)';
-    if (index <= 15) return 'Old Testament · History';
-    if (index <= 20) return 'Old Testament · Poetry & Wisdom';
-    if (index <= 25) return 'Old Testament · Major Prophets';
-    return 'Old Testament · Minor Prophets';
+    final chapters = book.chapterCount;
+    if (chapters >= 40) return 'One of the longer books of the Bible';
+    if (chapters >= 16) return 'A mid-sized book';
+    return 'A shorter book';
   }
 
   /// Higher / Lower — two distinct books with different chapter counts; the
@@ -145,89 +137,136 @@ class BibleGameEngine {
   }
 
   /// Fun Facts — a stable set of trivia rounds generated from real data.
+  /// Fun Facts — as many interesting facts as the loaded data can produce.
+  /// Fully deterministic (a fact is a fact — randomness has no place here), so
+  /// the same data always yields the same facts in the same order.
   List<FunFactRound> funFactRounds(
     List<BibleGameBook> books,
     BibleGameExtremes extremes,
   ) {
-    final mostChapters = books.reduce(
-      (a, b) => a.chapterCount > b.chapterCount ? a : b,
-    );
-    final oneChapter = books.where((b) => b.chapterCount == 1).toList();
-    final fewestChapters = pick(oneChapter.isEmpty ? books : oneChapter);
+    List<BibleGameBook> byChapters(Iterable<BibleGameBook> source) {
+      final sorted = [...source]
+        ..sort((a, b) {
+          final byChapters = a.chapterCount.compareTo(b.chapterCount);
+          return byChapters != 0 ? byChapters : a.name.compareTo(b.name);
+        });
+      return sorted;
+    }
 
-    final referenceDistractors = _distractorReferences(books).toSet().toList();
+    List<BibleGameBook> byVerses(Iterable<BibleGameBook> source) {
+      final sorted = [...source]
+        ..sort((a, b) {
+          final byVerses = a.verseCount.compareTo(b.verseCount);
+          return byVerses != 0 ? byVerses : a.name.compareTo(b.name);
+        });
+      return sorted;
+    }
+
+    final orderedByChapters = byChapters(books);
+    final orderedByVerses = byVerses(books);
+    final oldTestament = books.where((b) => b.isOldTestament).toList();
+    final newTestament = books.where((b) => b.isNewTestament).toList();
+    final ntByChapters = byChapters(newTestament);
+    final ntByVerses = byVerses(newTestament);
+    final mostChapters = orderedByChapters.last;
+    final fewestChapters = orderedByChapters.first;
+    final mostVerses = orderedByVerses.last;
+    final fewestVerses = orderedByVerses.first;
+    final singleChapterBooks =
+        books.where((b) => b.chapterCount == 1).toList();
+    final totalChapters =
+        books.fold<int>(0, (sum, b) => sum + b.chapterCount);
+    final totalVerses = books.fold<int>(0, (sum, b) => sum + b.verseCount);
+    final longest = extremes.longest;
+    final shortest = extremes.shortest;
 
     return [
-      FunFactRound(
-        prompt: 'Which verse is the LONGEST in the Bible?',
-        correct: extremes.longest.reference,
-        options: shuffled(
-          [
-            extremes.longest.reference,
-            ...referenceDistractors.where(
-              (r) => r != extremes.longest.reference,
-            ),
-          ],
-        ),
-        explain:
-            '${extremes.longest.reference} has ${extremes.longest.length} '
-            'characters.',
+      _funFact(
+        'Longest verse in the Bible',
+        longest.reference,
+        '${longest.reference} has ${longest.length} characters.',
       ),
-      FunFactRound(
-        prompt: 'Which verse is the SHORTEST in the Bible?',
-        correct: extremes.shortest.reference,
-        options: shuffled(
-          [
-            extremes.shortest.reference,
-            ...referenceDistractors.where(
-              (r) => r != extremes.shortest.reference,
-            ),
-          ],
-        ),
-        explain:
-            '"${extremes.shortest.text}" — ${extremes.shortest.reference} '
-            '(${extremes.shortest.length} characters).',
+      _funFact(
+        'Shortest verse in the Bible',
+        shortest.reference,
+        '"${shortest.text}" — ${shortest.reference} has '
+            '${shortest.length} characters.',
       ),
-      FunFactRound(
-        prompt: 'Which book has the MOST chapters?',
-        correct: mostChapters.name,
-        options: shuffled(
-          [mostChapters.name, ..._bookDistractors(books, mostChapters.name)],
-        ),
-        explain: '${mostChapters.name} has ${mostChapters.chapterCount} '
-            'chapters.',
+      _funFact(
+        'Book with the MOST chapters',
+        mostChapters.name,
+        '${mostChapters.name} has ${mostChapters.chapterCount} chapters.',
       ),
-      FunFactRound(
-        prompt: 'Which book has the FEWEST chapters?',
-        correct: fewestChapters.name,
-        options: shuffled(
-          [
-            fewestChapters.name,
-            ..._bookDistractors(books, fewestChapters.name),
-          ],
-        ),
-        explain: '${fewestChapters.name} has ${fewestChapters.chapterCount} '
+      _funFact(
+        'Book with the FEWEST chapters',
+        fewestChapters.name,
+        '${fewestChapters.name} has ${fewestChapters.chapterCount} '
             'chapter${fewestChapters.chapterCount == 1 ? '' : 's'}.',
       ),
+      _funFact(
+        'Book with the MOST verses',
+        mostVerses.name,
+        '${mostVerses.name} has ${mostVerses.verseCount} verses.',
+      ),
+      _funFact(
+        'Book with the FEWEST verses',
+        fewestVerses.name,
+        '${fewestVerses.name} has ${fewestVerses.verseCount} verses.',
+      ),
+      if (ntByChapters.isNotEmpty)
+        _funFact(
+          'Most-chaptered book of the New Testament',
+          ntByChapters.last.name,
+          '${ntByChapters.last.name} has ${ntByChapters.last.chapterCount} '
+              'chapters.',
+        ),
+      if (ntByVerses.isNotEmpty)
+        _funFact(
+          'Most-versed book of the New Testament',
+          ntByVerses.last.name,
+          '${ntByVerses.last.name} has ${ntByVerses.last.verseCount} verses.',
+        ),
+      _funFact(
+        'Books in the Bible',
+        '${books.length}',
+        'The Protestant canon has 66 books (loaded ${books.length} locally).',
+      ),
+      _funFact(
+        'Books in the Old Testament',
+        '${oldTestament.length}',
+        'The Old Testament has ${oldTestament.length} books.',
+      ),
+      _funFact(
+        'Books in the New Testament',
+        '${newTestament.length}',
+        'The New Testament has ${newTestament.length} books.',
+      ),
+      _funFact(
+        'Chapters in the whole Bible',
+        '$totalChapters',
+        'The ${books.length} books contain $totalChapters chapters.',
+      ),
+      _funFact(
+        'Verses in the whole Bible',
+        '$totalVerses',
+        'The KJV chapter counts add up to $totalVerses verses.',
+      ),
+      if (singleChapterBooks.length > 1)
+        _funFact(
+          'Single-chapter books',
+          '${singleChapterBooks.length}',
+          '${singleChapterBooks.map((b) => b.name).join(', ')} each have '
+              'one chapter.',
+        ),
     ];
   }
 
-  List<String> _bookDistractors(List<BibleGameBook> books, String avoid) {
-    return sample(books, 3, where: (b) => b.name != avoid)
-        .map((b) => b.name)
-        .toList();
-  }
-
-  List<String> _distractorReferences(List<BibleGameBook> books) {
-    final refs = <String>{};
-    var guard = 0;
-    while (refs.length < 4 && guard < 100) {
-      guard++;
-      final book = pick(books);
-      final chapter = pickFrom(book.chapterCount) + 1;
-      final verse = pickFrom(50) + 1;
-      refs.add('${book.name} $chapter:$verse');
-    }
-    return refs.toList();
+  FunFactRound _funFact(String prompt, String correct, String explain) {
+    return FunFactRound(
+      prompt: prompt,
+      correct: correct,
+      options: [correct],
+      explain: explain,
+    );
   }
 }

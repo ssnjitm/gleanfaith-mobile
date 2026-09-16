@@ -191,7 +191,7 @@ class FindChapterRound {
   });
 }
 
-/// Fun Facts — a single trivia question with an explanation.
+/// A fun fact about the Bible, ready to reveal (prompt + answer + detail).
 class FunFactRound {
   final String prompt;
   final String correct;

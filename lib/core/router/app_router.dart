@@ -39,7 +39,6 @@ import '../../features/bible_games/presentation/pages/guess_book_page.dart';
 import '../../features/bible_games/presentation/pages/higher_lower_page.dart';
 import '../../features/bible_games/presentation/pages/book_order_page.dart';
 import '../../features/bible_games/presentation/pages/find_chapter_page.dart';
-import '../../features/bible_games/presentation/pages/fun_facts_page.dart';
 import '../common/features/splash/presentation/pages/splash_page.dart';
 import 'route_names.dart';
 
@@ -313,11 +312,6 @@ class AppRouter {
           path: RouteNames.findTheChapter,
           name: RouteNames.findTheChapter,
           builder: (context, state) => const FindChapterPage(),
-        ),
-        GoRoute(
-          path: RouteNames.funFacts,
-          name: RouteNames.funFacts,
-          builder: (context, state) => const FunFactsPage(),
         ),
       ],
     );

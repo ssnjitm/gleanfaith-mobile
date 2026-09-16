@@ -78,13 +78,6 @@ class GamesHubPage extends ConsumerWidget {
                 gradient: const [Color(0xFF7C3AED), Color(0xFFA78BFA)],
                 onTap: () => context.pushNamed(RouteNames.findTheChapter),
               ),
-              _GameTile(
-                icon: Icons.lightbulb_rounded,
-                title: 'Fun Facts',
-                subtitle: 'Longest verses, biggest books and more',
-                gradient: const [Color(0xFFEA580C), Color(0xFFFB923C)],
-                onTap: () => context.pushNamed(RouteNames.funFacts),
-              ),
             ],
           );
         },

@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/services/database_service.dart';
 import '../../domain/entities/bible_game_entities.dart';
+import '../../domain/services/bible_game_engine.dart';
 
 /// Loads the canonical 66-book list (with chapter/verse counts and canonical
 /// index) plus the longest/shortest verse stats, all from the offline Bible DB.
@@ -31,6 +32,14 @@ final bibleGamesDataProvider = FutureProvider<BibleGamesData>((ref) async {
   }
 
   return BibleGamesData(books: books, extremes: extremes);
+});
+
+/// All the fun facts the offline DB can produce, for the Home facts card.
+/// Empty when the DB is unavailable (fallback/web mode).
+final bibleFunFactsProvider = FutureProvider<List<FunFactRound>>((ref) async {
+  final data = await ref.watch(bibleGamesDataProvider.future);
+  if (data.isEmpty || data.extremes == null) return const [];
+  return BibleGameEngine().funFactRounds(data.books, data.extremes!);
 });
 
 BibleVerseStat _statFromDbRow(Map<String, dynamic> row) {
