@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/services/database_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../providers/bible_providers.dart';
@@ -16,10 +17,11 @@ class BibleChapterListPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chaptersAsync = ref.watch(bibleChaptersProvider(book));
+    final displayBook = normalizeBookName(book);
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text(book),
+        title: Text(displayBook),
         centerTitle: true,
       ),
       body: chaptersAsync.when(
@@ -69,12 +71,12 @@ class _ChapterGrid extends StatelessWidget {
         return _ChapterTile(
           chapter: chapter,
           onTap: () => context.pushNamed(
-            RouteNames.bibleChapter,
-            pathParameters: {
-              'book': Uri.encodeComponent(book),
-              'chapter': chapter.toString(),
-            },
-          ),
+              RouteNames.bibleChapter,
+              pathParameters: {
+                'book': book,
+                'chapter': chapter.toString(),
+              },
+            ),
         );
       },
     );

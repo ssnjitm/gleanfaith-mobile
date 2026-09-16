@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/services/database_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/verse.dart';
@@ -28,7 +29,7 @@ class BibleReadingPage extends ConsumerWidget {
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text('$book $chapter'),
+        title: Text('${normalizeBookName(book)} $chapter'),
         centerTitle: true,
       ),
       body: versesAsync.when(
@@ -95,7 +96,7 @@ class _ChapterBody extends StatelessWidget {
                 onTap: () => context.pushNamed(
                   RouteNames.bibleVerseDetail,
                   pathParameters: {
-                    'book': Uri.encodeComponent(verse.book),
+                    'book': verse.book,
                     'chapter': verse.chapter.toString(),
                     'verse': verse.verse.toString(),
                   },
@@ -206,7 +207,7 @@ class _ChapterNavigationBar extends StatelessWidget {
                 ? () => context.pushReplacementNamed(
                       RouteNames.bibleChapter,
                       pathParameters: {
-                        'book': Uri.encodeComponent(book),
+                        'book': book,
                         'chapter': prevChapter.toString(),
                       },
                     )
@@ -227,7 +228,7 @@ class _ChapterNavigationBar extends StatelessWidget {
                 ? () => context.pushReplacementNamed(
                       RouteNames.bibleChapter,
                       pathParameters: {
-                        'book': Uri.encodeComponent(book),
+                        'book': book,
                         'chapter': nextChapter.toString(),
                       },
                     )

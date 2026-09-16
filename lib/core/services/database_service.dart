@@ -171,6 +171,18 @@ Future<void> _initBibleDatabase() async {
         LoggerService.info('✅ Database re-copied');
       }
     }
+
+    // Older bundled databases lack the stable slug schema (book_slug columns
+    // plus the canonical bible_books seed). Re-copy the fresh asset whenever
+    // the schema on disk is stale — the DB is read-only at runtime so this is
+    // always safe.
+    if (await dbFile.exists() && !await _schemaIsCurrent(dbPath)) {
+      LoggerService.warning('🔄 Stale Bible schema detected, re-copying from assets...');
+      await dbFile.delete();
+      final assetData = await rootBundle.load('assets/databases/topical_bible.db');
+      await dbFile.writeAsBytes(assetData.buffer.asUint8List());
+      LoggerService.info('✅ Database re-copied with current schema');
+    }
     
     // Verify file exists and has content before opening
     if (!await dbFile.exists()) {
@@ -253,6 +265,32 @@ Future<void> _initBibleDatabase() async {
     _isInitialized = false;
   }
 
+  /// Returns true when the on-disk database already carries the stable slug
+  /// schema (the `book_slug` column on the verse tables plus the canonical
+  /// `bible_books` seed table). If not, the asset is re-copied on next init.
+  Future<bool> _schemaIsCurrent(String dbPath) async {
+    try {
+      final probe = await openDatabase(
+        dbPath,
+        readOnly: true,
+        singleInstance: false,
+      );
+      try {
+        final verseCols = await probe.rawQuery('PRAGMA table_info(bible_verses)');
+        final hasSlug = verseCols.any((c) => c['name'] == 'book_slug');
+        final hasBooksTable = (await probe.rawQuery(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='bible_books'",
+        )).isNotEmpty;
+        return hasSlug && hasBooksTable;
+      } finally {
+        await probe.close();
+      }
+    } catch (e) {
+      LoggerService.warning('Bible schema probe failed: $e');
+      return false;
+    }
+  }
+
   // ============================================================
   // BIBLE DATABASE QUERY METHODS (with fallback support)
   // ============================================================
@@ -299,7 +337,7 @@ Future<void> _initBibleDatabase() async {
           tv.votes
         FROM topics t
         JOIN topical_verses tv ON t.id = tv.topic_id
-        JOIN bible_verses bv ON bv.book = tv.book 
+        JOIN bible_verses bv ON bv.book_slug = tv.book_slug
                           AND bv.chapter = tv.chapter 
                           AND bv.verse >= tv.verse_start 
                           AND bv.verse <= tv.verse_end
@@ -376,6 +414,7 @@ Future<void> _initBibleDatabase() async {
       if (reference == null) return [];
 
       final db = await bibleDatabase;
+      final slug = bookSlug(reference.book);
 
       if (reference.verse != null) {
         final verseEnd = reference.verseEnd ?? reference.verse;
@@ -386,10 +425,10 @@ Future<void> _initBibleDatabase() async {
             verse,
             text
           FROM bible_verses
-          WHERE book = ? AND chapter = ? AND verse BETWEEN ? AND ?
+          WHERE book_slug = ? AND chapter = ? AND verse BETWEEN ? AND ?
           ORDER BY verse
           LIMIT 100
-        ''', [reference.book, reference.chapter, reference.verse, verseEnd]);
+        ''', [slug, reference.chapter, reference.verse, verseEnd]);
       }
 
       return await db.rawQuery('''
@@ -399,10 +438,10 @@ Future<void> _initBibleDatabase() async {
           verse,
           text
         FROM bible_verses
-        WHERE book = ? AND chapter = ?
+        WHERE book_slug = ? AND chapter = ?
         ORDER BY verse
         LIMIT 100
-      ''', [reference.book, reference.chapter]);
+      ''', [slug, reference.chapter]);
     } catch (e) {
       LoggerService.error('searchByReference failed: $e');
       return [];
@@ -432,15 +471,16 @@ Future<void> _initBibleDatabase() async {
 
       // 1. Pick a random book from the whole Bible.
       final books = await db.rawQuery(
-        'SELECT DISTINCT book FROM bible_verses ORDER BY book',
+        'SELECT DISTINCT book, book_slug FROM bible_verses ORDER BY book',
       );
       if (books.isEmpty) return null;
-      final book = books[random.nextInt(books.length)]['book'] as String;
+      final pick = books[random.nextInt(books.length)];
+      final slug = pick['book_slug'] as String? ?? bookSlug(pick['book'] as String);
 
       // 2. Pick a random chapter within that book.
       final chapters = await db.rawQuery(
-        'SELECT DISTINCT chapter FROM bible_verses WHERE book = ? ORDER BY chapter',
-        [book],
+        'SELECT DISTINCT chapter FROM bible_verses WHERE book_slug = ? ORDER BY chapter',
+        [slug],
       );
       if (chapters.isEmpty) return null;
       final chapter = chapters[random.nextInt(chapters.length)]['chapter'] as int;
@@ -454,10 +494,10 @@ Future<void> _initBibleDatabase() async {
           verse,
           text
         FROM bible_verses
-        WHERE book = ? AND chapter = ?
+        WHERE book_slug = ? AND chapter = ?
         ORDER BY verse
         ''',
-        [book, chapter],
+        [slug, chapter],
       );
       if (verses.isEmpty) return null;
       return verses[random.nextInt(verses.length)];
@@ -508,17 +548,18 @@ Future<void> _initBibleDatabase() async {
     if (!isBibleAvailable) return [];
     try {
       final db = await bibleDatabase;
+      final slug = bookSlug(book);
       return await db.rawQuery('''
         SELECT DISTINCT
           t.topic_name,
           COUNT(tv.id) as verse_count
         FROM topics t
         JOIN topical_verses tv ON t.id = tv.topic_id
-        WHERE tv.book = ?
+        WHERE tv.book_slug = ?
         GROUP BY t.id
         ORDER BY verse_count DESC
         LIMIT 50
-      ''', [book]);
+      ''', [slug]);
     } catch (e) {
       LoggerService.error('getTopicsByBook failed: $e');
       return [];
@@ -535,6 +576,7 @@ Future<void> _initBibleDatabase() async {
     if (!isBibleAvailable) return [];
     try {
       final db = await bibleDatabase;
+      final slug = bookSlug(book);
       return await db.rawQuery('''
         SELECT 
           book,
@@ -542,11 +584,11 @@ Future<void> _initBibleDatabase() async {
           verse,
           text
         FROM bible_verses
-        WHERE book = ? 
+        WHERE book_slug = ? 
           AND chapter = ? 
           AND verse BETWEEN ? AND ?
         ORDER BY verse
-      ''', [book, chapter, verse - contextRange, verse + contextRange]);
+      ''', [slug, chapter, verse - contextRange, verse + contextRange]);
     } catch (e) {
       LoggerService.error('getVerseContext failed: $e');
       return [];
@@ -562,6 +604,7 @@ Future<void> _initBibleDatabase() async {
     if (!isBibleAvailable) return null;
     try {
       final db = await bibleDatabase;
+      final slug = bookSlug(book);
       final results = await db.rawQuery('''
         SELECT 
           book,
@@ -569,9 +612,9 @@ Future<void> _initBibleDatabase() async {
           verse,
           text
         FROM bible_verses
-        WHERE book = ? AND chapter = ? AND verse = ?
+        WHERE book_slug = ? AND chapter = ? AND verse = ?
         LIMIT 1
-      ''', [book, chapter, verse]);
+      ''', [slug, chapter, verse]);
       
       return results.isNotEmpty ? results.first : null;
     } catch (e) {
@@ -603,43 +646,42 @@ Future<void> _initBibleDatabase() async {
 
   /// Get all 66 books of the Bible with their chapter counts, in canonical
   /// order (Old Testament first, then New Testament).
+  ///
+  /// The list is driven by the seeded `bible_books` table (never by whatever
+  /// books happen to have verse rows), so all 66 canonical books are always
+  /// returned even if verse data were missing; counts are joined from
+  /// `bible_verses` via the stable `book_slug`.
   Future<List<Map<String, dynamic>>> getBooks() async {
     if (!isBibleAvailable) return [];
     try {
       final db = await bibleDatabase;
-      final rows = await db.rawQuery('''
+      return await db.rawQuery('''
         SELECT 
-          book,
-          COUNT(DISTINCT chapter) AS chapter_count
-        FROM bible_verses
-        GROUP BY book
+          bb.book,
+          bb.book_slug,
+          bb.testament,
+          COUNT(DISTINCT bv.chapter) AS chapter_count
+        FROM bible_books bb
+        LEFT JOIN bible_verses bv ON bv.book_slug = bb.book_slug
+        GROUP BY bb.id, bb.book, bb.book_slug, bb.testament
+        ORDER BY bb.id
       ''');
-      final order = {
-        for (var i = 0; i < kjvCanonicalBooks.length; i++)
-          kjvCanonicalBooks[i]: i,
-      };
-      // rawQuery results are immutable; copy into a growable list before sorting.
-      final books = List<Map<String, Object?>>.from(rows);
-      books.sort((a, b) {
-        final ia = order[a['book']] ?? kjvCanonicalBooks.length;
-        final ib = order[b['book']] ?? kjvCanonicalBooks.length;
-        return ia.compareTo(ib);
-      });
-      return books;
     } catch (e) {
       LoggerService.error('getBooks failed: $e');
       return [];
     }
   }
 
-  /// Get the list of chapter numbers available in a book.
+  /// Get the list of chapter numbers available in a book, keyed by the stable
+  /// book slug so casing/spacing/encoding variants all resolve the same book.
   Future<List<int>> getChapters(String book) async {
     if (!isBibleAvailable) return [];
     try {
       final db = await bibleDatabase;
+      final slug = bookSlug(book);
       final rows = await db.rawQuery(
-        'SELECT DISTINCT chapter FROM bible_verses WHERE book = ? ORDER BY chapter',
-        [book],
+        'SELECT DISTINCT chapter FROM bible_verses WHERE book_slug = ? ORDER BY chapter',
+        [slug],
       );
       return rows.map((r) => r['chapter'] as int).toList();
     } catch (e) {
@@ -648,7 +690,7 @@ Future<void> _initBibleDatabase() async {
     }
   }
 
-  /// Get all verses of a full chapter, in order.
+  /// Get all verses of a full chapter, in order, keyed by the stable slug.
   Future<List<Map<String, dynamic>>> getChapterVerses({
     required String book,
     required int chapter,
@@ -656,6 +698,7 @@ Future<void> _initBibleDatabase() async {
     if (!isBibleAvailable) return [];
     try {
       final db = await bibleDatabase;
+      final slug = bookSlug(book);
       return await db.rawQuery('''
         SELECT 
           book,
@@ -663,9 +706,9 @@ Future<void> _initBibleDatabase() async {
           verse,
           text
         FROM bible_verses
-        WHERE book = ? AND chapter = ?
+        WHERE book_slug = ? AND chapter = ?
         ORDER BY verse
-      ''', [book, chapter]);
+      ''', [slug, chapter]);
     } catch (e) {
       LoggerService.error('getChapterVerses failed: $e');
       return [];
@@ -744,6 +787,60 @@ const List<String> _kjvBooks = [
 /// Re-exported from [_kjvBooks] so feature layers can classify books by
 /// testament without depending on the private constant.
 const List<String> kjvCanonicalBooks = _kjvBooks;
+
+/// The slug built from a canonical display name, e.g.
+/// `'1 Samuel'` → `'1-samuel'`, `'Song of Solomon'` → `'song-of-solomon'`.
+///
+/// [bookSlug] is a pure function of the *canonical* name, which is the same
+/// rule used to backfill the `book_slug` column in the bundled database, so
+/// the two always agree. Slugs contain only lowercase letters and hyphens and
+/// are immune to casing, spacing, and display-name changes.
+String canonicalBookSlug(String canonicalName) =>
+    canonicalName.toLowerCase().replaceAll(RegExp(r'\s+'), '-');
+
+/// Normalize any book reference to its canonical KJV display name, e.g.
+/// `'1 samuel'`, `'1%20Samuel'`, `'I Samuel'`, `'1Sam'` → `'1 Samuel'`.
+///
+/// Handles: trimming, case, whitespace collapsing and accidental URL
+/// double-encoding, roman-numeral and number-word ordinals (`I/II/III`,
+/// `First/Second/Third`), the abbreviation map, and unique prefix matches.
+///
+/// Always return a [String]; for unknown input it returns the cleaned input so
+/// the caller can still produce a best-effort slug.
+String normalizeBookName(String book) {
+  String cleaned;
+  try {
+    cleaned = Uri.decodeComponent(book.trim());
+  } on FormatException {
+    cleaned = book.trim();
+  }
+  cleaned = cleaned.replaceAll(RegExp(r'\s+'), ' ').trim();
+
+  final lower = cleaned.toLowerCase();
+  if (lower.startsWith('third ')) {
+    cleaned = '3 ${cleaned.substring('third '.length)}';
+  } else if (lower.startsWith('second ')) {
+    cleaned = '2 ${cleaned.substring('second '.length)}';
+  } else if (lower.startsWith('first ')) {
+    cleaned = '1 ${cleaned.substring('first '.length)}';
+  } else if (lower.startsWith('iii ')) {
+    cleaned = '3 ${cleaned.substring('iii '.length)}';
+  } else if (lower.startsWith('ii ')) {
+    cleaned = '2 ${cleaned.substring('ii '.length)}';
+  } else if (lower.startsWith('i ')) {
+    cleaned = '1 ${cleaned.substring('i '.length)}';
+  }
+
+  final canonical = _normalizeBook(cleaned);
+  return canonical ?? cleaned;
+}
+
+/// A stable, lowercase, hyphenated slug for any book reference, matching the
+/// `book_slug` column backfilled in the bundled database.
+///
+/// e.g. `'1 Samuel'` / `'1Samuel'` / `'1%20Samuel'` → `'1-samuel'`,
+/// `'Song of Solomon'` → `'song-of-solomon'`, `'Psalms'` → `'psalms'`.
+String bookSlug(String book) => canonicalBookSlug(normalizeBookName(book));
 
 const Map<String, String> _bookAbbreviations = {
   'gen': 'Genesis',

@@ -140,10 +140,12 @@ class _BookGrid extends StatelessWidget {
         final book = books[index];
         return _BookTile(
           book: book,
-          onTap: () => context.pushNamed(
-            RouteNames.bibleChapters,
-            pathParameters: {'book': Uri.encodeComponent(book.name)},
-          ),
+onTap: () => context.pushNamed(
+              RouteNames.bibleChapters,
+              // GoRouter encodes path parameters itself; passing the raw name
+              // here prevents the double-encoding that broke "1 Samuel" etc.
+              pathParameters: {'book': book.name},
+            ),
         );
       },
     );

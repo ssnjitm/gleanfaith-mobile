@@ -42,6 +42,7 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
 
     try {
       final db = await DatabaseService.instance.bibleDatabase;
+      final slug = bookSlug(widget.book);
       
       // Get the specific verse
       final verseResults = await db.rawQuery('''
@@ -51,9 +52,9 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
           verse,
           text
         FROM bible_verses
-        WHERE book = ? AND chapter = ? AND verse = ?
+        WHERE book_slug = ? AND chapter = ? AND verse = ?
         LIMIT 1
-      ''', [widget.book, widget.chapter, widget.verse]);
+      ''', [slug, widget.chapter, widget.verse]);
       
       if (verseResults.isNotEmpty) {
         _verseData = verseResults.first;
@@ -69,11 +70,11 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
           verse,
           text
         FROM bible_verses
-        WHERE book = ? 
+        WHERE book_slug = ? 
           AND chapter = ? 
           AND verse BETWEEN ? AND ?
         ORDER BY verse
-      ''', [widget.book, widget.chapter, widget.verse - 2, widget.verse + 2]);
+      ''', [slug, widget.chapter, widget.verse - 2, widget.verse + 2]);
       
       _contextVerses = contextResults;
     } catch (e) {
@@ -91,7 +92,9 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text('${widget.book} ${widget.chapter}:${widget.verse}'),
+        title: Text(
+          '${normalizeBookName(widget.book)} ${widget.chapter}:${widget.verse}',
+        ),
         centerTitle: true,
         actions: [
           IconButton(
@@ -168,7 +171,7 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                         children: [
                           // Context label
                           Text(
-                            'Context (${widget.book} ${widget.chapter})',
+                            'Context (${normalizeBookName(widget.book)} ${widget.chapter})',
                             style: TextStyle(
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
@@ -305,7 +308,7 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Related Topics in ${widget.book}',
+              'Related Topics in ${normalizeBookName(widget.book)}',
               style: const TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.w600,

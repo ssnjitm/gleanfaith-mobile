@@ -137,9 +137,8 @@ class BibleRepositoryImpl implements BibleRepository {
           return BibleBook(
             name: name,
             chapterCount: row['chapter_count'] as int? ?? 0,
-            testament: _isOldTestament(name)
-                ? 'Old Testament'
-                : 'New Testament',
+            testament: row['testament'] as String? ??
+                (_isOldTestament(name) ? 'Old Testament' : 'New Testament'),
           );
         }).toList();
       },
