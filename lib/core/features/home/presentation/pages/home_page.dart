@@ -441,6 +441,13 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         onTap: () => context.pushNamed(RouteNames.crossPuzzle),
       ),
       _QuickActionItem(
+        icon: Icons.sports_esports_rounded,
+        label: 'Bible Games',
+        color: const Color(0xFFEA580C),
+        bgColor: const Color(0xFFEA580C).withValues(alpha: 0.1),
+        onTap: () => context.pushNamed(RouteNames.gamesHub),
+      ),
+      _QuickActionItem(
         icon: Icons.person_rounded,
         label: 'Profile',
         color: AppColors.success,

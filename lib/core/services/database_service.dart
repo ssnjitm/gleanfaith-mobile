@@ -623,21 +623,50 @@ Future<void> _initBibleDatabase() async {
     }
   }
 
-  /// Get random verses (for daily verse feature)
-  Future<List<Map<String, dynamic>>> getRandomVerses({int count = 1}) async {
-    if (!isBibleAvailable) return [];
+  /// Get random verses (for the daily verse feature and Bible games).
+  ///
+  /// When [seed] is provided the pick is deterministic (reproducible), which
+  /// keeps a Bible game round stable while the player answers. Without a seed
+  /// the database's native `ORDER BY RANDOM()` is used.
+  Future<List<Map<String, dynamic>>> getRandomVerses({
+    int count = 1,
+    int? seed,
+  }) async {
+    if (!isBibleAvailable || count <= 0) return [];
     try {
       final db = await bibleDatabase;
-      return await db.rawQuery('''
-        SELECT 
-          book,
-          chapter,
-          verse,
-          text
-        FROM bible_verses
-        ORDER BY RANDOM()
-        LIMIT ?
-      ''', [count]);
+      if (seed == null) {
+        return await db.rawQuery('''
+          SELECT 
+            book,
+            chapter,
+            verse,
+            text
+          FROM bible_verses
+          ORDER BY RANDOM()
+          LIMIT ?
+        ''', [count]);
+      }
+      final totalResult = await db.rawQuery(
+        'SELECT COUNT(*) AS total FROM bible_verses',
+      );
+      final total = totalResult.first['total'] as int? ?? 0;
+      if (total == 0) return [];
+      final rng = Random(seed);
+      final wanted = count < total ? count : total;
+      final picks = <int>{};
+      while (picks.length < wanted) {
+        picks.add(rng.nextInt(total));
+      }
+      final rows = <Map<String, dynamic>>[];
+      for (final offset in picks) {
+        final result = await db.rawQuery(
+          'SELECT book, chapter, verse, text FROM bible_verses LIMIT 1 OFFSET ?',
+          [offset],
+        );
+        if (result.isNotEmpty) rows.add(result.first);
+      }
+      return rows;
     } catch (e) {
       LoggerService.error('getRandomVerses failed: $e');
       return [];
@@ -660,7 +689,8 @@ Future<void> _initBibleDatabase() async {
           bb.book,
           bb.book_slug,
           bb.testament,
-          COUNT(DISTINCT bv.chapter) AS chapter_count
+          COUNT(DISTINCT bv.chapter) AS chapter_count,
+          COUNT(bv.id) AS verse_count
         FROM bible_books bb
         LEFT JOIN bible_verses bv ON bv.book_slug = bb.book_slug
         GROUP BY bb.id, bb.book, bb.book_slug, bb.testament
@@ -669,6 +699,39 @@ Future<void> _initBibleDatabase() async {
     } catch (e) {
       LoggerService.error('getBooks failed: $e');
       return [];
+    }
+  }
+
+  /// Get the longest and shortest verses in the Bible (by character length).
+  /// Used by the Bible Games "Fun Facts" trivia.
+  ///
+  /// Returns `null` when the DB is unavailable. Each stat map contains
+  /// `book`, `chapter`, `verse`, `text` and `len`.
+  Future<({Map<String, dynamic> longest, Map<String, dynamic> shortest})?>
+      getVerseLengthExtremes() async {
+    if (!isBibleAvailable) return null;
+    try {
+      final db = await bibleDatabase;
+      final longestResult = await db.rawQuery('''
+        SELECT book, chapter, verse, text, length(text) AS len
+        FROM bible_verses
+        ORDER BY len DESC
+        LIMIT 1
+      ''');
+      final shortestResult = await db.rawQuery('''
+        SELECT book, chapter, verse, text, length(text) AS len
+        FROM bible_verses
+        ORDER BY len ASC
+        LIMIT 1
+      ''');
+      if (longestResult.isEmpty || shortestResult.isEmpty) return null;
+      return (
+        longest: longestResult.first,
+        shortest: shortestResult.first,
+      );
+    } catch (e) {
+      LoggerService.error('getVerseLengthExtremes failed: $e');
+      return null;
     }
   }
 

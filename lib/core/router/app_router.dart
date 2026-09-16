@@ -34,6 +34,12 @@ import '../../features/crosspuzzle/presentation/pages/crosspuzzle_my_puzzles_pag
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_play_page.dart';
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_result_page.dart';
 import '../../features/crosspuzzle/domain/entities/crosspuzzle_entities.dart';
+import '../../features/bible_games/presentation/pages/games_hub_page.dart';
+import '../../features/bible_games/presentation/pages/guess_book_page.dart';
+import '../../features/bible_games/presentation/pages/higher_lower_page.dart';
+import '../../features/bible_games/presentation/pages/book_order_page.dart';
+import '../../features/bible_games/presentation/pages/find_chapter_page.dart';
+import '../../features/bible_games/presentation/pages/fun_facts_page.dart';
 import '../common/features/splash/presentation/pages/splash_page.dart';
 import 'route_names.dart';
 
@@ -282,6 +288,36 @@ class AppRouter {
                 ? state.extra as CrossPuzzleCompleteResult
                 : null,
           ),
+        ),
+        GoRoute(
+          path: RouteNames.gamesHub,
+          name: RouteNames.gamesHub,
+          builder: (context, state) => const GamesHubPage(),
+        ),
+        GoRoute(
+          path: RouteNames.guessTheBook,
+          name: RouteNames.guessTheBook,
+          builder: (context, state) => const GuessBookPage(),
+        ),
+        GoRoute(
+          path: RouteNames.higherLower,
+          name: RouteNames.higherLower,
+          builder: (context, state) => const HigherLowerPage(),
+        ),
+        GoRoute(
+          path: RouteNames.bookOrderRace,
+          name: RouteNames.bookOrderRace,
+          builder: (context, state) => const BookOrderPage(),
+        ),
+        GoRoute(
+          path: RouteNames.findTheChapter,
+          name: RouteNames.findTheChapter,
+          builder: (context, state) => const FindChapterPage(),
+        ),
+        GoRoute(
+          path: RouteNames.funFacts,
+          name: RouteNames.funFacts,
+          builder: (context, state) => const FunFactsPage(),
         ),
       ],
     );

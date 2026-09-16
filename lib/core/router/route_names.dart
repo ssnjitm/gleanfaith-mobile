@@ -50,4 +50,12 @@ class RouteNames {
   static const String crossPuzzleMyPuzzles = '/crosspuzzle/my-puzzles';
   static const String crossPuzzlePlay = '/crosspuzzle/play';
   static const String crossPuzzleResult = '/crosspuzzle/result';
+
+  // Bible Games
+  static const String gamesHub = '/games';
+  static const String guessTheBook = '/games/guess-book';
+  static const String higherLower = '/games/higher-lower';
+  static const String bookOrderRace = '/games/book-order';
+  static const String findTheChapter = '/games/find-chapter';
+  static const String funFacts = '/games/fun-facts';
 }
