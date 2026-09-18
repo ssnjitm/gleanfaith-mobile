@@ -524,7 +524,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                   text,
                   style: TextStyle(
                     fontSize: 15,
-                    fontWeight: isThis || isCorrectOption
+                    fontWeight: isThis
                         ? FontWeight.w700
                         : FontWeight.w500,
                     color: isDark ? Colors.white : AppColors.textPrimary,
