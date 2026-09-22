@@ -89,6 +89,24 @@ class _ProfileDrawerState extends ConsumerState<ProfileDrawer> {
                   ),
                   _buildMenuItem(
                     context,
+                    icon: Icons.bookmarks_outlined,
+                    title: 'Bible Bookmarks',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.pushNamed(RouteNames.bibleBookmarks);
+                    },
+                  ),
+                  _buildMenuItem(
+                    context,
+                    icon: Icons.sticky_note_2_outlined,
+                    title: 'Chapter Notes',
+                    onTap: () {
+                      Navigator.pop(context);
+                      context.pushNamed(RouteNames.bibleNotes);
+                    },
+                  ),
+                  _buildMenuItem(
+                    context,
                     icon: Icons.settings_outlined,
                     title: 'Settings',
                     onTap: () {

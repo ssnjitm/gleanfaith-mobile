@@ -1,8 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glean_faith_app/core/common/extensions/context_extensions.dart';
 import 'package:glean_faith_app/core/router/route_names.dart';
 import 'package:glean_faith_app/core/services/database_service.dart';
+import 'package:glean_faith_app/features/bible_study/presentation/providers/bible_study_provider.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
 
@@ -32,6 +35,24 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
   void initState() {
     super.initState();
     _loadVerseData();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _initBookmark();
+      unawaited(
+        ref.read(recentReadingProvider.notifier).savePosition(
+              bookName: widget.book,
+              chapter: widget.chapter,
+              verse: widget.verse,
+            ),
+      );
+    });
+  }
+
+  void _initBookmark() {
+    final arg = (book: widget.book, chapter: widget.chapter);
+    if (ref.read(chapterBookmarksProvider(arg)).status ==
+        BibleStudyStatus.initial) {
+      ref.read(chapterBookmarksProvider(arg).notifier).load();
+    }
   }
 
   Future<void> _loadVerseData() async {
@@ -86,9 +107,27 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
     });
   }
 
+  Future<void> _toggleBookmark(({String book, int chapter}) arg) async {
+    final notifier = ref.read(chapterBookmarksProvider(arg).notifier);
+    await notifier.toggle(verse: widget.verse);
+    if (!mounted) return;
+    final nowBookmarked = ref
+        .read(chapterBookmarksProvider(arg))
+        .isBookmarked(widget.verse);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(nowBookmarked ? 'Verse bookmarked' : 'Bookmark removed'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final arg = (book: widget.book, chapter: widget.chapter);
+    final bookmarkState = ref.watch(chapterBookmarksProvider(arg));
+    final isVerseBookmarked = bookmarkState.isBookmarked(widget.verse);
 
     return AppScaffold(
       appBar: AppBar(
@@ -109,15 +148,14 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                 : null,
           ),
           IconButton(
-            icon: const Icon(Icons.bookmark_border),
-            onPressed: _verseData != null
-                ? () {
-                    // TODO: Implement bookmark
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Bookmarked!')),
-                    );
-                  }
-                : null,
+            tooltip: isVerseBookmarked ? 'Remove book mark' : 'Bookmark verse',
+            icon: Icon(
+              isVerseBookmarked
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded,
+              color: isVerseBookmarked ? AppColors.primaryAmber : null,
+            ),
+            onPressed: () => _toggleBookmark(arg),
           ),
           IconButton(
             icon: const Icon(Icons.share),

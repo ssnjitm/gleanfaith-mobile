@@ -1,16 +1,20 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/services/database_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
+import '../../../../features/bible_study/presentation/providers/bible_study_provider.dart';
 import '../../domain/entities/verse.dart';
 import '../providers/bible_providers.dart';
 
-class BibleReadingPage extends ConsumerWidget {
+class BibleReadingPage extends ConsumerStatefulWidget {
   final String book;
   final int chapter;
 
@@ -21,16 +25,59 @@ class BibleReadingPage extends ConsumerWidget {
   });
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<BibleReadingPage> createState() => _BibleReadingPageState();
+}
+
+class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final arg = (book: widget.book, chapter: widget.chapter);
+      if (ref.read(chapterBookmarksProvider(arg)).status ==
+          BibleStudyStatus.initial) {
+        ref.read(chapterBookmarksProvider(arg).notifier).load();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final versesAsync = ref.watch(
-      bibleChapterVersesProvider((book: book, chapter: chapter)),
+      bibleChapterVersesProvider((book: widget.book, chapter: widget.chapter)),
     );
-    final chaptersAsync = ref.watch(bibleChaptersProvider(book));
+    final chaptersAsync = ref.watch(bibleChaptersProvider(widget.book));
+    final arg = (book: widget.book, chapter: widget.chapter);
+    final bookmarksState = ref.watch(chapterBookmarksProvider(arg));
+    final isBookmarked = bookmarksState.isBookmarked(null);
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text('${normalizeBookName(book)} $chapter'),
+        title: Text('${normalizeBookName(widget.book)} ${widget.chapter}'),
         centerTitle: true,
+        actions: [
+          IconButton(
+            tooltip: isBookmarked ? 'Remove book mark' : 'Bookmark chapter',
+            icon: Icon(
+              isBookmarked
+                  ? Icons.bookmark_rounded
+                  : Icons.bookmark_border_rounded,
+              color: isBookmarked ? AppColors.primaryAmber : null,
+            ),
+            onPressed: () => _toggleChapterBookmark(arg),
+          ),
+          IconButton(
+            tooltip: 'Chapter notes',
+            icon: const Icon(Icons.sticky_note_2_outlined),
+            onPressed: () => context.pushNamed(
+              RouteNames.bibleChapterNotes,
+              pathParameters: {
+                'book': widget.book,
+                'chapter': widget.chapter.toString(),
+              },
+            ),
+          ),
+        ],
       ),
       body: versesAsync.when(
         loading: () => const Padding(
@@ -48,17 +95,29 @@ class BibleReadingPage extends ConsumerWidget {
           ),
         ),
         data: (verses) => _ChapterBody(
-          book: book,
-          chapter: chapter,
+          book: widget.book,
+          chapter: widget.chapter,
           verses: verses,
           chapters: chaptersAsync.value ?? const [],
         ),
       ),
     );
   }
+
+  Future<void> _toggleChapterBookmark(({String book, int chapter}) arg) async {
+    final notifier = ref.read(chapterBookmarksProvider(arg).notifier);
+    await notifier.toggle(verse: null);
+    if (!mounted) return;
+    final nowBookmarked = ref.read(chapterBookmarksProvider(arg)).isBookmarked(null);
+    AlertWidget.showSnackBar(
+      context,
+      message: nowBookmarked ? 'Chapter bookmarked' : 'Bookmark removed',
+      type: nowBookmarked ? AlertType.success : AlertType.info,
+    );
+  }
 }
 
-class _ChapterBody extends StatelessWidget {
+class _ChapterBody extends ConsumerStatefulWidget {
   final String book;
   final int chapter;
   final List<Verse> verses;
@@ -72,25 +131,93 @@ class _ChapterBody extends StatelessWidget {
   });
 
   @override
+  ConsumerState<_ChapterBody> createState() => _ChapterBodyState();
+}
+
+class _ChapterBodyState extends ConsumerState<_ChapterBody> {
+  final ScrollController _scrollController = ScrollController();
+  Timer? _saveDebounce;
+  bool _didInitPosition = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_didInitPosition && widget.verses.isNotEmpty) {
+      _didInitPosition = true;
+      unawaited(
+        ref.read(recentReadingProvider.notifier).savePosition(
+              bookName: widget.book,
+              chapter: widget.chapter,
+              verse: widget.verses.first.verse,
+            ),
+      );
+    }
+  }
+
+  void _onScroll() {
+    _saveDebounce?.cancel();
+    _saveDebounce = Timer(
+      const Duration(milliseconds: 500),
+      _saveEstimatedPosition,
+    );
+  }
+
+  void _saveEstimatedPosition() {
+    if (!mounted || widget.verses.isEmpty) return;
+    final offset = _scrollController.offset;
+    final maxExtent = _scrollController.position.maxScrollExtent;
+    var verse = widget.verses.first.verse;
+    if (maxExtent > 0) {
+      final ratio = (offset / maxExtent).clamp(0.0, 1.0);
+      final index = (ratio * (widget.verses.length - 1)).round();
+      verse = widget.verses[index].verse;
+    }
+    unawaited(
+      ref.read(recentReadingProvider.notifier).savePosition(
+            bookName: widget.book,
+            chapter: widget.chapter,
+            verse: verse,
+          ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _saveDebounce?.cancel();
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    if (verses.isEmpty) {
+    if (widget.verses.isEmpty) {
       return const Center(child: Text('No verses found for this chapter'));
     }
 
-    final currentIndex = chapters.indexOf(chapter);
+    final currentIndex = widget.chapters.indexOf(widget.chapter);
     final hasPrev = currentIndex > 0;
-    final hasNext = currentIndex >= 0 && currentIndex < chapters.length - 1;
-    final prevChapter = hasPrev ? chapters[currentIndex - 1] : chapter;
-    final nextChapter = hasNext ? chapters[currentIndex + 1] : chapter;
+    final hasNext =
+        currentIndex >= 0 && currentIndex < widget.chapters.length - 1;
+    final prevChapter =
+        hasPrev ? widget.chapters[currentIndex - 1] : widget.chapter;
+    final nextChapter =
+        hasNext ? widget.chapters[currentIndex + 1] : widget.chapter;
 
     return Column(
       children: [
         Expanded(
           child: ListView.builder(
+            controller: _scrollController,
             padding: const EdgeInsets.all(AppDimensions.md),
-            itemCount: verses.length,
+            itemCount: widget.verses.length,
             itemBuilder: (context, index) {
-              final verse = verses[index];
+              final verse = widget.verses[index];
               return _VerseLine(
                 verse: verse,
                 onTap: () => context.pushNamed(
@@ -106,8 +233,8 @@ class _ChapterBody extends StatelessWidget {
           ),
         ),
         _ChapterNavigationBar(
-          book: book,
-          chapter: chapter,
+          book: widget.book,
+          chapter: widget.chapter,
           prevChapter: prevChapter,
           nextChapter: nextChapter,
           hasPrev: hasPrev,

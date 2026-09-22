@@ -44,6 +44,9 @@ class RouteNames {
   static const String bibleSearch = '/bible/search';
   static const String bibleTopicDetail = '/bible/topic/:topic';
   static const String bibleVerseDetail = '/bible/verse/:book/:chapter/:verse';
+  static const String bibleBookmarks = '/bible/bookmarks';
+  static const String bibleNotes = '/bible/notes';
+  static const String bibleChapterNotes = '/bible/notes/:book/:chapter';
 
   // CrossPuzzle
   static const String crossPuzzle = '/crosspuzzle';

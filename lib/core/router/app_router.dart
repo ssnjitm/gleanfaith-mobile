@@ -5,6 +5,9 @@ import 'package:glean_faith_app/features/bible/presentation/pages/bible_reading_
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_search_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_topic_detail_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_verse_detail_page.dart';
+import 'package:glean_faith_app/features/bible_study/presentation/pages/bookmarks_page.dart';
+import 'package:glean_faith_app/features/bible_study/presentation/pages/notes_page.dart';
+import 'package:glean_faith_app/features/bible_study/presentation/pages/chapter_notes_page.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../features/auth/presentation/providers/auth_provider.dart';
@@ -254,6 +257,24 @@ class AppRouter {
         verse: verse,
       );
     },
+  ),
+  GoRoute(
+    path: RouteNames.bibleBookmarks,
+    name: RouteNames.bibleBookmarks,
+    builder: (context, state) => const BookmarksPage(),
+  ),
+  GoRoute(
+    path: RouteNames.bibleNotes,
+    name: RouteNames.bibleNotes,
+    builder: (context, state) => const NotesPage(),
+  ),
+  GoRoute(
+    path: RouteNames.bibleChapterNotes,
+    name: RouteNames.bibleChapterNotes,
+    builder: (context, state) => ChapterNotesPage(
+      book: state.pathParameters['book']!,
+      chapter: int.parse(state.pathParameters['chapter']!),
+    ),
   ),
         GoRoute(
           path: RouteNames.crossPuzzle,
