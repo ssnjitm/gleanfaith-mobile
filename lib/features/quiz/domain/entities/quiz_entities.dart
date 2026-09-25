@@ -8,6 +8,7 @@ class QuizSchedule {
   final bool allowRetry;
   final int maxRetries;
   final String status;
+  final Map<String, dynamic>? metadata;
 
   const QuizSchedule({
     required this.id,
@@ -19,7 +20,17 @@ class QuizSchedule {
     required this.allowRetry,
     required this.maxRetries,
     required this.status,
+    this.metadata,
   });
+
+  /// True when the backend marks this schedule as a daily quiz.
+  bool get isDaily => metadata?['isDaily'] == true;
+
+  /// Server-provided daily date (YYYY-MM-DD), exposed as a getter.
+  String? get dailyDate {
+    final value = metadata?['dailyDate'];
+    return value is String ? value : null;
+  }
 }
 
 class QuizQuestion {

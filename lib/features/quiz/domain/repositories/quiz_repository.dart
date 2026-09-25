@@ -5,6 +5,10 @@ import '../entities/quiz_entities.dart';
 
 abstract class QuizRepository {
   TaskEither<Failure, List<QuizSchedule>> getUpcomingQuizzes();
+  TaskEither<Failure, QuizSchedule?> getTodayDailyQuiz();
+  TaskEither<Failure, List<QuizSchedule>> getUpcomingDailyQuizzes({
+    int days = 7,
+  });
   TaskEither<Failure, ActiveQuiz> startQuiz(String quizScheduleId);
   TaskEither<Failure, AnswerResult> submitAnswer({
     required String sessionId,

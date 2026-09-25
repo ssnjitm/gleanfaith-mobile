@@ -5,9 +5,12 @@ import 'package:intl/intl.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
+import '../../../../router/app_router.dart';
 import '../../../../router/route_names.dart';
 import '../../../../common/widgets/shimmer_placeholders.dart';
+import '../../../../../features/quiz/presentation/providers/daily_quiz_provider.dart';
 import '../../../../../features/quiz/presentation/providers/quiz_provider.dart';
+import '../../../../../features/quiz/presentation/widgets/daily_quiz_hero_card.dart';
 import '../../../../../features/quiz/domain/entities/quiz_entities.dart';
 
 class QuizHomePage extends ConsumerStatefulWidget {
@@ -17,13 +20,45 @@ class QuizHomePage extends ConsumerStatefulWidget {
   ConsumerState<QuizHomePage> createState() => _QuizHomePageState();
 }
 
-class _QuizHomePageState extends ConsumerState<QuizHomePage> {
+class _QuizHomePageState extends ConsumerState<QuizHomePage> with RouteAware {
+  ModalRoute<dynamic>? _subscribedRoute;
+
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       ref.read(quizProvider.notifier).loadUpcomingQuizzes();
+      ref.read(dailyQuizProvider.notifier).loadDailyQuiz();
     });
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final route = ModalRoute.of(context);
+    if (route == null || route == _subscribedRoute) return;
+    if (_subscribedRoute != null) {
+      AppRouter.routeObserver.unsubscribe(this);
+    }
+    _subscribedRoute = route;
+    AppRouter.routeObserver.subscribe(this, route);
+  }
+
+  @override
+  void didPopNext() {
+    super.didPopNext();
+    ref.read(quizProvider.notifier).loadUpcomingQuizzes();
+    ref.read(dailyQuizProvider.notifier).loadDailyQuiz();
+  }
+
+  @override
+  void dispose() {
+    if (_subscribedRoute != null) {
+      AppRouter.routeObserver.unsubscribe(this);
+      _subscribedRoute = null;
+    }
+    super.dispose();
   }
 
   @override
@@ -35,12 +70,17 @@ class _QuizHomePageState extends ConsumerState<QuizHomePage> {
       appBar: AppBar(title: const Text('Quizzes')),
       body: RefreshIndicator(
         onRefresh: () async {
-          await ref.read(quizProvider.notifier).loadUpcomingQuizzes();
+          await Future.wait([
+            ref.read(quizProvider.notifier).loadUpcomingQuizzes(),
+            ref.read(dailyQuizProvider.notifier).loadDailyQuiz(),
+          ]);
         },
         child: ListView(
           padding: const EdgeInsets.only(bottom: AppDimensions.paddingXl),
           children: [
             const SizedBox(height: AppDimensions.sm),
+            const DailyQuizHeroCard(),
+            const SizedBox(height: AppDimensions.lg),
             _buildSectionTitle(context, 'Quizzes', isDark),
             const SizedBox(height: AppDimensions.sm),
             _buildQuizzes(context, quizState, isDark),
@@ -65,7 +105,9 @@ class _QuizHomePageState extends ConsumerState<QuizHomePage> {
   }
 
   Widget _buildQuizzes(BuildContext context, QuizState quizState, bool isDark) {
-    final quizzes = quizState.upcomingQuizzes;
+    final quizzes = quizState.upcomingQuizzes
+        .where((quiz) => !quiz.isDaily)
+        .toList();
 
     if (quizState.status == QuizStatus.loading && quizzes.isEmpty) {
       return const Column(

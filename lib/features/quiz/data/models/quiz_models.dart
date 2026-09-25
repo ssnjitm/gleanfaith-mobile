@@ -16,6 +16,7 @@ class QuizScheduleModel {
   final bool allowRetry;
   final int maxRetries;
   final String status;
+  final Map<String, dynamic>? metadata;
 
   const QuizScheduleModel({
     required this.id,
@@ -27,6 +28,7 @@ class QuizScheduleModel {
     required this.allowRetry,
     required this.maxRetries,
     required this.status,
+    this.metadata,
   });
 
   factory QuizScheduleModel.fromJson(Map<String, dynamic> json) {
@@ -43,7 +45,16 @@ class QuizScheduleModel {
       allowRetry: json['allowRetry'] as bool? ?? false,
       maxRetries: json['maxRetries'] as int? ?? 1,
       status: json['status'] as String? ?? '',
+      metadata: _asMetadata(json['metadata']),
     );
+  }
+
+  static Map<String, dynamic>? _asMetadata(dynamic value) {
+    if (value is Map<String, dynamic>) return value;
+    if (value is Map) {
+      return value.map((key, item) => MapEntry(key.toString(), item));
+    }
+    return null;
   }
 
   static DateTime _parseDate(dynamic value) {
@@ -63,6 +74,7 @@ class QuizScheduleModel {
       allowRetry: allowRetry,
       maxRetries: maxRetries,
       status: status,
+      metadata: metadata,
     );
   }
 }

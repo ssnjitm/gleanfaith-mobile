@@ -32,6 +32,10 @@ class ApiConstants {
   static const String quizSessionAnswer = '/quiz-schedule/session/';
   static const String quizSessionComplete = '/quiz-schedule/session/';
 
+  // Daily Quiz
+  static const String dailyQuizToday = '/daily-quiz/today';
+  static const String dailyQuizUpcoming = '/daily-quiz/upcoming';
+
   // Content Library
   static const String content = '/content';
   static const String contentCategories = '/content/categories';

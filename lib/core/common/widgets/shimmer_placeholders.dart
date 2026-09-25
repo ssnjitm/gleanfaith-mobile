@@ -179,6 +179,101 @@ class _StatColumnShimmer extends StatelessWidget {
   }
 }
 
+class DailyQuizHeroShimmer extends StatelessWidget {
+  const DailyQuizHeroShimmer({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
+      constraints: const BoxConstraints(minHeight: 220),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1E3A5F), const Color(0xFF1A1A2E)]
+              : [AppColors.primaryBlue, const Color(0xFF7C3AED)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
+      ),
+      child: const Padding(
+        padding: EdgeInsets.all(AppDimensions.paddingLg),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                ShimmerCircle(
+                  size: 44,
+                  baseColor: Color(0x33FFFFFF),
+                  highlightColor: Color(0x55FFFFFF),
+                ),
+                SizedBox(width: AppDimensions.paddingMd),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      ShimmerWidget(
+                        width: 130,
+                        height: 18,
+                        borderRadius: 4,
+                        baseColor: Color(0x33FFFFFF),
+                        highlightColor: Color(0x55FFFFFF),
+                      ),
+                      SizedBox(height: AppDimensions.sm),
+                      ShimmerWidget(
+                        width: 110,
+                        height: 12,
+                        borderRadius: 4,
+                        baseColor: Color(0x22FFFFFF),
+                        highlightColor: Color(0x33FFFFFF),
+                      ),
+                    ],
+                  ),
+                ),
+                ShimmerWidget(
+                  width: 56,
+                  height: 22,
+                  borderRadius: 20,
+                  baseColor: Color(0x33FFFFFF),
+                  highlightColor: Color(0x55FFFFFF),
+                ),
+              ],
+            ),
+            SizedBox(height: AppDimensions.paddingMd),
+            ShimmerWidget(
+              width: 130,
+              height: 12,
+              borderRadius: 4,
+              baseColor: Color(0x22FFFFFF),
+              highlightColor: Color(0x33FFFFFF),
+            ),
+            SizedBox(height: AppDimensions.sm),
+            ShimmerWidget(
+              width: 200,
+              height: 12,
+              borderRadius: 4,
+              baseColor: Color(0x22FFFFFF),
+              highlightColor: Color(0x33FFFFFF),
+            ),
+            SizedBox(height: AppDimensions.paddingLg),
+            ShimmerWidget(
+              width: double.infinity,
+              height: AppDimensions.buttonHeight,
+              borderRadius: AppDimensions.radiusLg,
+              baseColor: Color(0x33FFFFFF),
+              highlightColor: Color(0x55FFFFFF),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class UpcomingQuizCardShimmer extends StatelessWidget {
   const UpcomingQuizCardShimmer({super.key});
 

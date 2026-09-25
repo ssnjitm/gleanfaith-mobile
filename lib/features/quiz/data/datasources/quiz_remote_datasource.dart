@@ -18,6 +18,25 @@ class QuizRemoteDataSource {
         .toList();
   }
 
+  Future<QuizScheduleModel?> getTodayDailyQuiz() async {
+    final response = await _dio.get(ApiConstants.dailyQuizToday);
+    final schedule = _extractScheduleMap(response.data);
+    if (schedule == null) return null;
+    return QuizScheduleModel.fromJson(schedule);
+  }
+
+  Future<List<QuizScheduleModel>> getUpcomingDailyQuizzes({int days = 7}) async {
+    final response = await _dio.get(
+      ApiConstants.dailyQuizUpcoming,
+      queryParameters: {'days': days},
+    );
+    final list = _extractList(response.data);
+    return list
+        .whereType<Map<String, dynamic>>()
+        .map(QuizScheduleModel.fromJson)
+        .toList();
+  }
+
   Future<ActiveQuizModel> startQuiz(String quizScheduleId) async {
     final response = await _dio.post(
       '${ApiConstants.quizScheduleStart}$quizScheduleId/start',
@@ -63,6 +82,23 @@ class QuizRemoteDataSource {
     }
     if (response is List) return response;
     return const [];
+  }
+
+  Map<String, dynamic>? _extractScheduleMap(dynamic response) {
+    if (response is! Map<String, dynamic>) return null;
+    final data = response['data'];
+    if (data is Map<String, dynamic>) {
+      final nested = data['schedule'] ?? data['quiz'];
+      if (nested is Map<String, dynamic>) {
+        return nested.isEmpty ? null : nested;
+      }
+      return data.isEmpty ? null : data;
+    }
+    if (data != null) return null;
+    final hasScheduleFields = response.containsKey('_id') ||
+        response.containsKey('id') ||
+        response.containsKey('title');
+    return hasScheduleFields ? response : null;
   }
 
   Map<String, dynamic> _extractMap(dynamic response) {

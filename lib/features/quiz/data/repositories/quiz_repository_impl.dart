@@ -23,6 +23,31 @@ class QuizRepositoryImpl implements QuizRepository {
   }
 
   @override
+  TaskEither<Failure, QuizSchedule?> getTodayDailyQuiz() {
+    return TaskEither.tryCatch(
+      () async {
+        final result = await _remoteDataSource.getTodayDailyQuiz();
+        return result?.toEntity();
+      },
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  @override
+  TaskEither<Failure, List<QuizSchedule>> getUpcomingDailyQuizzes({
+    int days = 7,
+  }) {
+    return TaskEither.tryCatch(
+      () async {
+        final result =
+            await _remoteDataSource.getUpcomingDailyQuizzes(days: days);
+        return result.map((e) => e.toEntity()).toList();
+      },
+      (error, stackTrace) => handleError(error),
+    );
+  }
+
+  @override
   TaskEither<Failure, ActiveQuiz> startQuiz(String quizScheduleId) {
     return TaskEither.tryCatch(
       () async {
