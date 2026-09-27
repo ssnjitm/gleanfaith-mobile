@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -8,6 +10,8 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/router/route_names.dart';
 import '../../domain/entities/quiz_entities.dart';
+import '../../domain/entities/quiz_strings.dart';
+import '../providers/quiz_language_provider.dart';
 import '../providers/quiz_provider.dart';
 import '../widgets/confetti_burst.dart';
 
@@ -23,6 +27,34 @@ class QuizDetailPage extends ConsumerStatefulWidget {
 class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
   bool _loading = false;
   bool _celebrating = false;
+  Timer? _countdownTicker;
+
+  QuizStrings get _strings =>
+      QuizStrings.of(ref.watch(dailyQuizLanguageProvider));
+
+  @override
+  void initState() {
+    super.initState();
+    // Keeps the "Starts in ..." countdown fresh, and flips this page over to
+    // the Start button the moment the quiz window opens.
+    _countdownTicker = Timer.periodic(const Duration(seconds: 20), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _countdownTicker?.cancel();
+    super.dispose();
+  }
+
+  Future<void> _reload() async {
+    await Future.wait([
+      ref.read(quizProvider.notifier).loadAttemptedScheduleIds(),
+      ref.read(quizProvider.notifier).loadUpcomingQuizzes(),
+    ]);
+    if (mounted) setState(() {});
+  }
 
   /// The schedule this page is for, when it is present in the loaded list.
   QuizSchedule? get _schedule {
@@ -367,10 +399,52 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
             isDark: isDark,
           ),
           const SizedBox(height: AppDimensions.lg),
-          _buildStartButton(context, isDark),
+          _buildAction(context, isDark),
         ],
       ),
     );
+  }
+
+  /// The Start button only appears once the quiz window is actually open.
+  /// Before that we count down to the start time; afterwards we report that the
+  /// window has closed.
+  Widget _buildAction(BuildContext context, bool isDark) {
+    final schedule = _schedule;
+    if (schedule == null) {
+      return _StatusNotice(
+        icon: Icons.hourglass_empty_rounded,
+        text: 'This quiz schedule is still loading.',
+        isDark: isDark,
+      );
+    }
+
+    final now = DateTime.now();
+    if (now.isBefore(schedule.startDateTime)) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _StatusNotice(
+            icon: Icons.lock_clock_rounded,
+            text:
+                '${_strings.notStartedYet} · '
+                '${_strings.startsInLabel(schedule.startDateTime.difference(now))}',
+            isDark: isDark,
+          ),
+          const SizedBox(height: AppDimensions.paddingSm),
+          _RefreshButton(label: 'Refresh', isDark: isDark, onTap: _reload),
+        ],
+      );
+    }
+
+    if (schedule.isEndedAt(now)) {
+      return _StatusNotice(
+        icon: Icons.event_busy_rounded,
+        text: 'This quiz has ended. Results are no longer available.',
+        isDark: isDark,
+      );
+    }
+
+    return _buildStartButton(context, isDark);
   }
 
   String get scheduleRetryNote {
@@ -497,6 +571,85 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
           ),
         ),
       ],
+    );
+  }
+}
+
+class _StatusNotice extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final bool isDark;
+
+  const _StatusNotice({
+    required this.icon,
+    required this.text,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.paddingMd,
+        vertical: AppDimensions.paddingMd,
+      ),
+      decoration: BoxDecoration(
+        color: isDark ? const Color(0xFF1E293B) : AppColors.bgGray,
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(
+          color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.primaryAmber, size: 20),
+          const SizedBox(width: AppDimensions.paddingSm),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+                color: isDark ? Colors.white : AppColors.textPrimary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RefreshButton extends StatelessWidget {
+  final String label;
+  final bool isDark;
+  final Future<void> Function() onTap;
+
+  const _RefreshButton({
+    required this.label,
+    required this.isDark,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: AppDimensions.buttonHeight,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: const Icon(Icons.refresh_rounded, size: 18),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primaryBlue,
+          side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          ),
+        ),
+      ),
     );
   }
 }

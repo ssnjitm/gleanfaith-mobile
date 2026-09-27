@@ -15,6 +15,10 @@ class QuizStrings {
     required this.startNow,
     required this.endedIn,
     required this.ended,
+    required this.startsIn,
+    required this.notStartedYet,
+    required this.notStartedYetHint,
+    required this.startsAt,
     required this.noQuizToday,
     required this.noQuizTodayHint,
     required this.loadFailed,
@@ -60,6 +64,10 @@ class QuizStrings {
   final String startNow;
   final String endedIn;
   final String ended;
+  final String startsIn;
+  final String notStartedYet;
+  final String notStartedYetHint;
+  final String startsAt;
   final String noQuizToday;
   final String noQuizTodayHint;
   final String loadFailed;
@@ -105,6 +113,11 @@ class QuizStrings {
     startNow: 'Start Now',
     endedIn: 'Ends in',
     ended: 'Ended',
+    startsIn: 'Starts in',
+    notStartedYet: 'Not started yet',
+    notStartedYetHint:
+        'This quiz opens at the scheduled time. Come back then to play.',
+    startsAt: 'Starts at',
     noQuizToday: 'No Daily Quiz Today',
     noQuizTodayHint: 'Check back tomorrow for a new challenge.',
     loadFailed: "Couldn't load daily quiz",
@@ -152,6 +165,10 @@ class QuizStrings {
     startNow: 'सुरु गर्नुहोस्',
     endedIn: 'समाप्त हुने',
     ended: 'समाप्त',
+    startsIn: 'सुरु हुने',
+    notStartedYet: 'अझै सुरु भएको छैन',
+    notStartedYetHint: 'यो क्विज तोकिएको समयमा खुल्छ। त्यसपछि आएर खेल्नुहोस्।',
+    startsAt: 'सुरु हुने समय',
     noQuizToday: 'आज कुनै दैनिक क्विज छैन',
     noQuizTodayHint: 'नयाँ चुनौतीका लागि भोलि फेरि हेर्नुहोस्।',
     loadFailed: 'दैनिक क्विज लोड हुन सकेन',
@@ -197,12 +214,24 @@ class QuizStrings {
   /// `Ends in 2h 5m` / `Ends in 12m` / `Ended` for a countdown.
   String remainingLabel(Duration remaining) {
     if (remaining.isNegative) return ended;
+    return _durationLabel(remaining, endedIn);
+  }
+
+  /// `Starts in 2h 5m` for a quiz whose window has not opened yet.
+  String startsInLabel(Duration remaining) {
+    if (remaining.isNegative) return startsAt;
+    return _durationLabel(remaining, startsIn);
+  }
+
+  String _durationLabel(Duration remaining, String prefix) {
     final days = remaining.inDays;
     final hours = remaining.inHours % 24;
     final minutes = remaining.inMinutes % 60;
-    if (days > 0) return '$endedIn ${days}d ${hours}h';
-    if (hours > 0) return '$endedIn ${hours}h ${minutes}m';
-    return '$endedIn ${minutes}m';
+    if (days > 0) return '$prefix $days d $hours h';
+    if (hours > 0) return '$prefix $hours h $minutes m';
+    final seconds = remaining.inSeconds % 60;
+    if (minutes == 0) return '$prefix $seconds s';
+    return '$prefix $minutes m';
   }
 
   /// `3 days` / `1 day` for the streak chip.

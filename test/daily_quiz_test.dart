@@ -1,6 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glean_faith_app/features/quiz/data/models/quiz_models.dart';
 import 'package:glean_faith_app/features/quiz/domain/entities/quiz_entities.dart';
+import 'package:glean_faith_app/features/quiz/domain/entities/quiz_strings.dart';
 import 'package:glean_faith_app/features/quiz/presentation/providers/daily_quiz_provider.dart';
 import 'package:glean_faith_app/features/quiz/presentation/providers/quiz_provider.dart';
 import 'package:glean_faith_app/features/quiz/presentation/providers/quiz_series_provider.dart';
@@ -380,6 +381,94 @@ void main() {
       );
 
       expect(withDeployments.deployments.map((s) => s.id), ['d1']);
+    });
+  });
+
+  group('Quiz window gating', () {
+    final now = DateTime(2026, 9, 27, 12);
+    final schedule = QuizSchedule(
+      id: 's1',
+      title: 'Daily',
+      startDateTime: now.add(const Duration(hours: 3)),
+      endDateTime: now.add(const Duration(hours: 9)),
+      durationMinutes: 10,
+      totalQuestions: 5,
+      allowRetry: false,
+      maxRetries: 0,
+      status: 'scheduled',
+    );
+
+    test('is not active before the scheduled start', () {
+      expect(schedule.isActiveAt(now), isFalse);
+      expect(now.isBefore(schedule.startDateTime), isTrue);
+    });
+
+    test('is active inside the window and inactive after it closes', () {
+      expect(schedule.isActiveAt(now.add(const Duration(hours: 4))), isTrue);
+      expect(
+        schedule.isActiveAt(
+          schedule.endDateTime.add(const Duration(minutes: 1)),
+        ),
+        isFalse,
+      );
+    });
+  });
+
+  group('QuizStrings pre-start copy', () {
+    test('startsInLabel reports the countdown prefix', () {
+      final strings = QuizStrings.of(QuizLanguage.english);
+
+      expect(
+        strings.startsInLabel(const Duration(hours: 3)),
+        'Starts in 3 h 0 m',
+      );
+      expect(
+        strings.startsInLabel(const Duration(minutes: 20)),
+        'Starts in 20 m',
+      );
+      expect(
+        strings.startsInLabel(const Duration(seconds: 42)),
+        'Starts in 42 s',
+      );
+      expect(
+        strings.startsInLabel(const Duration(days: 2, hours: 3)),
+        'Starts in 2 d 3 h',
+      );
+    });
+
+    test(
+      'startsInLabel falls back to the absolute start time once elapsed',
+      () {
+        final strings = QuizStrings.of(QuizLanguage.english);
+        const elapsed = Duration(minutes: -5);
+
+        expect(strings.startsInLabel(elapsed), strings.startsAt);
+      },
+    );
+
+    test('both languages expose the pre-start copy', () {
+      for (final language in QuizLanguage.values) {
+        final strings = QuizStrings.of(language);
+        expect(strings.notStartedYet.trim(), isNotEmpty, reason: language.name);
+        expect(
+          strings.notStartedYetHint.trim(),
+          isNotEmpty,
+          reason: language.name,
+        );
+        expect(strings.startsAt.trim(), isNotEmpty, reason: language.name);
+      }
+    });
+
+    test('English and Nepali pre-start copy is actually different', () {
+      final en = QuizStrings.of(QuizLanguage.english);
+      final np = QuizStrings.of(QuizLanguage.nepali);
+
+      expect(np.notStartedYet, isNot(en.notStartedYet));
+      expect(np.notStartedYetHint, isNot(en.notStartedYetHint));
+      expect(
+        np.startsInLabel(const Duration(hours: 2)),
+        isNot(en.startsInLabel(const Duration(hours: 2))),
+      );
     });
   });
 }

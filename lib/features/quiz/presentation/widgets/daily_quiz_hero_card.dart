@@ -32,6 +32,10 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
   Timer? _ticker;
   bool _isStarting = false;
 
+  /// Last start failure, kept visible inline until the next attempt. A snackbar
+  /// alone is easy to miss, which made a failing Start button look dead.
+  String? _startError;
+
   @override
   void initState() {
     super.initState();
@@ -98,7 +102,13 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
   ) {
     final streak = _computeStreak(state.upcoming);
     final now = DateTime.now();
-    final canStart = !today.isEndedAt(now);
+
+    // Three mutually exclusive window states. The Start button only exists when
+    // the quiz is actually open — before that we count down to the start time,
+    // after it we report that the window closed.
+    final notStartedYet = now.isBefore(today.startDateTime);
+    final ended = today.isEndedAt(now);
+    final canStart = !notStartedYet && !ended && today.id.isNotEmpty;
 
     return _buildSurface(
       child: Column(
@@ -107,7 +117,11 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const _IconBadge(),
+              _IconBadge(
+                icon: notStartedYet
+                    ? Icons.schedule_rounded
+                    : (ended ? Icons.history_rounded : Icons.bolt_rounded),
+              ),
               const SizedBox(width: AppDimensions.paddingMd),
               Expanded(
                 child: Column(
@@ -139,9 +153,9 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
           Row(
             children: [
               _CountdownPill(
-                label: strings.remainingLabel(
-                  today.endDateTime.difference(now),
-                ),
+                label: notStartedYet
+                    ? strings.startsInLabel(today.startDateTime.difference(now))
+                    : strings.remainingLabel(today.endDateTime.difference(now)),
               ),
               const Spacer(),
               const QuizLanguageToggle(onGradient: true),
@@ -165,13 +179,23 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
             ],
           ),
           const SizedBox(height: AppDimensions.paddingLg),
-          _StartButton(
-            isLoading: _isStarting,
-            label: strings.startNow,
-            onTap: canStart && today.id.isNotEmpty
-                ? () => _startToday(today)
-                : null,
-          ),
+          if (_startError != null) ...[
+            _ErrorLine(text: _startError!),
+            const SizedBox(height: AppDimensions.paddingSm),
+          ],
+          if (notStartedYet)
+            _NoticeLine(
+              icon: Icons.lock_clock_rounded,
+              text: strings.notStartedYetHint,
+            )
+          else if (ended)
+            _NoticeLine(icon: Icons.event_busy_rounded, text: strings.ended)
+          else
+            _StartButton(
+              isLoading: _isStarting,
+              label: strings.startNow,
+              onTap: canStart ? () => _startToday(today) : null,
+            ),
         ],
       ),
     );
@@ -278,7 +302,10 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
   /// server message made the button look completely dead.
   Future<void> _startToday(QuizSchedule today) async {
     if (_isStarting) return;
-    setState(() => _isStarting = true);
+    setState(() {
+      _isStarting = true;
+      _startError = null;
+    });
 
     final strings = ref.read(quizStringsProvider);
     final language = ref.read(dailyQuizLanguageProvider);
@@ -320,20 +347,26 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
         AlertWidget.showInfo(context, strings.attemptUsedHint);
         return;
       case QuizBlockReason.notAvailable:
-        AlertWidget.showWarning(
-          context,
-          message.isEmpty ? 'This quiz is not available right now.' : message,
-        );
+        final text = message.isEmpty
+            ? 'This quiz is not available right now.'
+            : message;
+        _showStartError(text);
+        AlertWidget.showWarning(context, text);
         return;
       case QuizBlockReason.none:
-        AlertWidget.showError(
-          context,
-          message.isEmpty
-              ? 'Could not start the quiz. Please try again.'
-              : message,
-        );
+        final text = message.isEmpty
+            ? 'Could not start the quiz. Please try again.'
+            : message;
+        _showStartError(text);
+        AlertWidget.showError(context, text);
         return;
     }
+  }
+
+  /// Persists a failure message on the card itself so the user always sees why
+  /// Start did nothing, without relying on a transient snackbar.
+  void _showStartError(String text) {
+    if (mounted) setState(() => _startError = text);
   }
 
   int _computeStreak(List<QuizSchedule> upcoming) {
@@ -424,6 +457,90 @@ class _OneAttemptChip extends ConsumerWidget {
               color: Colors.white,
               fontSize: 10,
               fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ErrorLine extends StatelessWidget {
+  final String text;
+
+  const _ErrorLine({required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.paddingMd,
+        vertical: AppDimensions.paddingSm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.error.withValues(alpha: 0.18),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: AppColors.error.withValues(alpha: 0.5)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(
+            Icons.error_outline_rounded,
+            color: Colors.white,
+            size: 16,
+          ),
+          const SizedBox(width: AppDimensions.sm),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.95),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _NoticeLine extends StatelessWidget {
+  final IconData icon;
+  final String text;
+
+  const _NoticeLine({required this.icon, required this.text});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.paddingMd,
+        vertical: AppDimensions.paddingSm + 2,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.14),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+        border: Border.all(color: Colors.white24),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: Colors.white, size: 16),
+          const SizedBox(width: AppDimensions.sm),
+          Expanded(
+            child: Text(
+              text,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.92),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
           ),
         ],

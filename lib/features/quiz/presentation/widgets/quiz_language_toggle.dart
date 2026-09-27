@@ -10,17 +10,42 @@ import '../providers/quiz_language_provider.dart';
 ///
 /// The Daily Quiz starts in English; tapping the other code switches the whole
 /// quiz (question text plus UI copy) to that language.
+///
+/// Leave [onChanged] null to drive the globally persisted preference. Pass both
+/// [value] and [onChanged] to control it locally — the play page does this so a
+/// language switch mid-quiz re-renders the current question immediately without
+/// waiting on storage.
 class QuizLanguageToggle extends ConsumerWidget {
   /// Renders a light control for regular surfaces or an inverted (on-gradient)
   /// one for the hero card.
   final bool onGradient;
 
-  const QuizLanguageToggle({super.key, this.onGradient = false});
+  /// Controlled mode: the currently selected language.
+  final QuizLanguage? value;
+
+  /// Controlled mode: called with the newly selected language.
+  final ValueChanged<QuizLanguage>? onChanged;
+
+  const QuizLanguageToggle({
+    super.key,
+    this.onGradient = false,
+    this.value,
+    this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final language = ref.watch(dailyQuizLanguageProvider);
+    final isControlled = value != null && onChanged != null;
+    final language = value ?? ref.watch(dailyQuizLanguageProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    void select(QuizLanguage option) {
+      if (isControlled) {
+        onChanged!(option);
+      } else {
+        ref.read(dailyQuizLanguageProvider.notifier).setLanguage(option);
+      }
+    }
 
     final trackColor = onGradient
         ? Colors.white.withValues(alpha: 0.2)
@@ -51,9 +76,7 @@ class QuizLanguageToggle extends ConsumerWidget {
             label: 'Quiz language ${option.shortLabel}',
             child: InkWell(
               borderRadius: BorderRadius.circular(16),
-              onTap: () => ref
-                  .read(dailyQuizLanguageProvider.notifier)
-                  .setLanguage(option),
+              onTap: selected ? null : () => select(option),
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOut,

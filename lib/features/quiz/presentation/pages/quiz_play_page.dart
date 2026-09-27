@@ -39,6 +39,12 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   int _streak = 0;
   int _bestStreak = 0;
 
+  /// Live quiz language. Seeded from the route args (the language the session
+  /// was started with) but switchable per question via the EN | NP toggle, so a
+  /// user who changes their mind mid-quiz sees the translation immediately
+  /// instead of being stuck with the start-time language.
+  late QuizLanguage _language;
+
   /// Seconds left in the countdown (requirement: daily quiz is time boxed).
   int _remainingSeconds = 0;
   Timer? _timer;
@@ -52,7 +58,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
 
   bool get _isDaily => _args.isDaily;
 
-  QuizStrings get _strings => QuizStrings.of(_args.language);
+  QuizStrings get _strings => QuizStrings.of(_language);
 
   /// Session resolved from the route extra first, provider second. The play
   /// page never depends on mutable global state to render.
@@ -62,6 +68,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   @override
   void initState() {
     super.initState();
+    _language = _args.language;
     _stopwatch.start();
     _remainingSeconds = _resolveDurationSeconds();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -216,7 +223,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
       extra: QuizResultArgs(
         result: result,
         isDaily: _isDaily,
-        language: _args.language,
+        language: _language,
       ),
     );
   }
@@ -461,8 +468,6 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                   ],
                 ),
               ),
-              if (_isDaily) const QuizLanguageToggle(),
-              const SizedBox(width: AppDimensions.xs),
               _ScoreBadge(
                 score: _totalScore,
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -539,39 +544,52 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: AppDimensions.paddingSm,
-              vertical: AppDimensions.xs,
-            ),
-            decoration: BoxDecoration(
-              color: AppColors.primaryBlue.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
-            ),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(
-                  Icons.psychology_alt_rounded,
-                  size: 14,
-                  color: AppColors.primaryBlue,
+          // The EN | NP control lives on every question, so the user can switch
+          // the language at any point instead of being locked to the language
+          // the quiz happened to start in.
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.paddingSm,
+                  vertical: AppDimensions.xs,
                 ),
-                SizedBox(width: 4),
-                Text(
-                  'QUIZ',
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primaryBlue,
-                    letterSpacing: 0.5,
-                  ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
                 ),
-              ],
-            ),
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.psychology_alt_rounded,
+                      size: 14,
+                      color: AppColors.primaryBlue,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'QUIZ',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primaryBlue,
+                        letterSpacing: 0.5,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              if (_isDaily)
+                QuizLanguageToggle(
+                  value: _language,
+                  onChanged: (next) => setState(() => _language = next),
+                ),
+            ],
           ),
           const SizedBox(height: AppDimensions.paddingMd),
           Text(
-            q.textFor(_args.language),
+            q.textFor(_language),
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w700,
@@ -585,7 +603,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   }
 
   Widget _buildOptions(BuildContext context, QuizQuestion q, bool isDark) {
-    final options = q.optionsFor(_args.language);
+    final options = q.optionsFor(_language);
     return Column(
       children: List.generate(options.length, (index) {
         final option = options[index];
@@ -820,10 +838,10 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                 ),
               ],
             ),
-            if (answer.explanationFor(_args.language).isNotEmpty) ...[
+            if (answer.explanationFor(_language).isNotEmpty) ...[
               const SizedBox(height: AppDimensions.sm),
               Text(
-                answer.explanationFor(_args.language),
+                answer.explanationFor(_language),
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
