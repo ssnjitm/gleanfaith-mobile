@@ -28,6 +28,8 @@ class ApiConstants {
 
   // Quiz Schedule & Sessions
   static const String quizScheduleUpcoming = '/quiz-schedule/upcoming';
+  static const String quizScheduleHistory = '/quiz-schedule/history';
+  static const String quizScheduleSeries = '/quiz-schedule/series';
   static const String quizScheduleStart = '/quiz-schedule/';
   static const String quizSessionAnswer = '/quiz-schedule/session/';
   static const String quizSessionComplete = '/quiz-schedule/session/';

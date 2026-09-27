@@ -25,12 +25,21 @@ class DailyQuizState {
   final List<QuizSchedule> upcoming;
   final String? message;
 
+  /// True once the user has spent the single daily attempt. Derived from the
+  /// attempt history so the Start button is locked before any request fails.
+  final bool attemptUsed;
+
   const DailyQuizState({
     this.status = DailyQuizStatus.initial,
     this.today,
     this.upcoming = const [],
     this.message,
+    this.attemptUsed = false,
   });
+
+  /// Whether the daily quiz can still be played.
+  bool get canStart =>
+      status == DailyQuizStatus.success && today != null && !attemptUsed;
 
   DailyQuizState copyWith({
     DailyQuizStatus? status,
@@ -39,12 +48,14 @@ class DailyQuizState {
     List<QuizSchedule>? upcoming,
     String? message,
     bool clearMessage = false,
+    bool? attemptUsed,
   }) {
     return DailyQuizState(
       status: status ?? this.status,
       today: clearToday ? null : (today ?? this.today),
       upcoming: upcoming ?? this.upcoming,
       message: clearMessage ? null : (message ?? this.message),
+      attemptUsed: attemptUsed ?? this.attemptUsed,
     );
   }
 }
@@ -87,6 +98,7 @@ class DailyQuizNotifier extends StateNotifier<DailyQuizState> {
       clearToday: today == null,
       message: message.isEmpty ? null : message,
       clearMessage: message.isEmpty,
+      attemptUsed: _hasUsedAttempt(today),
     );
 
     final upcomingResult = await _ref
@@ -99,5 +111,17 @@ class DailyQuizNotifier extends StateNotifier<DailyQuizState> {
       return state.upcoming;
     }, (list) => list);
     state = state.copyWith(upcoming: upcoming);
+  }
+
+  /// Locks the daily quiz locally after the user finishes their single
+  /// attempt, so the hero switches to the "attempt used" state immediately.
+  void markAttemptUsed() {
+    if (state.attemptUsed) return;
+    state = state.copyWith(attemptUsed: true);
+  }
+
+  bool _hasUsedAttempt(QuizSchedule? schedule) {
+    if (schedule == null || schedule.id.isEmpty) return state.attemptUsed;
+    return _ref.read(quizProvider).hasUsedAttempt(schedule.id);
   }
 }

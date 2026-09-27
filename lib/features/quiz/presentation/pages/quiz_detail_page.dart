@@ -7,6 +7,7 @@ import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/router/route_names.dart';
+import '../../domain/entities/quiz_entities.dart';
 import '../providers/quiz_provider.dart';
 import '../widgets/confetti_burst.dart';
 
@@ -23,7 +24,17 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
   bool _loading = false;
   bool _celebrating = false;
 
+  /// The schedule this page is for, when it is present in the loaded list.
+  QuizSchedule? get _schedule {
+    final schedules = ref.read(quizProvider).upcomingQuizzes;
+    for (final quiz in schedules) {
+      if (quiz.id == widget.quizScheduleId) return quiz;
+    }
+    return null;
+  }
+
   Future<void> _startQuiz() async {
+    if (_loading) return;
     setState(() => _loading = true);
     final activeQuiz = await ref
         .read(quizProvider.notifier)
@@ -32,18 +43,38 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
     setState(() => _loading = false);
 
     final quizState = ref.read(quizProvider);
+    final message = (quizState.message ?? '').trim();
+
     if (activeQuiz == null) {
-      if (quizState.blockReason == QuizBlockReason.alreadyCompleted) {
+      if (quizState.blockReason == QuizBlockReason.alreadyCompleted ||
+          quizState.blockReason == QuizBlockReason.attemptsExhausted) {
+        ref.read(quizProvider.notifier).markAttempted(widget.quizScheduleId);
         _celebrateCompleted();
         return;
       }
-      if (quizState.message != null && quizState.message!.isNotEmpty) {
-        AlertWidget.showError(context, quizState.message!);
+      if (quizState.blockReason == QuizBlockReason.notAvailable) {
+        AlertWidget.showWarning(
+          context,
+          message.isEmpty
+              ? 'This quiz is not open right now. Check the schedule and try again.'
+              : message,
+        );
+        return;
       }
+      // Previously a silent return here made the button look broken.
+      AlertWidget.showError(
+        context,
+        message.isEmpty
+            ? 'Could not start the quiz. Please try again.'
+            : message,
+      );
       return;
     }
     ref.read(quizProvider.notifier).clearBlockReason();
-    context.pushReplacement(RouteNames.quizPlay, extra: activeQuiz.sessionId);
+    context.pushReplacement(
+      RouteNames.quizPlay,
+      extra: QuizPlayArgs.from(activeQuiz, schedule: _schedule),
+    );
   }
 
   void _celebrateCompleted() {
@@ -63,10 +94,9 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
   Widget build(BuildContext context) {
     final quizState = ref.watch(quizProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final schedule = quizState.upcomingQuizzes
-        .where((q) => q.id == widget.quizScheduleId)
-        .firstOrNull;
+    final schedule = _schedule;
     final alreadyDone =
+        quizState.hasUsedAttempt(widget.quizScheduleId) ||
         quizState.blockReason == QuizBlockReason.alreadyCompleted;
 
     return Scaffold(
@@ -114,11 +144,7 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
   }
 
   Widget _buildHeroCard(BuildContext context, bool alreadyDone, bool isDark) {
-    final schedule = ref
-        .watch(quizProvider)
-        .upcomingQuizzes
-        .where((q) => q.id == widget.quizScheduleId)
-        .firstOrNull;
+    final schedule = _schedule;
 
     return Container(
       padding: const EdgeInsets.all(AppDimensions.paddingLg),
@@ -170,7 +196,9 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      alreadyDone ? 'Completed' : '${schedule?.totalQuestions ?? 10} Qs',
+                      alreadyDone
+                          ? 'Completed'
+                          : '${schedule?.totalQuestions ?? 10} Qs',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -215,8 +243,8 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
               const SizedBox(width: AppDimensions.sm),
               _HeroPill(
                 icon: Icons.emoji_events_outlined,
-                label: schedule?.allowRetry == true
-                    ? 'Retries allowed'
+                label: (schedule?.attemptsAllowed ?? 1) > 1
+                    ? '${schedule?.attemptsAllowed} attempts'
                     : 'One chance',
               ),
             ],
@@ -287,10 +315,7 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
             ),
             Text(
               label,
-              style: const TextStyle(
-                fontSize: 11,
-                color: AppColors.textMuted,
-              ),
+              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
             ),
           ],
         ),
@@ -349,11 +374,7 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
   }
 
   String get scheduleRetryNote {
-    final schedule = ref
-        .watch(quizProvider)
-        .upcomingQuizzes
-        .where((q) => q.id == widget.quizScheduleId)
-        .firstOrNull;
+    final schedule = _schedule;
     return schedule?.allowRetry == true
         ? 'You can retry if you do not pass'
         : 'No retries — give it your best shot!';
@@ -393,8 +414,11 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
                   : const Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Icon(Icons.play_circle_fill_rounded,
-                            color: Colors.white, size: 24),
+                        Icon(
+                          Icons.play_circle_fill_rounded,
+                          color: Colors.white,
+                          size: 24,
+                        ),
                         SizedBox(width: AppDimensions.sm),
                         Text(
                           'Start Quiz',
@@ -422,9 +446,7 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
           decoration: BoxDecoration(
             color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
             borderRadius: BorderRadius.circular(AppDimensions.radiusXl),
-            border: Border.all(
-              color: AppColors.success.withValues(alpha: 0.4),
-            ),
+            border: Border.all(color: AppColors.success.withValues(alpha: 0.4)),
           ),
           child: Column(
             children: [

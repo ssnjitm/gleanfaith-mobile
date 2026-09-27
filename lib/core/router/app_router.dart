@@ -21,6 +21,8 @@ import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/quiz/presentation/pages/quiz_detail_page.dart';
 import '../../features/quiz/presentation/pages/quiz_play_page.dart';
 import '../../features/quiz/presentation/pages/quiz_result_page.dart';
+import '../../features/quiz/presentation/providers/quiz_provider.dart';
+import '../../features/quiz/domain/entities/quiz_entities.dart';
 import '../features/library/presentation/pages/library_page.dart';
 import '../../features/library/presentation/pages/library_detail_page.dart';
 import '../../features/library/domain/entities/content_item.dart';
@@ -149,14 +151,27 @@ class AppRouter {
         ),
         GoRoute(
           path: RouteNames.quizPlay,
-          builder: (context, state) =>
-              QuizPlayPage(sessionId: state.extra as String? ?? ''),
+          builder: (context, state) {
+            // The whole session is handed over, so the play page no longer
+            // depends on mutable `quizProvider.activeQuiz` state.
+            final extra = state.extra;
+            return QuizPlayPage(
+              args: extra is QuizPlayArgs ? extra : const QuizPlayArgs(),
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.quizResult,
-          builder: (context, state) => QuizResultPage(
-            result: state.extra == null ? null : state.extra as dynamic,
-          ),
+          builder: (context, state) {
+            final extra = state.extra;
+            return QuizResultPage(
+              args: extra is QuizResultArgs
+                  ? extra
+                  : (extra is QuizResult
+                      ? QuizResultArgs(result: extra)
+                      : const QuizResultArgs()),
+            );
+          },
         ),
         GoRoute(
           path: RouteNames.library,

@@ -9,7 +9,12 @@ abstract class QuizRepository {
   TaskEither<Failure, List<QuizSchedule>> getUpcomingDailyQuizzes({
     int days = 7,
   });
-  TaskEither<Failure, ActiveQuiz> startQuiz(String quizScheduleId);
+  TaskEither<Failure, List<QuizAttempt>> getQuizHistory();
+  TaskEither<Failure, List<QuizSeries>> getSeries();
+  TaskEither<Failure, ActiveQuiz> startQuiz(
+    String quizScheduleId, {
+    QuizLanguage language,
+  });
   TaskEither<Failure, AnswerResult> submitAnswer({
     required String sessionId,
     required int questionIndex,

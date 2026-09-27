@@ -10,8 +10,11 @@ import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/quiz_entities.dart';
+import '../../domain/entities/quiz_strings.dart';
 import '../providers/daily_quiz_provider.dart';
+import '../providers/quiz_language_provider.dart';
 import '../providers/quiz_provider.dart';
+import 'quiz_language_toggle.dart';
 
 class DailyQuizHeroCard extends ConsumerStatefulWidget {
   const DailyQuizHeroCard({super.key});
@@ -46,6 +49,7 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyQuizProvider);
+    final strings = ref.watch(quizStringsProvider);
 
     if (state.status == DailyQuizStatus.initial ||
         state.status == DailyQuizStatus.loading) {
@@ -56,9 +60,9 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
       return _buildSurface(
         child: _buildMessage(
           icon: Icons.cloud_off_rounded,
-          title: 'Couldn\'t load daily quiz',
-          message: state.message ?? 'Check your connection and try again.',
-          action: _buildRetryButton(),
+          title: strings.loadFailed,
+          message: state.message ?? strings.loadFailedHint,
+          action: _buildRetryButton(strings),
         ),
       );
     }
@@ -68,17 +72,33 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
       return _buildSurface(
         child: _buildMessage(
           icon: Icons.calendar_today_rounded,
-          title: 'No Daily Quiz Today',
-          message: 'Check back tomorrow for a new challenge.',
+          title: strings.noQuizToday,
+          message: strings.noQuizTodayHint,
         ),
       );
     }
 
-    return _buildAvailable(state, today);
+    if (state.attemptUsed) {
+      return _buildSurface(
+        child: _buildMessage(
+          icon: Icons.verified_rounded,
+          title: strings.attemptUsed,
+          message: strings.attemptUsedHint,
+        ),
+      );
+    }
+
+    return _buildAvailable(state, today, strings);
   }
 
-  Widget _buildAvailable(DailyQuizState state, QuizSchedule today) {
+  Widget _buildAvailable(
+    DailyQuizState state,
+    QuizSchedule today,
+    QuizStrings strings,
+  ) {
     final streak = _computeStreak(state.upcoming);
+    final now = DateTime.now();
+    final canStart = !today.isEndedAt(now);
 
     return _buildSurface(
       child: Column(
@@ -89,50 +109,68 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
             children: [
               const _IconBadge(),
               const SizedBox(width: AppDimensions.paddingMd),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Daily Quiz',
-                      style: TextStyle(
+                      strings.dailyQuiz,
+                      style: const TextStyle(
                         color: Colors.white,
                         fontSize: 20,
                         fontWeight: FontWeight.w700,
                       ),
                     ),
-                    SizedBox(height: 2),
+                    const SizedBox(height: 2),
                     Text(
-                      'Test your knowledge every day',
-                      style: TextStyle(color: Color(0xCCFFFFFF), fontSize: 13),
+                      strings.dailyTagline,
+                      style: const TextStyle(
+                        color: Color(0xCCFFFFFF),
+                        fontSize: 13,
+                      ),
                     ),
                   ],
                 ),
               ),
-              if (streak > 0) _StreakChip(streak: streak),
+              if (streak > 0) _StreakChip(label: strings.dayCount(streak)),
             ],
           ),
           const SizedBox(height: AppDimensions.paddingMd),
           Row(
             children: [
-              _CountdownPill(label: _formatRemaining(today.endDateTime)),
+              _CountdownPill(
+                label: strings.remainingLabel(
+                  today.endDateTime.difference(now),
+                ),
+              ),
               const Spacer(),
+              const QuizLanguageToggle(onGradient: true),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.paddingSm),
+          Row(
+            children: [
               Text(
                 today.totalQuestions > 0
-                    ? '${today.totalQuestions} questions'
-                    : 'Daily challenge',
+                    ? '${today.totalQuestions} ${strings.questions}'
+                    : strings.dailyChallenge,
                 style: TextStyle(
                   color: Colors.white.withValues(alpha: 0.85),
                   fontSize: 12,
                   fontWeight: FontWeight.w600,
                 ),
               ),
+              const SizedBox(width: AppDimensions.sm),
+              const _OneAttemptChip(),
             ],
           ),
           const SizedBox(height: AppDimensions.paddingLg),
           _StartButton(
             isLoading: _isStarting,
-            onTap: today.id.isEmpty ? null : () => _startToday(today),
+            label: strings.startNow,
+            onTap: canStart && today.id.isNotEmpty
+                ? () => _startToday(today)
+                : null,
           ),
         ],
       ),
@@ -141,7 +179,6 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
 
   Widget _buildSurface({required Widget child}) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
       constraints: const BoxConstraints(minHeight: _minHeight),
@@ -176,7 +213,6 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
     Widget? action,
   }) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.center,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
@@ -211,7 +247,7 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
     );
   }
 
-  Widget _buildRetryButton() {
+  Widget _buildRetryButton(QuizStrings strings) {
     return SizedBox(
       height: 36,
       child: OutlinedButton.icon(
@@ -219,9 +255,9 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
           ref.read(dailyQuizProvider.notifier).loadDailyQuiz();
         },
         icon: const Icon(Icons.refresh_rounded, color: Colors.white, size: 16),
-        label: const Text(
-          'Retry',
-          style: TextStyle(color: Colors.white, fontSize: 13),
+        label: Text(
+          strings.retry,
+          style: const TextStyle(color: Colors.white, fontSize: 13),
         ),
         style: OutlinedButton.styleFrom(
           side: const BorderSide(color: Colors.white54),
@@ -236,47 +272,72 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
     );
   }
 
+  /// Starts the daily session and hands the whole session to the play page.
+  ///
+  /// Every failure path now produces user feedback — previously an empty
+  /// server message made the button look completely dead.
   Future<void> _startToday(QuizSchedule today) async {
     if (_isStarting) return;
     setState(() => _isStarting = true);
 
+    final strings = ref.read(quizStringsProvider);
+    final language = ref.read(dailyQuizLanguageProvider);
+
     final activeQuiz = await ref
         .read(quizProvider.notifier)
-        .startQuiz(today.id);
+        .startQuiz(today.id, language: language);
     if (!mounted) return;
     setState(() => _isStarting = false);
 
     if (activeQuiz == null) {
-      final quizState = ref.read(quizProvider);
-      if (quizState.blockReason == QuizBlockReason.alreadyCompleted) {
-        AlertWidget.showInfo(
-          context,
-          'You already completed today\'s daily quiz.',
-        );
-      } else if (quizState.message != null && quizState.message!.isNotEmpty) {
-        AlertWidget.showError(context, quizState.message!);
-      }
+      _handleStartFailure(today, strings);
       return;
     }
 
-    await context.push(RouteNames.quizPlay, extra: activeQuiz.sessionId);
+    if (activeQuiz.sessionId.isEmpty || activeQuiz.questions.isEmpty) {
+      AlertWidget.showError(
+        context,
+        'The quiz could not be loaded. Please try again.',
+      );
+      return;
+    }
+
+    await context.push(
+      RouteNames.quizPlay,
+      extra: QuizPlayArgs.from(activeQuiz, schedule: today, language: language),
+    );
   }
 
-  String _formatRemaining(DateTime endDateTime) {
-    final remaining = endDateTime.difference(DateTime.now());
-    if (remaining.isNegative) return 'Ended';
-    final days = remaining.inDays;
-    final hours = remaining.inHours % 24;
-    final minutes = remaining.inMinutes % 60;
-    if (days > 0) return 'Ends in ${days}d ${hours}h';
-    if (hours > 0) return 'Ends in ${hours}h ${minutes}m';
-    return 'Ends in ${minutes}m';
+  void _handleStartFailure(QuizSchedule today, QuizStrings strings) {
+    final quizState = ref.read(quizProvider);
+    final message = quizState.message ?? '';
+
+    switch (quizState.blockReason) {
+      case QuizBlockReason.alreadyCompleted:
+      case QuizBlockReason.attemptsExhausted:
+        ref.read(dailyQuizProvider.notifier).markAttemptUsed();
+        ref.read(quizProvider.notifier).markAttempted(today.id);
+        AlertWidget.showInfo(context, strings.attemptUsedHint);
+        return;
+      case QuizBlockReason.notAvailable:
+        AlertWidget.showWarning(
+          context,
+          message.isEmpty ? 'This quiz is not available right now.' : message,
+        );
+        return;
+      case QuizBlockReason.none:
+        AlertWidget.showError(
+          context,
+          message.isEmpty
+              ? 'Could not start the quiz. Please try again.'
+              : message,
+        );
+        return;
+    }
   }
 
   int _computeStreak(List<QuizSchedule> upcoming) {
-    return upcoming
-        .where((quiz) => quiz.endDateTime.isBefore(DateTime.now()))
-        .length;
+    return upcoming.where((quiz) => quiz.isEndedAt(DateTime.now())).length;
   }
 }
 
@@ -301,9 +362,9 @@ class _IconBadge extends StatelessWidget {
 }
 
 class _StreakChip extends StatelessWidget {
-  final int streak;
+  final String label;
 
-  const _StreakChip({required this.streak});
+  const _StreakChip({required this.label});
 
   @override
   Widget build(BuildContext context) {
@@ -327,10 +388,41 @@ class _StreakChip extends StatelessWidget {
           ),
           const SizedBox(width: AppDimensions.xs),
           Text(
-            '$streak day${streak == 1 ? '' : 's'}',
+            label,
             style: const TextStyle(
               color: Colors.white,
               fontSize: 11,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _OneAttemptChip extends ConsumerWidget {
+  const _OneAttemptChip();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final strings = ref.watch(quizStringsProvider);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.2),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.looks_one_rounded, color: Colors.white, size: 11),
+          const SizedBox(width: 3),
+          Text(
+            strings.oneAttemptOnly,
+            style: const TextStyle(
+              color: Colors.white,
+              fontSize: 10,
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -378,17 +470,23 @@ class _CountdownPill extends StatelessWidget {
 
 class _StartButton extends StatelessWidget {
   final bool isLoading;
+  final String label;
   final VoidCallback? onTap;
 
-  const _StartButton({required this.isLoading, this.onTap});
+  const _StartButton({
+    required this.isLoading,
+    required this.label,
+    this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final enabled = onTap != null;
     return SizedBox(
       width: double.infinity,
       height: AppDimensions.buttonHeight,
       child: Material(
-        color: Colors.white.withValues(alpha: 0.2),
+        color: Colors.white.withValues(alpha: enabled ? 0.2 : 0.1),
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         child: InkWell(
           onTap: isLoading ? null : onTap,
@@ -403,21 +501,25 @@ class _StartButton extends StatelessWidget {
                       color: Colors.white,
                     ),
                   )
-                : const Row(
+                : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Start Now',
+                        label,
                         style: TextStyle(
-                          color: Colors.white,
+                          color: Colors.white.withValues(
+                            alpha: enabled ? 1 : 0.6,
+                          ),
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      SizedBox(width: AppDimensions.xs),
+                      const SizedBox(width: AppDimensions.xs),
                       Icon(
                         Icons.arrow_forward_rounded,
-                        color: Colors.white,
+                        color: Colors.white.withValues(
+                          alpha: enabled ? 1 : 0.6,
+                        ),
                         size: 18,
                       ),
                     ],

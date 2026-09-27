@@ -7,13 +7,17 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/features/home/presentation/providers/main_tab_provider.dart';
+import '../../../leaderboard/presentation/providers/leaderboard_provider.dart';
 import '../../domain/entities/quiz_entities.dart';
+import '../../domain/entities/quiz_strings.dart';
+import '../providers/quiz_provider.dart';
 import '../widgets/confetti_burst.dart';
 
 class QuizResultPage extends ConsumerStatefulWidget {
-  final QuizResult? result;
+  final QuizResultArgs args;
 
-  const QuizResultPage({super.key, required this.result});
+  const QuizResultPage({super.key, required this.args});
 
   @override
   ConsumerState<QuizResultPage> createState() => _QuizResultPageState();
@@ -36,6 +40,12 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
       curve: Curves.easeOutCubic,
     );
     _controller.forward();
+
+    // The score was persisted by `completeQuiz`; drop any cached leaderboard so
+    // the tab shows the new total/rank instead of the pre-quiz snapshot.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) ref.invalidate(leaderboardProvider);
+    });
   }
 
   @override
@@ -46,126 +56,239 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
 
   @override
   Widget build(BuildContext context) {
-    final result = widget.result;
+    final result = widget.args.result;
+    final strings = QuizStrings.of(widget.args.language);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final passed = result?.passed ?? false;
     final percentage = result?.percentageScore ?? 0;
     final stars = _starsFor(percentage);
 
-    return Scaffold(
-      body: SafeArea(
-        child: Stack(
-          children: [
-            SingleChildScrollView(
-              padding: const EdgeInsets.all(AppDimensions.paddingLg),
-              child: Column(
-                children: [
-                  const SizedBox(height: AppDimensions.paddingMd),
-                  _buildStars(stars),
-                  const SizedBox(height: AppDimensions.lg),
-                  _buildRing(percentage, isDark),
-                  const SizedBox(height: AppDimensions.lg),
-                  Text(
-                    passed ? 'Congratulations!' : 'Nice Try!',
-                    style: TextStyle(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w900,
-                      color: passed ? AppColors.success : AppColors.primaryAmber,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        context.go(RouteNames.home);
+      },
+      child: Scaffold(
+        body: SafeArea(
+          child: Stack(
+            children: [
+              SingleChildScrollView(
+                padding: const EdgeInsets.all(AppDimensions.paddingLg),
+                child: Column(
+                  children: [
+                    const SizedBox(height: AppDimensions.paddingMd),
+                    _buildStars(stars),
+                    const SizedBox(height: AppDimensions.lg),
+                    _buildRing(percentage, isDark),
+                    const SizedBox(height: AppDimensions.lg),
+                    Text(
+                      passed ? strings.congratulations : strings.niceTry,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 26,
+                        fontWeight: FontWeight.w900,
+                        color: passed
+                            ? AppColors.success
+                            : AppColors.primaryAmber,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.sm),
+                    Text(
+                      passed ? strings.passedHint : strings.failedHint,
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.5,
+                        color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                      ),
+                    ),
+                    const SizedBox(height: AppDimensions.xl),
+                    _buildStatsCard(result, strings, isDark),
+                    const SizedBox(height: AppDimensions.md),
+                    _buildLeaderboardCta(result, strings, isDark),
+                    const SizedBox(height: AppDimensions.xl),
+                    _buildPrimaryButton(context, strings.backToHome),
+                    const SizedBox(height: AppDimensions.paddingSm),
+                    _buildSecondaryButton(context, strings.moreQuizzes),
+                  ],
+                ),
+              ),
+              if (passed)
+                const Positioned.fill(
+                  child: IgnorePointer(
+                    child: ConfettiBurst(
+                      particleCount: 110,
+                      duration: Duration(milliseconds: 2200),
                     ),
                   ),
-                  const SizedBox(height: AppDimensions.sm),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Shows the running total and rank so the user can see the score they
+  /// actually added, plus a shortcut into the leaderboard tab.
+  Widget _buildLeaderboardCta(
+    QuizResult? result,
+    QuizStrings strings,
+    bool isDark,
+  ) {
+    final totalPoints = result?.totalPoints;
+    final rank = result?.rank;
+    if (totalPoints == null && rank == null) return const SizedBox.shrink();
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+      onTap: () => _openLeaderboard(),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(AppDimensions.paddingMd),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: AppColors.primaryBlue.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          children: [
+            const Icon(
+              Icons.leaderboard_rounded,
+              color: AppColors.primaryBlue,
+              size: 24,
+            ),
+            const SizedBox(width: AppDimensions.paddingMd),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    passed
-                        ? 'You passed the quiz. Amazing work!'
-                        : 'Almost there — keep learning and try again.',
-                    textAlign: TextAlign.center,
+                    strings.scoreAdded,
                     style: TextStyle(
-                      fontSize: 14,
-                      height: 1.5,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
                       color: isDark ? Colors.grey[400] : AppColors.textMuted,
                     ),
                   ),
-                  const SizedBox(height: AppDimensions.xl),
-                  _buildStatsCard(result, isDark),
-                  const SizedBox(height: AppDimensions.xl),
-                  SizedBox(
-                    width: double.infinity,
-                    height: AppDimensions.buttonHeight,
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        gradient: AppColors.primaryGradient,
-                        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                        boxShadow: [
-                          BoxShadow(
-                            color: AppColors.primaryBlue.withValues(alpha: 0.35),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius:
-                              BorderRadius.circular(AppDimensions.radiusLg),
-                          onTap: () => context.go(RouteNames.home),
-                          child: const Center(
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(Icons.home_rounded,
-                                    color: Colors.white, size: 20),
-                                SizedBox(width: AppDimensions.sm),
-                                Text(
-                                  'Back to Home',
-                                  style: TextStyle(
-                                    color: Colors.white,
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w800,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: AppDimensions.paddingSm),
-                  SizedBox(
-                    width: double.infinity,
-                    height: AppDimensions.buttonHeight,
-                    child:                     OutlinedButton(
-                      onPressed: () => context.pop(),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primaryBlue,
-                        side: const BorderSide(
-                          color: AppColors.primaryBlue,
-                          width: 1.5,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-                        ),
-                      ),
-                      child: const Text(
-                        'More Quizzes',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
+                  const SizedBox(height: 2),
+                  Text(
+                    totalPoints == null
+                        ? strings.yourRank
+                        : '$totalPoints ${strings.points}',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w900,
+                      color: isDark ? Colors.white : AppColors.textPrimary,
                     ),
                   ),
                 ],
               ),
             ),
-            if (passed)
-              const Positioned.fill(
-                child: IgnorePointer(
-                  child: ConfettiBurst(
-                    particleCount: 110,
-                    duration: Duration(milliseconds: 2200),
+            if (rank != null)
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: AppDimensions.sm,
+                  vertical: AppDimensions.xs,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  '#$rank',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primaryBlue,
                   ),
                 ),
               ),
+            const SizedBox(width: AppDimensions.xs),
+            Icon(
+              Icons.chevron_right_rounded,
+              color: isDark ? Colors.grey[600] : AppColors.textLight,
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openLeaderboard() {
+    ref.read(mainTabIndexProvider.notifier).state = 2;
+    context.go(RouteNames.home);
+  }
+
+  Widget _buildPrimaryButton(BuildContext context, String label) {
+    return SizedBox(
+      width: double.infinity,
+      height: AppDimensions.buttonHeight,
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: AppColors.primaryGradient,
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primaryBlue.withValues(alpha: 0.35),
+              blurRadius: 12,
+              offset: const Offset(4, 4),
+            ),
+          ],
+        ),
+        child: Material(
+          color: Colors.transparent,
+          child: InkWell(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            onTap: () => context.go(RouteNames.home),
+            child: Center(
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.home_rounded, color: Colors.white, size: 20),
+                  const SizedBox(width: AppDimensions.sm),
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton(BuildContext context, String label) {
+    return SizedBox(
+      width: double.infinity,
+      height: AppDimensions.buttonHeight,
+      child: OutlinedButton(
+        onPressed: () {
+          if (context.canPop()) {
+            context.pop();
+          } else {
+            context.go(RouteNames.home);
+          }
+        },
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.primaryBlue,
+          side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          ),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
         ),
       ),
     );
@@ -257,7 +380,7 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
     );
   }
 
-  Widget _buildStatsCard(QuizResult? result, bool isDark) {
+  Widget _buildStatsCard(QuizResult? result, QuizStrings strings, bool isDark) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(AppDimensions.paddingLg),
@@ -281,21 +404,21 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
             children: [
               _BuildStat(
                 icon: Icons.check_circle_rounded,
-                label: 'Correct',
+                label: strings.correctLabel,
                 value: '${result?.correctAnswers ?? 0}',
                 color: AppColors.success,
                 isDark: isDark,
               ),
               _BuildStat(
                 icon: Icons.cancel_rounded,
-                label: 'Wrong',
+                label: strings.wrongLabel,
                 value: '${result?.wrongAnswers ?? 0}',
                 color: AppColors.error,
                 isDark: isDark,
               ),
               _BuildStat(
                 icon: Icons.emoji_events_rounded,
-                label: 'Points',
+                label: strings.points,
                 value: '${result?.score ?? 0}',
                 color: AppColors.primaryAmber,
                 isDark: isDark,
@@ -323,8 +446,8 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
               const SizedBox(width: AppDimensions.sm),
               Text(
                 result?.passed == true
-                    ? '${result?.score ?? 0} / ${result?.maxPossibleScore ?? 0} points earned'
-                    : '${result?.totalQuestions ?? 0} questions attempted',
+                    ? '${result?.score ?? 0} / ${result?.maxPossibleScore ?? 0} ${strings.pointsEarned}'
+                    : '${result?.totalQuestions ?? 0} ${strings.questionsAttempted}',
                 style: TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,

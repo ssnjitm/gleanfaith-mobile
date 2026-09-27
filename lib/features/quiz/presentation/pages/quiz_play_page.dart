@@ -1,21 +1,26 @@
 import 'dart:async';
 import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/common/widgets/alert_widget.dart';
+import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
-import '../../../../core/router/route_names.dart';
-import '../providers/quiz_provider.dart';
 import '../../domain/entities/quiz_entities.dart';
+import '../../domain/entities/quiz_strings.dart';
+import '../providers/daily_quiz_provider.dart';
+import '../providers/quiz_provider.dart';
 import '../widgets/confetti_burst.dart';
+import '../widgets/quiz_language_toggle.dart';
 
 class QuizPlayPage extends ConsumerStatefulWidget {
-  final String sessionId;
+  final QuizPlayArgs args;
 
-  const QuizPlayPage({super.key, required this.sessionId});
+  const QuizPlayPage({super.key, required this.args});
 
   @override
   ConsumerState<QuizPlayPage> createState() => _QuizPlayPageState();
@@ -28,11 +33,14 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   bool _submitting = false;
   AnswerResult? _lastAnswer;
   bool _showConfetti = false;
+  bool _finishing = false;
 
   int _totalScore = 0;
   int _streak = 0;
   int _bestStreak = 0;
 
+  /// Seconds left in the countdown (requirement: daily quiz is time boxed).
+  int _remainingSeconds = 0;
   Timer? _timer;
   int _elapsedSeconds = 0;
   final Stopwatch _stopwatch = Stopwatch();
@@ -40,14 +48,31 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   late final AnimationController _feedbackController;
   late final AnimationController _pointsPopController;
 
-  ActiveQuiz? get _activeQuiz => ref.read(quizProvider).activeQuiz;
+  QuizPlayArgs get _args => widget.args;
+
+  bool get _isDaily => _args.isDaily;
+
+  QuizStrings get _strings => QuizStrings.of(_args.language);
+
+  /// Session resolved from the route extra first, provider second. The play
+  /// page never depends on mutable global state to render.
+  ActiveQuiz? get _activeQuiz =>
+      _args.activeQuiz ?? ref.read(quizProvider).activeQuiz;
 
   @override
   void initState() {
     super.initState();
     _stopwatch.start();
+    _remainingSeconds = _resolveDurationSeconds();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _elapsedSeconds = _stopwatch.elapsed.inSeconds);
+      if (!mounted) return;
+      setState(() {
+        _elapsedSeconds = _stopwatch.elapsed.inSeconds;
+        if (_remainingSeconds > 0) {
+          _remainingSeconds--;
+          if (_remainingSeconds == 0) unawaited(_onTimeUp());
+        }
+      });
     });
     _feedbackController = AnimationController(
       vsync: this,
@@ -68,24 +93,33 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     super.dispose();
   }
 
+  /// The backend duration wins; the schedule duration is the fallback so the
+  /// timer is never stuck at zero (which used to disable it entirely).
+  int _resolveDurationSeconds() {
+    final fromSession = _args.activeQuiz?.durationSeconds ?? 0;
+    if (fromSession > 0) return fromSession;
+    return _args.fallbackDurationSeconds;
+  }
+
   bool get _isLast {
     final quiz = _activeQuiz;
     return quiz != null && _currentIndex >= quiz.questions.length - 1;
   }
+
+  bool get _isTimed => _resolveDurationSeconds() > 0;
 
   Future<void> _submitAnswer() async {
     final quiz = _activeQuiz;
     if (quiz == null || _selectedOption == null || _submitting) return;
     setState(() => _submitting = true);
 
-    final timeSpent = _stopwatch.elapsed.inSeconds;
     final result = await ref
         .read(quizProvider.notifier)
         .submitAnswer(
-          sessionId: widget.sessionId,
+          sessionId: widget.args.sessionId,
           questionIndex: _currentIndex,
           selectedOptionIndex: _selectedOption!,
-          timeSpentSeconds: timeSpent,
+          timeSpentSeconds: _timeSpentOnCurrentQuestion,
         );
     if (!mounted) return;
 
@@ -94,25 +128,34 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
       _lastAnswer = result;
     });
 
-    if (result != null) {
-      if (result.isCorrect) {
-        _streak += 1;
-        _bestStreak = math.max(_bestStreak, _streak);
-        _totalScore += result.pointsEarned;
-        unawaited(HapticFeedback.mediumImpact());
-        setState(() => _showConfetti = true);
-      } else {
-        _streak = 0;
-        unawaited(HapticFeedback.lightImpact());
-      }
-      unawaited(_feedbackController.forward(from: 0));
-      unawaited(_pointsPopController.forward(from: 0));
+    if (result == null) {
+      AlertWidget.showError(
+        context,
+        ref.read(quizProvider).message ?? 'Could not submit the answer.',
+      );
+      return;
     }
+
+    if (result.isCorrect) {
+      _streak += 1;
+      _bestStreak = math.max(_bestStreak, _streak);
+      _totalScore += result.pointsEarned;
+      unawaited(HapticFeedback.mediumImpact());
+      setState(() => _showConfetti = true);
+    } else {
+      _streak = 0;
+      unawaited(HapticFeedback.lightImpact());
+    }
+    unawaited(_feedbackController.forward(from: 0));
+    unawaited(_pointsPopController.forward(from: 0));
   }
 
   Future<void> _goNext() async {
     if (_lastAnswer == null) return;
     if (!_isLast) {
+      _questionStopwatch
+        ..reset()
+        ..start();
       setState(() {
         _currentIndex += 1;
         _selectedOption = null;
@@ -124,14 +167,76 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     }
   }
 
+  late final Stopwatch _questionStopwatch = Stopwatch();
+
+  int get _timeSpentOnCurrentQuestion {
+    if (_questionStopwatch.isRunning) {
+      return _questionStopwatch.elapsed.inSeconds;
+    }
+    return _elapsedSeconds;
+  }
+
+  /// Auto-submits the visible answer and finishes the run when the countdown
+  /// reaches zero.
+  Future<void> _onTimeUp() async {
+    if (_finishing) return;
+    if (_selectedOption != null && _lastAnswer == null) {
+      await _submitAnswer();
+    }
+    if (!mounted) return;
+    await AlertWidget.showConfirmDialog(
+      context,
+      title: _strings.timeUp,
+      message: _strings.timeUpHint,
+      confirmLabel: _strings.finishQuiz,
+    );
+    if (!mounted) return;
+    await _completeQuiz();
+  }
+
   Future<void> _completeQuiz() async {
-    setState(() => _submitting = true);
+    if (_finishing) return;
+    setState(() => _finishing = true);
+
     final result = await ref
         .read(quizProvider.notifier)
-        .completeQuiz(widget.sessionId);
+        .completeQuiz(widget.args.sessionId);
     if (!mounted) return;
+    setState(() => _finishing = false);
+
+    final scheduleId = _args.scheduleId ?? _args.activeQuiz?.scheduleId;
+    if (scheduleId != null && scheduleId.isNotEmpty) {
+      ref.read(quizProvider.notifier).markAttempted(scheduleId);
+    }
+    if (_isDaily) ref.read(dailyQuizProvider.notifier).markAttemptUsed();
+
     ref.read(quizProvider.notifier).clearActiveQuiz();
-    context.pushReplacement(RouteNames.quizResult, extra: result);
+    context.pushReplacement(
+      RouteNames.quizResult,
+      extra: QuizResultArgs(
+        result: result,
+        isDaily: _isDaily,
+        language: _args.language,
+      ),
+    );
+  }
+
+  Future<void> _confirmExit() async {
+    final confirmed = await AlertWidget.showConfirmDialog(
+      context,
+      title: 'Leave the quiz?',
+      message: _isDaily
+          ? 'The daily quiz allows a single attempt. Leaving now uses it up.'
+          : 'Your progress in this session will be lost.',
+      confirmLabel: 'Leave',
+    );
+    if (confirmed != true || !mounted) return;
+    ref.read(quizProvider.notifier).clearActiveQuiz();
+    if (context.canPop()) {
+      context.pop();
+    } else {
+      context.go(RouteNames.home);
+    }
   }
 
   @override
@@ -140,10 +245,11 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     if (quiz == null || quiz.questions.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('Quiz')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
+      return _buildUnavailable(isDark);
+    }
+
+    if (_currentIndex >= quiz.questions.length) {
+      return _buildUnavailable(isDark);
     }
 
     final question = quiz.questions[_currentIndex];
@@ -151,9 +257,14 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
 
     return PopScope(
       canPop: false,
+      onPopInvokedWithResult: (didPop, _) {
+        if (didPop) return;
+        unawaited(_confirmExit());
+      },
       child: Scaffold(
-        backgroundColor:
-            isDark ? const Color(0xFF0F172A) : const Color(0xFFF3F5FA),
+        backgroundColor: isDark
+            ? const Color(0xFF0F172A)
+            : const Color(0xFFF3F5FA),
         body: SafeArea(
           child: Stack(
             children: [
@@ -202,9 +313,93 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                       if (mounted && _showConfetti) {
                         setState(() => _showConfetti = false);
                       }
-                },
+                    },
                   ),
                 ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Shown when the session cannot be resolved — never a silent spinner.
+  Widget _buildUnavailable(bool isDark) {
+    return Scaffold(
+      backgroundColor: isDark
+          ? const Color(0xFF0F172A)
+          : const Color(0xFFF3F5FA),
+      appBar: AppBar(
+        automaticallyImplyLeading: false,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios_new_rounded),
+          onPressed: () =>
+              context.canPop() ? context.pop() : context.go(RouteNames.home),
+        ),
+      ),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(AppDimensions.paddingLg),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.error_outline_rounded,
+                size: 56,
+                color: AppColors.warning,
+              ),
+              const SizedBox(height: AppDimensions.paddingMd),
+              Text(
+                'This quiz session is no longer available.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.paddingSm),
+              Text(
+                'It may have ended, or the attempt was already used.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                ),
+              ),
+              const SizedBox(height: AppDimensions.paddingLg),
+              SizedBox(
+                width: double.infinity,
+                height: AppDimensions.buttonHeight,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                  ),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(
+                        AppDimensions.radiusLg,
+                      ),
+                      onTap: () => context.canPop()
+                          ? context.pop()
+                          : context.go(RouteNames.home),
+                      child: Center(
+                        child: Text(
+                          _strings.moreQuizzes,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -219,7 +414,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     bool isDark,
   ) {
     final progress = total == 0 ? 0.0 : (_currentIndex / total);
-    final time = _formatTime(_elapsedSeconds);
+    final strings = _strings;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -232,32 +427,18 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
         children: [
           Row(
             children: [
-              Container(
-                padding: const EdgeInsets.all(6),
-                decoration: BoxDecoration(
-                  color: isDark
-                      ? const Color(0xFF1E293B)
-                      : Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: isDark
-                        ? const Color(0xFF334155)
-                        : AppColors.borderLight,
-                  ),
-                ),
-                child: const Icon(
-                  Icons.bolt_rounded,
-                  color: AppColors.primaryAmber,
-                  size: 20,
-                ),
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                onPressed: _confirmExit,
+                icon: const Icon(Icons.close_rounded, size: 20),
               ),
-              const SizedBox(width: AppDimensions.sm),
+              const SizedBox(width: AppDimensions.xs),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Question ${_currentIndex + 1} of $total',
+                      '${strings.questionOf} ${_currentIndex + 1} / $total',
                       style: TextStyle(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
@@ -267,8 +448,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                     const SizedBox(height: 2),
                     Text(
                       _streak > 1
-                          ? '$_streak streak 🔥'
-                          : 'Keep it up!',
+                          ? '$_streak ${strings.streakLabel}'
+                          : strings.keepItUp,
                       style: TextStyle(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -280,6 +461,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                   ],
                 ),
               ),
+              if (_isDaily) const QuizLanguageToggle(),
+              const SizedBox(width: AppDimensions.xs),
               _ScoreBadge(
                 score: _totalScore,
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
@@ -287,13 +470,19 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                     ? const Color(0xFF334155)
                     : AppColors.borderLight,
               ),
-              const SizedBox(width: AppDimensions.sm),
+              const SizedBox(width: AppDimensions.xs),
               _TimerChip(
-                time: time,
+                // A timed quiz counts down; an untimed one counts up so the
+                // chip is never a frozen "00:00".
+                time: _formatTime(
+                  _isTimed ? _remainingSeconds : _elapsedSeconds,
+                ),
                 color: isDark ? const Color(0xFF1E293B) : Colors.white,
                 borderColor: isDark
                     ? const Color(0xFF334155)
                     : AppColors.borderLight,
+                isUrgent: _isTimed && _remainingSeconds <= 20,
+                isCountdown: _isTimed,
               ),
             ],
           ),
@@ -308,8 +497,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                 return LinearProgressIndicator(
                   value: value,
                   minHeight: 8,
-                  backgroundColor:
-                      isDark ? const Color(0xFF334155) : AppColors.borderLight,
+                  backgroundColor: isDark
+                      ? const Color(0xFF334155)
+                      : AppColors.borderLight,
                   valueColor: AlwaysStoppedAnimation(
                     progress >= 0.7 ? AppColors.success : AppColors.primaryBlue,
                   ),
@@ -349,43 +539,39 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppDimensions.paddingSm,
-                  vertical: AppDimensions.xs,
+          Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: AppDimensions.paddingSm,
+              vertical: AppDimensions.xs,
+            ),
+            decoration: BoxDecoration(
+              color: AppColors.primaryBlue.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: const Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.psychology_alt_rounded,
+                  size: 14,
+                  color: AppColors.primaryBlue,
                 ),
-                decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(6),
+                SizedBox(width: 4),
+                Text(
+                  'QUIZ',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primaryBlue,
+                    letterSpacing: 0.5,
+                  ),
                 ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.psychology_alt_rounded,
-                      size: 14,
-                      color: AppColors.primaryBlue,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'QUIZ',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primaryBlue,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
           const SizedBox(height: AppDimensions.paddingMd),
           Text(
-            q.text,
+            q.textFor(_args.language),
             style: TextStyle(
               fontSize: 17,
               fontWeight: FontWeight.w700,
@@ -399,9 +585,10 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   }
 
   Widget _buildOptions(BuildContext context, QuizQuestion q, bool isDark) {
+    final options = q.optionsFor(_args.language);
     return Column(
-      children: List.generate(q.options.length, (index) {
-        final option = q.options[index];
+      children: List.generate(options.length, (index) {
+        final option = options[index];
         final isSelected = index == _selectedOption;
         final isCorrect =
             _lastAnswer != null && index == _lastAnswer!.correctAnswerIndex;
@@ -411,7 +598,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
 
         Color? borderColor;
         Color? bgColor;
-        if (_lastAnswer != null && isCorrect) {
+        if (locked && isCorrect) {
           borderColor = AppColors.success;
           bgColor = AppColors.success.withValues(alpha: 0.12);
         }
@@ -434,8 +621,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
               ),
             ),
             child: Material(
-              color: bgColor ??
-                  (isDark ? const Color(0xFF1E293B) : Colors.white),
+              color:
+                  bgColor ?? (isDark ? const Color(0xFF1E293B) : Colors.white),
               borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               elevation: isSelected || locked ? 0 : 1,
               shadowColor: AppColors.shadowLight,
@@ -444,7 +631,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                 onTap: locked
                     ? null
                     : () {
-                        HapticFeedback.selectionClick();
+                        unawaited(HapticFeedback.selectionClick());
                         setState(() => _selectedOption = index);
                       },
                 child: AnimatedContainer(
@@ -457,12 +644,13 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                   decoration: BoxDecoration(
                     borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                     border: Border.all(
-                      color: borderColor ??
+                      color:
+                          borderColor ??
                           (isSelected
                               ? AppColors.primaryBlue
                               : (isDark
-                                  ? const Color(0xFF334155)
-                                  : AppColors.borderLight)),
+                                    ? const Color(0xFF334155)
+                                    : AppColors.borderLight)),
                       width: isSelected || borderColor != null ? 2 : 1,
                     ),
                   ),
@@ -473,7 +661,11 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                         width: 32,
                         height: 32,
                         decoration: BoxDecoration(
-                          color: _optionBadgeColor(isSelected, isCorrect, isWrong),
+                          color: _optionBadgeColor(
+                            isSelected,
+                            isCorrect,
+                            isWrong,
+                          ),
                           shape: BoxShape.circle,
                         ),
                         child: Center(
@@ -485,8 +677,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                               color: isCorrect || isWrong
                                   ? Colors.white
                                   : (isSelected
-                                      ? Colors.white
-                                      : AppColors.primaryBlue),
+                                        ? Colors.white
+                                        : AppColors.primaryBlue),
                             ),
                           ),
                         ),
@@ -497,8 +689,12 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                           option,
                           style: TextStyle(
                             fontSize: 15,
-                            fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                            color: isDark ? Colors.white : AppColors.textPrimary,
+                            fontWeight: isSelected
+                                ? FontWeight.w700
+                                : FontWeight.w500,
+                            color: isDark
+                                ? Colors.white
+                                : AppColors.textPrimary,
                           ),
                         ),
                       ),
@@ -532,7 +728,12 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     return AppColors.primaryBlue.withValues(alpha: 0.12);
   }
 
-  Widget _buildFeedback(BuildContext context, AnswerResult answer, bool isDark) {
+  Widget _buildFeedback(
+    BuildContext context,
+    AnswerResult answer,
+    bool isDark,
+  ) {
+    final strings = _strings;
     return AnimatedBuilder(
       animation: _feedbackController,
       builder: (context, child) {
@@ -542,13 +743,16 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
             curve: Curves.easeIn,
           ),
           child: SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(0, 0.15),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(
-              parent: _feedbackController,
-              curve: Curves.easeOutBack,
-            )),
+            position:
+                Tween<Offset>(
+                  begin: const Offset(0, 0.15),
+                  end: Offset.zero,
+                ).animate(
+                  CurvedAnimation(
+                    parent: _feedbackController,
+                    curve: Curves.easeOutBack,
+                  ),
+                ),
             child: child,
           ),
         );
@@ -581,8 +785,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                 Expanded(
                   child: Text(
                     answer.isCorrect
-                        ? 'Correct! +${answer.pointsEarned} pts'
-                        : 'Not quite',
+                        ? '${strings.correct} +${answer.pointsEarned} pts'
+                        : strings.notQuite,
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
@@ -616,10 +820,10 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                 ),
               ],
             ),
-            if (answer.explanation.isNotEmpty) ...[
+            if (answer.explanationFor(_args.language).isNotEmpty) ...[
               const SizedBox(height: AppDimensions.sm),
               Text(
-                answer.explanation,
+                answer.explanationFor(_args.language),
                 style: TextStyle(
                   fontSize: 13,
                   height: 1.5,
@@ -634,6 +838,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   }
 
   Widget _buildBottomBar(BuildContext context) {
+    final strings = _strings;
     final disabled =
         (_selectedOption == null && _lastAnswer == null) || _submitting;
     return SafeArea(
@@ -641,7 +846,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
       child: Padding(
         padding: const EdgeInsets.fromLTRB(
           AppDimensions.paddingMd,
-          AppDimensions.sm,
+          AppDimensions.paddingSm,
           AppDimensions.paddingMd,
           AppDimensions.paddingMd,
         ),
@@ -674,7 +879,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                     ? null
                     : (_lastAnswer == null ? _submitAnswer : _goNext),
                 child: Center(
-                  child: _submitting
+                  child: _submitting || _finishing
                       ? const SizedBox(
                           width: 22,
                           height: 22,
@@ -688,8 +893,10 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                           children: [
                             Text(
                               _lastAnswer != null
-                                  ? (_isLast ? 'Finish Quiz' : 'Next Question')
-                                  : 'Submit Answer',
+                                  ? (_isLast
+                                        ? strings.finishQuiz
+                                        : strings.nextQuestion)
+                                  : strings.submitAnswer,
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,
@@ -700,8 +907,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                             Icon(
                               _lastAnswer != null
                                   ? (_isLast
-                                      ? Icons.flag_rounded
-                                      : Icons.arrow_forward_rounded)
+                                        ? Icons.flag_rounded
+                                        : Icons.arrow_forward_rounded)
                                   : Icons.bolt_rounded,
                               color: Colors.white,
                               size: 20,
@@ -718,8 +925,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   }
 
   String _formatTime(int seconds) {
-    final minutes = (seconds ~/ 60).toString().padLeft(2, '0');
-    final secs = (seconds % 60).toString().padLeft(2, '0');
+    final safe = seconds < 0 ? 0 : seconds;
+    final minutes = (safe ~/ 60).toString().padLeft(2, '0');
+    final secs = (safe % 60).toString().padLeft(2, '0');
     return '$minutes:$secs';
   }
 }
@@ -750,14 +958,20 @@ class _ScoreBadge extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.stars_rounded, color: AppColors.primaryAmber, size: 16),
+          const Icon(
+            Icons.stars_rounded,
+            color: AppColors.primaryAmber,
+            size: 16,
+          ),
           const SizedBox(width: 4),
           Text(
             '$score',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? Colors.white
+                  : AppColors.textPrimary,
             ),
           ),
         ],
@@ -770,15 +984,27 @@ class _TimerChip extends StatelessWidget {
   final String time;
   final Color color;
   final Color borderColor;
+  final bool isUrgent;
+  final bool isCountdown;
 
   const _TimerChip({
     required this.time,
     required this.color,
     required this.borderColor,
+    this.isUrgent = false,
+    this.isCountdown = true,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final iconColor = isUrgent ? AppColors.error : AppColors.primaryBlue;
+    final textColor = isUrgent
+        ? AppColors.error
+        : (isCountdown
+              ? AppColors.textPrimary
+              : (isDark ? Colors.white : AppColors.textPrimary));
+
     return Container(
       padding: const EdgeInsets.symmetric(
         horizontal: AppDimensions.paddingSm,
@@ -787,19 +1013,23 @@ class _TimerChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: borderColor),
+        border: Border.all(color: isUrgent ? AppColors.error : borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.timer_outlined, color: AppColors.primaryBlue, size: 16),
+          Icon(
+            isCountdown ? Icons.hourglass_bottom_rounded : Icons.timer_outlined,
+            color: iconColor,
+            size: 16,
+          ),
           const SizedBox(width: 4),
           Text(
             time,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w800,
-              color: AppColors.textPrimary,
+              color: textColor,
             ),
           ),
         ],
