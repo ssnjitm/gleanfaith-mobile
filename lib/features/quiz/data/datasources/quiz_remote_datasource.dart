@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
+import '../../../../core/services/logger_service.dart';
 import '../../domain/entities/quiz_entities.dart';
 import '../models/quiz_models.dart';
 
@@ -24,7 +25,7 @@ class QuizRemoteDataSource {
     final response = await _dio.get(ApiConstants.dailyQuizToday);
     final schedule = _extractScheduleMap(response.data);
     if (schedule == null) return null;
-    return QuizScheduleModel.fromJson(schedule);
+    return QuizScheduleModel.fromJson(schedule).asDaily();
   }
 
   Future<List<QuizScheduleModel>> getUpcomingDailyQuizzes({
@@ -37,7 +38,7 @@ class QuizRemoteDataSource {
     return _extractList(response.data)
         .map(_asMap)
         .whereType<Map<String, dynamic>>()
-        .map(QuizScheduleModel.fromJson)
+        .map((json) => QuizScheduleModel.fromJson(json).asDaily())
         .toList();
   }
 
@@ -81,9 +82,33 @@ class QuizRemoteDataSource {
       '${ApiConstants.quizScheduleStart}$quizScheduleId/start',
       queryParameters: {'language': language.code},
     );
-    return ActiveQuizModel.fromJson(
-      _extractSessionMap(response.data),
-      language: language,
+    final session = _extractSessionMap(response.data);
+    _logQuestionShape(session);
+    return ActiveQuizModel.fromJson(session, language: language);
+  }
+
+  /// Logs the key shape of the first question so a translation problem is
+  /// diagnosable without guessing. Only key names and string lengths are
+  /// printed — never the copy itself.
+  void _logQuestionShape(Map<String, dynamic> session) {
+    final questions = session['questions'];
+    if (questions is! List || questions.isEmpty) {
+      LoggerService.warning(
+        'Quiz session carried no questions (keys: ${session.keys.join(', ')})',
+      );
+      return;
+    }
+    final first = _asMap(questions.first);
+    if (first == null) return;
+    final question = _asMap(first['question']);
+    final options = first['options'];
+    final firstOption = options is List && options.isNotEmpty
+        ? _asMap(options.first)
+        : null;
+    LoggerService.info(
+      'Quiz question keys: ${first.keys.join(', ')} | '
+      'question is ${question == null ? 'a ${first['question'].runtimeType}' : 'a map with ${question.keys.join(', ')}'} | '
+      'option keys: ${firstOption?.keys.join(', ') ?? 'n/a'}',
     );
   }
 

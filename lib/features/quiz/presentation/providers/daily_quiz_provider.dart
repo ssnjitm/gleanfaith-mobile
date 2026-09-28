@@ -101,6 +101,25 @@ class DailyQuizNotifier extends StateNotifier<DailyQuizState> {
       attemptUsed: _hasUsedAttempt(today),
     );
 
+    // The daily endpoint nests its payload and is not in the public API spec,
+    // so log what was parsed: an empty id here is the reason the Start button
+    // cannot open the quiz.
+    final parsed = today;
+    if (parsed == null) {
+      LoggerService.info('Daily quiz today: none (${nextStatus.name})');
+    } else if (parsed.id.isEmpty) {
+      LoggerService.warning(
+        'Daily quiz today "${parsed.title}" has no schedule id — '
+        'Start is disabled. Window: ${parsed.startDateTime} → '
+        '${parsed.endDateTime}',
+      );
+    } else {
+      LoggerService.info(
+        'Daily quiz today: id=${parsed.id} '
+        'window=${parsed.startDateTime} → ${parsed.endDateTime}',
+      );
+    }
+
     final upcomingResult = await _ref
         .read(getUpcomingDailyQuizzesUseCaseProvider)(days: days)
         .run();

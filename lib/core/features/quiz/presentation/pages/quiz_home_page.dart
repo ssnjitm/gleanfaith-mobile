@@ -79,27 +79,32 @@ class _QuizHomePageState extends ConsumerState<QuizHomePage> with RouteAware {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // No App Bar title: the tab row is the page header.
-      body: Column(
-        children: [
-          _buildTabBar(context),
-          Expanded(
-            child: RefreshIndicator(
-              onRefresh: _loadAll,
-              child: ListView(
-                padding: const EdgeInsets.only(
-                  top: AppDimensions.sm,
-                  bottom: AppDimensions.paddingXl,
+      // No App Bar title: the tab row is the page header. The whole header +
+      // hero column is inset by the system status bar so the Daily Quiz card
+      // starts below the clock / wifi / battery row instead of beside it.
+      body: SafeArea(
+        bottom: false,
+        child: Column(
+          children: [
+            _buildTabBar(context),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadAll,
+                child: ListView(
+                  padding: const EdgeInsets.only(
+                    top: AppDimensions.sm,
+                    bottom: AppDimensions.paddingXl,
+                  ),
+                  children: switch (_tab) {
+                    QuizTab.daily => _buildDailyTab(),
+                    QuizTab.series => _buildSeriesTab(),
+                    QuizTab.other => _buildOtherTab(),
+                  },
                 ),
-                children: switch (_tab) {
-                  QuizTab.daily => _buildDailyTab(),
-                  QuizTab.series => _buildSeriesTab(),
-                  QuizTab.other => _buildOtherTab(),
-                },
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -190,11 +195,14 @@ class _QuizHomePageState extends ConsumerState<QuizHomePage> with RouteAware {
         .toList();
 
     if (upcoming.isEmpty) {
-      return const [DailyQuizHeroCard(), SizedBox(height: AppDimensions.lg)];
+      return const [
+        DailyQuizHeroCard(key: Key('daily_quiz_hero')),
+        SizedBox(height: AppDimensions.lg),
+      ];
     }
 
     return [
-      const DailyQuizHeroCard(),
+      const DailyQuizHeroCard(key: Key('daily_quiz_hero')),
       const SizedBox(height: AppDimensions.lg),
       _SectionTitle(title: 'Coming up', isDark: isDark),
       const SizedBox(height: AppDimensions.sm),

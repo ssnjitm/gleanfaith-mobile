@@ -56,7 +56,9 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
   @override
   Widget build(BuildContext context) {
     final result = widget.args.result;
-    final strings = QuizStrings.of(widget.args.language);
+    // UI copy is always English; `args.language` only decides the language of
+    // backend-supplied content. Keeps the chrome consistent with the play page.
+    final strings = QuizStrings.of(QuizLanguage.english);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final passed = result?.passed ?? false;
     final percentage = result?.percentageScore ?? 0;

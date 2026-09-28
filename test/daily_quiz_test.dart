@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glean_faith_app/core/constants/app_constants.dart';
 import 'package:glean_faith_app/features/quiz/data/models/quiz_models.dart';
 import 'package:glean_faith_app/features/quiz/domain/entities/quiz_entities.dart';
 import 'package:glean_faith_app/features/quiz/domain/entities/quiz_strings.dart';
@@ -41,6 +42,318 @@ void main() {
 
       expect(entity.isDaily, isFalse);
       expect(entity.dailyDate, isNull);
+    });
+  });
+
+  group('QuizScheduleModel id resolution', () {
+    // An empty id made the daily Start button silently disabled, which is why a
+    // tap did nothing at all. These lock the shapes the daily endpoint uses.
+    test('reads a plain _id', () {
+      expect(QuizScheduleModel.fromJson({'_id': 'abc'}).id, 'abc');
+      expect(QuizScheduleModel.fromJson({'id': 'abc'}).id, 'abc');
+    });
+
+    test('reads quizScheduleId / scheduleId aliases', () {
+      expect(
+        QuizScheduleModel.fromJson({'quizScheduleId': 'qs-1'}).id,
+        'qs-1',
+      );
+      expect(QuizScheduleModel.fromJson({'scheduleId': 'qs-2'}).id, 'qs-2');
+    });
+
+    test('reads the id of a nested quizSchedule wrapper', () {
+      final model = QuizScheduleModel.fromJson({
+        'quizScheduleId': 'qs-top',
+        'quizSchedule': {'_id': 'qs-nested', 'title': 'Daily Quiz'},
+      });
+
+      expect(model.id, 'qs-top');
+      expect(model.title, 'Daily Quiz');
+    });
+
+    test('falls back to a nested schedule id and copies its window', () {
+      final model = QuizScheduleModel.fromJson({
+        'dailyQuiz': {'_id': 'daily-1'},
+        'quizSchedule': {
+          '_id': 'qs-nested',
+          'startsAt': '2026-09-28T00:00:00.000Z',
+          'endsAt': '2026-09-29T00:00:00.000Z',
+        },
+      }).toEntity();
+
+      expect(model.id, 'qs-nested');
+      expect(model.startDateTime, DateTime.utc(2026, 9, 28));
+      expect(model.endDateTime, DateTime.utc(2026, 9, 29));
+    });
+
+    test('prefers the schedule id over the daily quiz wrapper id', () {
+      final model = QuizScheduleModel.fromJson({
+        'dailyQuiz': {'_id': 'daily-doc'},
+        'schedule': {'_id': 'qs-real'},
+      });
+
+      expect(model.id, 'qs-real');
+    });
+
+    test('leaves the id empty when the payload carries none', () {
+      expect(QuizScheduleModel.fromJson({'title': 'Daily Quiz'}).id, '');
+    });
+  });
+
+  group('Daily quiz language toggle availability', () {
+    test('a schedule from the daily endpoint is always flagged as daily', () {
+      // The daily endpoints do not send `metadata.isDaily`; without the flag
+      // the play page hid the EN | NP toggle and skipped the single-attempt
+      // rule.
+      final plain = QuizScheduleModel.fromJson({
+        '_id': 'qs-1',
+        'title': 'Daily Quiz',
+      });
+
+      expect(plain.toEntity().isDaily, isFalse);
+
+      final daily = plain.asDaily();
+      expect(daily.metadata?['isDaily'], isTrue);
+      expect(daily.toEntity().isDaily, isTrue);
+      expect(daily.toEntity().attemptsAllowed, 1);
+      expect(daily.id, 'qs-1');
+    });
+
+    test('asDaily keeps existing metadata', () {
+      final daily = QuizScheduleModel.fromJson({
+        '_id': 'qs-1',
+        'metadata': {'dailyDate': '2026-09-28'},
+      }).asDaily();
+
+      expect(daily.metadata?['isDaily'], isTrue);
+      expect(daily.metadata?['dailyDate'], '2026-09-28');
+    });
+
+    test('parses the live payload where question and option text are {en, np} objects', () {
+      // Verbatim shape from GET /quiz-schedule/{id}/start. `question` is an
+      // object, not a string, and every option wraps its copy in
+      // `{id, text: {en, np}, is_correct}`. `_asString` used to stringify the
+      // whole map, so the toggle had nothing to switch to.
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'id': 'q_001',
+            'difficulty': 'medium',
+            'category': 'Old Testament',
+            'question': {
+              'en': 'According to 1 Kings, which king of Israel was known for his extreme wickedness and was married to Jezebel?',
+              'np': '१ राजाका अनुसार, इस्राएलका कुन राजा आफ्नो अत्यधिक दुष्टताका लागि चिनिन्थे र उहाँको विवाह इजबेलसँग भएको थियो?',
+            },
+            'options': [
+              {
+                'id': 'a',
+                'text': {'en': 'King Ahab', 'np': 'राजा आहाब'},
+                'is_correct': true,
+              },
+              {
+                'id': 'b',
+                'text': {'en': 'King Jeroboam', 'np': 'राजा यारोबाम'},
+                'is_correct': false,
+              },
+              {
+                'id': 'c',
+                'text': {'en': 'King Rehoboam', 'np': 'राजा रहबाम'},
+                'is_correct': false,
+              },
+              {
+                'id': 'd',
+                'text': {'en': 'King Omri', 'np': 'राजा अम्री'},
+                'is_correct': false,
+              },
+            ],
+            'scripture_reference': '1 Kings 16:30-31',
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.text, startsWith('According to 1 Kings'));
+      expect(question.options, [
+        'King Ahab',
+        'King Jeroboam',
+        'King Rehoboam',
+        'King Omri',
+      ]);
+
+      expect(question.hasNepali, isTrue);
+      expect(question.textFor(QuizLanguage.nepali), startsWith('१ राजाका अनुसार'));
+      expect(question.optionsFor(QuizLanguage.nepali), [
+        'राजा आहाब',
+        'राजा यारोबाम',
+        'राजा रहबाम',
+        'राजा अम्री',
+      ]);
+    });
+
+    test('finds Nepali under an unknown key by Devanagari script', () {
+      // The backend renames the Nepali fields between deployments; key-based
+      // lookups alone left the toggle inert.
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'text': 'Who wrote Genesis?',
+            'translation': 'लेखक कसले हुन्?',
+            'options': ['Moses', 'David'],
+            'optionTranslations': ['मोसे', 'दाउद'],
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.textNp, 'लेखक कसले हुन्?');
+      expect(question.hasNepali, isTrue);
+      expect(question.textFor(QuizLanguage.nepali), 'लेखक कसले हुन्?');
+      expect(question.optionsFor(QuizLanguage.nepali), ['मोसे', 'दाउद']);
+    });
+
+    test('reads a per-question bilingual {en, np} object', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'en': {'text': 'Pick one', 'options': ['A', 'B']},
+            'np': {'text': 'एउटा छान्नुहोस्', 'options': ['क', 'ख']},
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.text, 'Pick one');
+      expect(question.options, ['A', 'B']);
+      expect(question.textFor(QuizLanguage.nepali), 'एउटा छान्नुहोस्');
+      expect(question.optionsFor(QuizLanguage.nepali), ['क', 'ख']);
+    });
+
+    test('finds Nepali per option object regardless of the key', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'text': 'Pick one',
+            'options': [
+              {'text': 'Alpha', 'translation': 'एल्फा'},
+              {'text': 'Beta', 'translation': 'बेटा'},
+            ],
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.optionsFor(QuizLanguage.nepali), ['एल्फा', 'बेटा']);
+    });
+
+    test('ignores a mismatched Nepali option list to keep indices aligned', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'text': 'Pick one',
+            'options': ['A', 'B', 'C'],
+            'optionsNp': ['क', 'ख'],
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.optionsFor(QuizLanguage.nepali), ['A', 'B', 'C']);
+    });
+
+    test('never treats the English text as the Nepali variant', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'text': 'Who wrote Genesis?',
+            'options': ['Moses', 'David'],
+            'explanation': 'Moses is the traditional author.',
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.textNp, isNull);
+      expect(question.hasNepali, isFalse);
+      expect(question.textFor(QuizLanguage.nepali), 'Who wrote Genesis?');
+    });
+
+    test('finds a renamed Nepali explanation by script', () {
+      final model = AnswerResultModel.fromJson({
+        'isCorrect': true,
+        'correctAnswerIndex': 0,
+        'explanation': 'Genesis names no human author.',
+        'reason_np_text': 'उत्पत्तिले कुनै मानव लेखक उल्लेख गर्दैन।',
+      }).toEntity();
+
+      expect(
+        model.explanationFor(QuizLanguage.nepali),
+        'उत्पत्तिले कुनै मानव लेखक उल्लेख गर्दैन।',
+      );
+    });
+
+    test('the client time box is a fixed 5 minutes', () {
+      // Backend durations are deliberately ignored by the play page so an
+      // omitted, zero or unexpected value can no longer leave an attempt
+      // untimed or running far too long.
+      expect(AppConstants.quizDurationSeconds, 300);
+    });
+
+    test('a question with Nepali content reports hasNepali', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'text': 'Who wrote Genesis?',
+            'options': ['Moses', 'David'],
+            'textNp': 'लेखक कसले हो?',
+            'optionsNp': ['मोसे', 'दाउद'],
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.hasNepali, isTrue);
+      expect(question.textFor(QuizLanguage.nepali), 'लेखक कसले हो?');
+      expect(question.optionsFor(QuizLanguage.nepali), ['मोसे', 'दाउद']);
+    });
+
+    test('an English-only question reports no Nepali', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'text': 'Who wrote Genesis?',
+            'options': ['Moses', 'David'],
+          },
+        ],
+      });
+
+      expect(model.toEntity().questions.single.hasNepali, isFalse);
+    });
+
+    test('reads Nepali from a per-option bilingual shape', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'text': 'Pick one',
+            'options': [
+              {'en': 'Alpha', 'np': 'एल्फा'},
+              {'en': 'Beta', 'np': 'बेटा'},
+            ],
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.hasNepali, isTrue);
+      expect(question.optionsFor(QuizLanguage.nepali), ['एल्फा', 'बेटा']);
     });
   });
 

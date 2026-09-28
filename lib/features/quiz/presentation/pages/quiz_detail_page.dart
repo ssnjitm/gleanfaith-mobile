@@ -11,7 +11,6 @@ import '../../../../core/theme/dimensions.dart';
 import '../../../../core/router/route_names.dart';
 import '../../domain/entities/quiz_entities.dart';
 import '../../domain/entities/quiz_strings.dart';
-import '../providers/quiz_language_provider.dart';
 import '../providers/quiz_provider.dart';
 import '../widgets/confetti_burst.dart';
 
@@ -29,8 +28,10 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
   bool _celebrating = false;
   Timer? _countdownTicker;
 
-  QuizStrings get _strings =>
-      QuizStrings.of(ref.watch(dailyQuizLanguageProvider));
+  /// UI copy is always English. The EN | NP toggle on this screen only chooses
+  /// the language sent to `POST /quiz-schedule/{id}/start` so the backend can
+  /// return that variant of the questions.
+  QuizStrings get _strings => QuizStrings.of(QuizLanguage.english);
 
   @override
   void initState() {
@@ -68,14 +69,29 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
   Future<void> _startQuiz() async {
     if (_loading) return;
     setState(() => _loading = true);
-    final activeQuiz = await ref
-        .read(quizProvider.notifier)
-        .startQuiz(widget.quizScheduleId);
+
+    ActiveQuiz? activeQuiz;
+    var timedOut = false;
+    try {
+      activeQuiz = await ref
+          .read(quizProvider.notifier)
+          .startQuiz(widget.quizScheduleId)
+          // A request that never answers must not leave the button spinning
+          // forever — that reads exactly like an unclickable button.
+          .timeout(const Duration(seconds: 20));
+    } on TimeoutException {
+      timedOut = true;
+    }
     if (!mounted) return;
     setState(() => _loading = false);
 
     final quizState = ref.read(quizProvider);
-    final message = (quizState.message ?? '').trim();
+    var message = (quizState.message ?? '').trim();
+
+    if (timedOut) {
+      message = 'The server took too long to respond. Check your connection '
+          'and try again.';
+    }
 
     if (activeQuiz == null) {
       if (quizState.blockReason == QuizBlockReason.alreadyCompleted ||

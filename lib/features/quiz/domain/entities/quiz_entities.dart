@@ -131,18 +131,31 @@ class QuizQuestion {
     return text;
   }
 
-  /// Options for the selected language. Falls back to [options] when the
-  /// translation is missing or has a different length (indices must stay
-  /// aligned with the answer key).
-  List<String> optionsFor(QuizLanguage language) {
-    if (language == QuizLanguage.nepali &&
-        optionsNp.length == options.length &&
-        optionsNp.isNotEmpty) {
-      return optionsNp;
+    /// Options for the selected language. Falls back to [options] when the
+    /// translation is missing or has a different length (indices must stay
+    /// aligned with the answer key).
+    List<String> optionsFor(QuizLanguage language) {
+      if (language == QuizLanguage.nepali &&
+          optionsNp.length == options.length &&
+          optionsNp.isNotEmpty) {
+        return optionsNp;
+      }
+      return options;
     }
-    return options;
+
+    /// True when the backend shipped a usable Nepali variant for this question.
+    ///
+    /// The play page shows the EN | NP toggle whenever this holds, so a
+    /// bilingual quiz is never locked to English because the schedule itself
+    /// did not advertise Nepali support.
+    bool get hasNepali {
+      final translated = textNp?.trim();
+      if (translated != null && translated.isNotEmpty) return true;
+      return options.isNotEmpty &&
+          optionsNp.length == options.length &&
+          optionsNp.isNotEmpty;
+    }
   }
-}
 
 class ActiveQuiz {
   final String sessionId;

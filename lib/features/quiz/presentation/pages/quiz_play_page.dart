@@ -7,6 +7,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/common/widgets/alert_widget.dart';
+import '../../../../core/constants/app_constants.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
@@ -58,7 +59,14 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
 
   bool get _isDaily => _args.isDaily;
 
-  QuizStrings get _strings => QuizStrings.of(_language);
+  /// UI copy is always English.
+  ///
+  /// The EN | NP toggle translates QUESTION content only (text, options,
+  /// explanations) — never the app's own chrome, buttons or dialogs. The two
+  /// concerns are deliberately separate: [QuizStrings.of] is always called with
+  /// English here, and only `textFor` / `optionsFor` / `explanationFor` read
+  /// [_language].
+  QuizStrings get _strings => QuizStrings.of(QuizLanguage.english);
 
   /// Session resolved from the route extra first, provider second. The play
   /// page never depends on mutable global state to render.
@@ -100,13 +108,14 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     super.dispose();
   }
 
-  /// The backend duration wins; the schedule duration is the fallback so the
-  /// timer is never stuck at zero (which used to disable it entirely).
-  int _resolveDurationSeconds() {
-    final fromSession = _args.activeQuiz?.durationSeconds ?? 0;
-    if (fromSession > 0) return fromSession;
-    return _args.fallbackDurationSeconds;
-  }
+  /// Every attempt gets the same client-owned time box.
+  ///
+  /// This deliberately ignores `ActiveQuiz.durationSeconds` and
+  /// `QuizPlayArgs.fallbackDurationSeconds` (both parsed from the backend) so a
+  /// schedule or start response with no duration, a 0, or an unexpected value
+  /// can no longer produce an untimed or wildly over-long attempt. The server
+  /// still owns scoring and receives `timeSpentSeconds` per answer.
+  int _resolveDurationSeconds() => AppConstants.quizDurationSeconds;
 
   bool get _isLast {
     final quiz = _activeQuiz;
@@ -580,11 +589,14 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                 ),
               ),
               const Spacer(),
-              if (_isDaily)
-                QuizLanguageToggle(
-                  value: _language,
-                  onChanged: (next) => setState(() => _language = next),
-                ),
+              // Always shown. Gating it on `_isDaily || hasNepali` made the
+              // control disappear whenever detection failed, so the one thing
+              // that would explain the failure was the thing that vanished.
+              // `hasNepali` is surfaced as a hint instead.
+              QuizLanguageToggle(
+                value: _language,
+                onChanged: (next) => setState(() => _language = next),
+              ),
             ],
           ),
           const SizedBox(height: AppDimensions.paddingMd),
@@ -597,6 +609,20 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
               color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
+          // Explicit proof of whether the Nepali variant was found, so a
+          // backend that omits it is distinguishable from a broken toggle.
+          if (_language == QuizLanguage.nepali && !q.hasNepali)
+            Padding(
+              padding: const EdgeInsets.only(top: AppDimensions.xs),
+              child: Text(
+                'No Nepali translation for this question',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontStyle: FontStyle.italic,
+                  color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,
+                ),
+              ),
+            ),
         ],
       ),
     );

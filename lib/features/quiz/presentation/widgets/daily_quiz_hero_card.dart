@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/services/logger_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/quiz_entities.dart';
@@ -29,12 +30,22 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
   static const Color _darkEnd = Color(0xFF1A1A2E);
   static const Color _lightEnd = Color(0xFF7C3AED);
 
+  /// A start request that never answers must not leave the button spinning
+  /// forever — that reads exactly like an unclickable button.
+  static const Duration _startTimeout = Duration(seconds: 20);
+
   Timer? _ticker;
   bool _isStarting = false;
 
   /// Last start failure, kept visible inline until the next attempt. A snackbar
   /// alone is easy to miss, which made a failing Start button look dead.
   String? _startError;
+
+  /// UI copy is always English. The EN | NP toggle on this card only picks the
+  /// language sent to `POST /quiz-schedule/{id}/start` so the backend returns
+  /// that variant of the questions; the card's own chrome stays English so the
+  /// app never looks half-translated.
+  QuizStrings get _strings => QuizStrings.of(QuizLanguage.english);
 
   @override
   void initState() {
@@ -53,7 +64,7 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(dailyQuizProvider);
-    final strings = ref.watch(quizStringsProvider);
+    final strings = _strings;
 
     if (state.status == DailyQuizStatus.initial ||
         state.status == DailyQuizStatus.loading) {
@@ -190,6 +201,22 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
             )
           else if (ended)
             _NoticeLine(icon: Icons.event_busy_rounded, text: strings.ended)
+          else if (today.id.isEmpty)
+            // A Start button without a schedule id can never start anything.
+            // Say so instead of rendering a control that silently ignores taps.
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                const _NoticeLine(
+                  icon: Icons.link_off_rounded,
+                  text:
+                      "Today's quiz is open, but its schedule could not be "
+                      'read from the server.',
+                ),
+                const SizedBox(height: AppDimensions.paddingSm),
+                _buildRetryButton(strings),
+              ],
+            )
           else
             _StartButton(
               isLoading: _isStarting,
@@ -299,7 +326,9 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
   /// Starts the daily session and hands the whole session to the play page.
   ///
   /// Every failure path now produces user feedback — previously an empty
-  /// server message made the button look completely dead.
+  /// server message made the button look completely dead. The request is also
+  /// wrapped in a hard timeout: a request that never answers used to leave the
+  /// spinner running forever, which is the other way Start looks unresponsive.
   Future<void> _startToday(QuizSchedule today) async {
     if (_isStarting) return;
     setState(() {
@@ -307,25 +336,44 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
       _startError = null;
     });
 
-    final strings = ref.read(quizStringsProvider);
+    final strings = _strings;
     final language = ref.read(dailyQuizLanguageProvider);
+    LoggerService.info(
+      'Daily quiz start tapped (schedule=${today.id}, language=${language.code})',
+    );
 
-    final activeQuiz = await ref
-        .read(quizProvider.notifier)
-        .startQuiz(today.id, language: language);
+    ActiveQuiz? activeQuiz;
+    var timedOut = false;
+    try {
+      activeQuiz = await ref
+          .read(quizProvider.notifier)
+          .startQuiz(today.id, language: language)
+          .timeout(_startTimeout);
+    } on TimeoutException {
+      timedOut = true;
+      LoggerService.error(
+        'Daily quiz start timed out after ${_startTimeout.inSeconds}s '
+        '(schedule=${today.id})',
+      );
+    }
+
     if (!mounted) return;
     setState(() => _isStarting = false);
 
     if (activeQuiz == null) {
-      _handleStartFailure(today, strings);
+      _handleStartFailure(today, strings, timedOut: timedOut);
       return;
     }
 
+    LoggerService.info(
+      'Daily quiz session ready (session=${activeQuiz.sessionId}, '
+      'questions=${activeQuiz.questions.length})',
+    );
+
     if (activeQuiz.sessionId.isEmpty || activeQuiz.questions.isEmpty) {
-      AlertWidget.showError(
-        context,
-        'The quiz could not be loaded. Please try again.',
-      );
+      const message = 'The quiz could not be loaded. Please try again.';
+      _showStartError(message);
+      AlertWidget.showError(context, message);
       return;
     }
 
@@ -335,8 +383,22 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
     );
   }
 
-  void _handleStartFailure(QuizSchedule today, QuizStrings strings) {
+  void _handleStartFailure(
+    QuizSchedule today,
+    QuizStrings strings, {
+    bool timedOut = false,
+  }) {
     final quizState = ref.read(quizProvider);
+
+    if (timedOut) {
+      const text =
+          'The server took too long to respond. Check your connection and '
+          'tap Start Now again.';
+      _showStartError(text);
+      AlertWidget.showError(context, text);
+      return;
+    }
+
     final message = quizState.message ?? '';
 
     switch (quizState.blockReason) {
@@ -354,6 +416,16 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
         AlertWidget.showWarning(context, text);
         return;
       case QuizBlockReason.none:
+        // A previous request is still in flight, so the notifier refused this
+        // one instead of sending a second start. Say so instead of claiming
+        // the quiz could not be started.
+        if (quizState.isStarting) {
+          const text = 'Still connecting to the quiz server. Please wait a '
+              'moment and try again.';
+          _showStartError(text);
+          AlertWidget.showWarning(context, text);
+          return;
+        }
         final text = message.isEmpty
             ? 'Could not start the quiz. Please try again.'
             : message;
@@ -439,7 +511,8 @@ class _OneAttemptChip extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final strings = ref.watch(quizStringsProvider);
+    // UI copy is always English, same as the rest of the quiz surface.
+    final strings = QuizStrings.of(QuizLanguage.english);
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
       decoration: BoxDecoration(
@@ -598,14 +671,17 @@ class _StartButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final enabled = onTap != null;
+    final enabled = onTap != null && !isLoading;
     return SizedBox(
+      key: const Key('daily_quiz_start_button'),
       width: double.infinity,
       height: AppDimensions.buttonHeight,
       child: Material(
-        color: Colors.white.withValues(alpha: enabled ? 0.2 : 0.1),
+        color: Colors.white.withValues(alpha: enabled ? 0.2 : 0.08),
         borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
         child: InkWell(
+          // The press is only swallowed while a start request is in flight;
+          // `_startToday` guards the same flag.
           onTap: isLoading ? null : onTap,
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
           child: Center(
@@ -624,9 +700,7 @@ class _StartButton extends StatelessWidget {
                       Text(
                         label,
                         style: TextStyle(
-                          color: Colors.white.withValues(
-                            alpha: enabled ? 1 : 0.6,
-                          ),
+                          color: enabled ? Colors.white : Colors.white38,
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                         ),
@@ -634,9 +708,7 @@ class _StartButton extends StatelessWidget {
                       const SizedBox(width: AppDimensions.xs),
                       Icon(
                         Icons.arrow_forward_rounded,
-                        color: Colors.white.withValues(
-                          alpha: enabled ? 1 : 0.6,
-                        ),
+                        color: enabled ? Colors.white : Colors.white38,
                         size: 18,
                       ),
                     ],
