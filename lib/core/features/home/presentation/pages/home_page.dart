@@ -12,12 +12,10 @@ import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../../features/bible/presentation/providers/bible_providers.dart';
 import '../../../../../features/bible_games/presentation/widgets/home_fun_facts_card.dart';
 import '../../../../../features/bible_study/presentation/widgets/continue_reading_card.dart';
-import '../../domain/entities/home_data.dart';
+import '../../../profile/presentation/widgets/profile_top_bar_button.dart';
 import '../providers/main_tab_provider.dart';
 import '../widgets/promo_carousel.dart';
 import '../widgets/home_verse_of_the_day.dart';
-import '../widgets/upcoming_quiz_card.dart';
-import '../widgets/activity_tile.dart';
 
 class HomePage extends ConsumerStatefulWidget {
   const HomePage({super.key});
@@ -94,7 +92,6 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final mockData = _mockHomeData();
 
     return Scaffold(
       body: SafeArea(
@@ -117,14 +114,6 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               _buildQuickActionGrid(context, isDark),
               const SizedBox(height: AppDimensions.paddingMd),
               const HomeFunFactsCard(),
-              const SizedBox(height: AppDimensions.paddingLg),
-              _buildSectionHeader(context, 'Upcoming Quizzes', isDark),
-              const SizedBox(height: AppDimensions.paddingSm),
-              _buildUpcomingQuizzes(context, mockData.upcomingQuizzes),
-              const SizedBox(height: AppDimensions.paddingLg),
-              _buildSectionHeader(context, 'Recent Activity', isDark),
-              const SizedBox(height: AppDimensions.paddingSm),
-              _buildRecentActivity(context, mockData.recentActivity),
             ],
           ),
         ),
@@ -202,19 +191,22 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         title: 'Daily Quiz Challenge',
         subtitle: 'Grow in faith and win points every day.',
         icon: Icons.emoji_events_rounded,
-        onTap: () => ref.read(mainTabIndexProvider.notifier).state = 1,
+        onTap: () => ref.read(mainTabIndexProvider.notifier).state = MainTab.quiz,
       ),
       PromoSlide(
         title: 'Bible Study Library',
         subtitle: 'Explore articles, videos and podcasts.',
         icon: Icons.auto_stories_rounded,
-        onTap: () => context.go(RouteNames.library),
+        onTap: () => ref.read(mainTabIndexProvider.notifier).state = MainTab.library,
       ),
+      // Rankings live on the profile screen, which is reachable only from a
+      // top-bar icon, so the carousel points at the games tab instead of
+      // navigating behind the user's back.
       PromoSlide(
-        title: 'Join the Leaderboard',
-        subtitle: 'Compete with the community this week.',
-        icon: Icons.leaderboard_rounded,
-        onTap: () => ref.read(mainTabIndexProvider.notifier).state = 2,
+        title: 'Play Bible Games',
+        subtitle: 'Test how well you know your Bible.',
+        icon: Icons.sports_esports_rounded,
+        onTap: () => ref.read(mainTabIndexProvider.notifier).state = MainTab.games,
       ),
     ];
   }
@@ -267,6 +259,10 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               ],
             ),
           ),
+          // The profile is no longer a bottom-nav tab or a home quick action;
+          // the icon in this header is the single entry point to it.
+          const ProfileTopBarButton(),
+          const SizedBox(width: AppDimensions.paddingSm),
           Container(
             width: 40,
             height: 40,
@@ -295,112 +291,12 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
   Widget _buildSectionHeader(BuildContext context, String title, bool isDark) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            title,
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: isDark ? Colors.white : AppColors.textPrimary,
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              if (title == 'Upcoming Quizzes' || title == 'Recent Activity') {
-                ref.read(mainTabIndexProvider.notifier).state = 1;
-              }
-            },
-            style: TextButton.styleFrom(
-              foregroundColor: AppColors.primaryBlue,
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              minimumSize: Size.zero,
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
-            child: const Text('See All', style: TextStyle(fontSize: 13)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUpcomingQuizzes(BuildContext context, List<UpcomingQuiz> quizzes) {
-    if (quizzes.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-        child: _buildEmptyCard(context, 'No upcoming quizzes'),
-      );
-    }
-
-    return SizedBox(
-      height: 140,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-        itemCount: quizzes.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final quiz = quizzes[index];
-          return UpcomingQuizCard(
-            title: quiz.title,
-            startDateTime: quiz.startDateTime,
-            durationMinutes: quiz.durationMinutes,
-            totalQuestions: quiz.totalQuestions,
-            onTap: () => ref.read(mainTabIndexProvider.notifier).state = 1,
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildRecentActivity(BuildContext context, List<RecentActivity> activities) {
-    if (activities.isEmpty) {
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-        child: _buildEmptyCard(context, 'No recent activity'),
-      );
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-      child: Column(
-        children: activities
-            .map((a) => ActivityTile(
-                  quizTitle: a.quizTitle,
-                  score: a.score,
-                  maxScore: a.maxScore,
-                  percentageScore: a.percentageScore,
-                  passed: a.passed,
-                  timeAgo: _timeAgo(a.completedAt),
-                ))
-            .toList(),
-      ),
-    );
-  }
-
-  Widget _buildEmptyCard(BuildContext context, String message) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: AppDimensions.xl,
-        horizontal: AppDimensions.paddingMd,
-      ),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
-        borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-        ),
-      ),
-      child: Center(
-        child: Text(
-          message,
-          style: TextStyle(
-            color: isDark ? Colors.grey[500] : AppColors.textLight,
-            fontSize: 14,
-          ),
+      child: Text(
+        title,
+        style: TextStyle(
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          color: isDark ? Colors.white : AppColors.textPrimary,
         ),
       ),
     );
@@ -414,7 +310,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         color: AppColors.primaryBlue,
         bgColor: AppColors.primaryBlue.withValues(alpha: 0.1),
         onTap: () {
-          ref.read(mainTabIndexProvider.notifier).state = 1;
+          ref.read(mainTabIndexProvider.notifier).state = MainTab.quiz;
         },
       ),
       _QuickActionItem(
@@ -429,14 +325,18 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         label: 'Library',
         color: const Color(0xFF7C3AED),
         bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
-        onTap: () => context.push(RouteNames.library),
+        onTap: () {
+          ref.read(mainTabIndexProvider.notifier).state = MainTab.library;
+        },
       ),
       _QuickActionItem(
         icon: Icons.search_rounded,
         label: 'Bible Search',
         color: const Color(0xFF7C3AED),
         bgColor: const Color(0xFF7C3AED).withValues(alpha: 0.1),
-        onTap: () => context.pushNamed(RouteNames.bibleSearch),
+        onTap: () {
+          ref.read(mainTabIndexProvider.notifier).state = MainTab.bibleSearch;
+        },
       ),
       _QuickActionItem(
         icon: Icons.grid_4x4_rounded,
@@ -450,84 +350,11 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         label: 'Bible Games',
         color: const Color(0xFFEA580C),
         bgColor: const Color(0xFFEA580C).withValues(alpha: 0.1),
-        onTap: () => context.pushNamed(RouteNames.gamesHub),
-      ),
-      _QuickActionItem(
-        icon: Icons.person_rounded,
-        label: 'Profile',
-        color: AppColors.success,
-        bgColor: AppColors.successBg,
         onTap: () {
-          ref.read(mainTabIndexProvider.notifier).state = 3;
+          ref.read(mainTabIndexProvider.notifier).state = MainTab.games;
         },
       ),
     ];
-  }
-
-  HomeData _mockHomeData() {
-    return HomeData(
-      stats: const UserStats(),
-      upcomingQuizzes: [
-        UpcomingQuiz(
-          id: '1',
-          title: 'The Gospel of John - Chapter 1',
-          startDateTime: DateTime.now().add(const Duration(hours: 2)),
-          durationMinutes: 15,
-          totalQuestions: 10,
-        ),
-        UpcomingQuiz(
-          id: '2',
-          title: 'Psalms of Thanksgiving',
-          startDateTime: DateTime.now().add(const Duration(days: 1)),
-          durationMinutes: 20,
-          totalQuestions: 15,
-        ),
-        UpcomingQuiz(
-          id: '3',
-          title: 'Book of Romans Overview',
-          startDateTime: DateTime.now().add(const Duration(days: 3)),
-          durationMinutes: 30,
-          totalQuestions: 20,
-        ),
-      ],
-      recentActivity: [
-        RecentActivity(
-          id: 'a1',
-          quizTitle: 'Old Testament Prophets',
-          score: 8,
-          maxScore: 10,
-          percentageScore: 80,
-          passed: true,
-          completedAt: DateTime.now().subtract(const Duration(hours: 5)),
-        ),
-        RecentActivity(
-          id: 'a2',
-          quizTitle: 'New Testament Parables',
-          score: 5,
-          maxScore: 10,
-          percentageScore: 50,
-          passed: false,
-          completedAt: DateTime.now().subtract(const Duration(days: 1)),
-        ),
-        RecentActivity(
-          id: 'a3',
-          quizTitle: 'Fruit of the Spirit',
-          score: 9,
-          maxScore: 10,
-          percentageScore: 90,
-          passed: true,
-          completedAt: DateTime.now().subtract(const Duration(days: 2)),
-        ),
-      ],
-    );
-  }
-
-  String _timeAgo(DateTime date) {
-    final diff = DateTime.now().difference(date);
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    if (diff.inDays < 7) return '${diff.inDays}d ago';
-    return '${diff.inDays ~/ 7}w ago';
   }
 }
 

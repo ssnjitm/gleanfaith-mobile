@@ -8,6 +8,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../domain/entities/verse.dart';
+import '../../../../core/features/profile/presentation/widgets/profile_top_bar_button.dart';
 import '../providers/bible_search_provider.dart';
 import '../widgets/topic_card.dart';
 import '../widgets/verse_result_tile.dart';
@@ -76,6 +77,7 @@ class _BibleSearchPageState extends ConsumerState<BibleSearchPage> {
       appBar: AppBar(
         title: const Text('Bible Search'),
         centerTitle: true,
+        actions: const [ProfileTopBarButton(), SizedBox(width: 8)],
       ),
       body: Column(
         children: [

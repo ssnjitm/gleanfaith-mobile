@@ -11,6 +11,7 @@ import '../../../../router/route_names.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../../features/leaderboard/presentation/providers/leaderboard_provider.dart';
 import '../../../home/presentation/widgets/stats_card.dart';
+import '../widgets/profile_drawer.dart';
 import '../../../../../features/profile/presentation/providers/profile_provider.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -56,14 +57,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage> {
     final isLoading = ref.watch(profileProvider).status == ProfileStatus.initial;
 
     return Scaffold(
+      // The profile is a pushed route, not a bottom-nav tab, so it carries its
+      // own drawer — MainShell's drawer is not an ancestor here.
+      drawer: const ProfileDrawer(),
       appBar: AppBar(
         title: const Text('Profile'),
-        leading: IconButton(
-          icon: Icon(
-            Icons.menu_rounded,
-            color: isDark ? Colors.grey[400] : AppColors.textMuted,
+        leading: Builder(
+          builder: (context) => IconButton(
+            icon: Icon(
+              Icons.menu_rounded,
+              color: isDark ? Colors.grey[400] : AppColors.textMuted,
+            ),
+            onPressed: () => Scaffold.of(context).openDrawer(),
           ),
-          onPressed: () => Scaffold.of(context).openDrawer(),
         ),
         actions: [
           IconButton(

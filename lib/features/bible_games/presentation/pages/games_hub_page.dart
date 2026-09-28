@@ -9,6 +9,7 @@ import '../../../../core/common/widgets/shimmer_widget.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
+import '../../../../core/features/profile/presentation/widgets/profile_top_bar_button.dart';
 import '../providers/bible_games_provider.dart';
 
 /// Hub listing the five offline Bible games. Requires the bundled SQLite Bible
@@ -27,6 +28,7 @@ class GamesHubPage extends ConsumerWidget {
           'Bible Games',
           style: TextStyle(fontWeight: FontWeight.w700),
         ),
+        actions: const [ProfileTopBarButton(), SizedBox(width: 8)],
       ),
       body: data.when(
         loading: () => const Padding(
@@ -163,9 +165,7 @@ class _GameTile extends StatelessWidget {
                 ),
                 Icon(
                   Icons.chevron_right_rounded,
-                  color: isDark
-                      ? const Color(0xFF64748B)
-                      : AppColors.textLight,
+                  color: isDark ? const Color(0xFF64748B) : AppColors.textLight,
                 ),
               ],
             ),

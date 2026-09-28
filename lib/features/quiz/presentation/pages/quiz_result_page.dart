@@ -7,7 +7,6 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/router/route_names.dart';
-import '../../../../core/features/home/presentation/providers/main_tab_provider.dart';
 import '../../../leaderboard/presentation/providers/leaderboard_provider.dart';
 import '../../domain/entities/quiz_entities.dart';
 import '../../domain/entities/quiz_strings.dart';
@@ -131,7 +130,7 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
   }
 
   /// Shows the running total and rank so the user can see the score they
-  /// actually added, plus a shortcut into the leaderboard tab.
+  /// actually added, plus a shortcut into the leaderboard.
   Widget _buildLeaderboardCta(
     QuizResult? result,
     QuizStrings strings,
@@ -218,9 +217,10 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
     );
   }
 
+  /// The leaderboard is not a bottom-nav tab — it is pushed from the quiz tab's
+  /// top-bar icon and from the score card on this page.
   void _openLeaderboard() {
-    ref.read(mainTabIndexProvider.notifier).state = 2;
-    context.go(RouteNames.home);
+    context.push(RouteNames.leaderboard);
   }
 
   Widget _buildPrimaryButton(BuildContext context, String label) {

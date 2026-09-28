@@ -7,6 +7,7 @@ import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
 import '../../../../common/widgets/content_thumbnail.dart';
 import '../../../../common/widgets/shimmer_placeholders.dart';
+import '../../../profile/presentation/widgets/profile_top_bar_button.dart';
 import '../../../../../features/course/presentation/pages/courses_page.dart';
 import '../../../../../features/library/presentation/providers/library_provider.dart';
 import '../../../../../features/library/domain/entities/content_item.dart';
@@ -45,6 +46,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
         backgroundColor: AppColors.bgGray,
         appBar: AppBar(
           title: const Text('Bible Learning'),
+          actions: const [ProfileTopBarButton(), SizedBox(width: 8)],
           bottom: TabBar(
             labelColor: AppColors.primaryBlue,
             unselectedLabelColor:

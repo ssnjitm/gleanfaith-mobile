@@ -12,6 +12,7 @@ import '../../../../../features/quiz/domain/entities/quiz_entities.dart';
 import '../../../../../features/quiz/presentation/providers/daily_quiz_provider.dart';
 import '../../../../../features/quiz/presentation/providers/quiz_provider.dart';
 import '../../../../../features/quiz/presentation/providers/quiz_series_provider.dart';
+import '../../../profile/presentation/widgets/profile_top_bar_button.dart';
 import '../../../../../features/quiz/presentation/widgets/daily_quiz_hero_card.dart';
 
 /// Quiz hub split into three tabs: Daily (hero), Series (multi-day campaigns)
@@ -125,6 +126,19 @@ class _QuizHomePageState extends ConsumerState<QuizHomePage> with RouteAware {
           _buildTabItem(context, QuizTab.daily, 'Daily', isDark),
           _buildTabItem(context, QuizTab.series, 'Series', isDark),
           _buildTabItem(context, QuizTab.other, 'Other', isDark),
+          // Leaderboard and profile live in a top bar, never in the bottom
+          // navigation, so the quiz tab header carries both icons. The tab items
+          // are Expanded and give up the space these need.
+          const SizedBox(width: AppDimensions.sm),
+          IconButton(
+            icon: Icon(
+              Icons.leaderboard_outlined,
+              color: isDark ? Colors.grey[400] : AppColors.textMuted,
+            ),
+            tooltip: 'Leaderboard',
+            onPressed: () => context.push(RouteNames.leaderboard),
+          ),
+          const ProfileTopBarButton(),
         ],
       ),
     );

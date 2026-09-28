@@ -33,6 +33,8 @@ import '../../features/course/presentation/pages/course_quiz_play_page.dart';
 import '../../features/course/presentation/pages/course_quiz_review_page.dart';
 import '../../features/course/domain/entities/course_progress_entities.dart';
 import '../../features/notification/presentation/pages/notifications_page.dart';
+import '../features/leaderboard/presentation/pages/leaderboard_home_page.dart';
+import '../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/edit_profile_page.dart';
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_home_page.dart';
 import '../../features/crosspuzzle/presentation/pages/crosspuzzle_my_puzzles_page.dart';
@@ -139,6 +141,14 @@ class AppRouter {
         GoRoute(
           path: RouteNames.notifications,
           builder: (context, state) => const NotificationsPage(),
+        ),
+        GoRoute(
+          path: RouteNames.leaderboard,
+          builder: (context, state) => const LeaderboardHomePage(),
+        ),
+        GoRoute(
+          path: RouteNames.profile,
+          builder: (context, state) => const ProfilePage(),
         ),
         GoRoute(
           path: RouteNames.profileEdit,

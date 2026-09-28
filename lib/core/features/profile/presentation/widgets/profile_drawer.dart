@@ -63,19 +63,16 @@ class _ProfileDrawerState extends ConsumerState<ProfileDrawer> {
                     context,
                     icon: Icons.quiz_outlined,
                     title: 'My Quizzes',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ref.read(mainTabIndexProvider.notifier).state = 1;
-                    },
+                    onTap: () => _goToTab(context, MainTab.quiz),
                   ),
                   _buildMenuItem(
                     context,
                     icon: Icons.leaderboard_outlined,
                     title: 'My Rankings',
-                    onTap: () {
-                      Navigator.pop(context);
-                      ref.read(mainTabIndexProvider.notifier).state = 2;
-                    },
+                    // The rankings live on the profile screen the user is
+                    // already viewing, so this only dismisses the drawer
+                    // instead of pushing a duplicate of the current route.
+                    onTap: () => Navigator.pop(context),
                   ),
                   _buildMenuItem(
                     context,
@@ -154,6 +151,15 @@ class _ProfileDrawerState extends ConsumerState<ProfileDrawer> {
         ),
       ),
     );
+  }
+
+  /// Switches to a bottom-nav tab and drops this drawer *and* the profile
+  /// screen, which is a pushed route rather than a tab. Setting the tab index
+  /// alone would leave the profile page covering the shell.
+  void _goToTab(BuildContext context, int tabIndex) {
+    Navigator.pop(context);
+    ref.read(mainTabIndexProvider.notifier).state = tabIndex;
+    context.go(RouteNames.home);
   }
 
   Widget _buildHeader(BuildContext context, String? fullName, String? email,

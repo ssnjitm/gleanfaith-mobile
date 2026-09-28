@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../theme/colors.dart';
-import 'home_page.dart';
+import '../../../../../features/bible/presentation/pages/bible_search_page.dart';
+import '../../../../../features/bible_games/presentation/pages/games_hub_page.dart';
+import '../../../library/presentation/pages/library_page.dart';
 import '../../../quiz/presentation/pages/quiz_home_page.dart';
-import '../../../leaderboard/presentation/pages/leaderboard_home_page.dart';
-import '../../../profile/presentation/pages/profile_page.dart';
-import '../../../profile/presentation/widgets/profile_drawer.dart';
 import '../providers/main_tab_provider.dart';
+import 'home_page.dart';
 
 class MainShell extends ConsumerStatefulWidget {
   const MainShell({super.key});
@@ -17,11 +17,14 @@ class MainShell extends ConsumerStatefulWidget {
 }
 
 class _MainShellState extends ConsumerState<MainShell> {
+  /// Tab order must stay in sync with the `MainTab` constants and the
+  /// `items` list below: Home, Library, Quiz, Bible Search, Games.
   final _pages = const [
     HomePage(),
+    LibraryPage(),
     QuizHomePage(),
-    LeaderboardHomePage(),
-    ProfilePage(),
+    BibleSearchPage(),
+    GamesHubPage(),
   ];
 
   @override
@@ -30,11 +33,7 @@ class _MainShellState extends ConsumerState<MainShell> {
     final currentIndex = ref.watch(mainTabIndexProvider);
 
     return Scaffold(
-      drawer: const ProfileDrawer(),
-      body: IndexedStack(
-        index: currentIndex,
-        children: _pages,
-      ),
+      body: IndexedStack(index: currentIndex, children: _pages),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: isDark ? const Color(0xFF1E293B) : AppColors.bgWhite,
@@ -54,8 +53,8 @@ class _MainShellState extends ConsumerState<MainShell> {
           type: BottomNavigationBarType.fixed,
           selectedItemColor: AppColors.primaryBlue,
           unselectedItemColor: isDark ? Colors.grey[500] : AppColors.textLight,
-          selectedFontSize: 11,
-          unselectedFontSize: 11,
+          selectedFontSize: 10,
+          unselectedFontSize: 10,
           selectedLabelStyle: const TextStyle(fontWeight: FontWeight.w600),
           items: const [
             BottomNavigationBarItem(
@@ -64,19 +63,24 @@ class _MainShellState extends ConsumerState<MainShell> {
               label: 'Home',
             ),
             BottomNavigationBarItem(
+              icon: Icon(Icons.auto_stories_outlined),
+              activeIcon: Icon(Icons.auto_stories_rounded),
+              label: 'Library',
+            ),
+            BottomNavigationBarItem(
               icon: Icon(Icons.quiz_outlined),
               activeIcon: Icon(Icons.quiz_rounded),
               label: 'Quiz',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.leaderboard_outlined),
-              activeIcon: Icon(Icons.leaderboard_rounded),
-              label: 'Leaderboard',
+              icon: Icon(Icons.search_outlined),
+              activeIcon: Icon(Icons.search_rounded),
+              label: 'Bible Search',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.person_outline),
-              activeIcon: Icon(Icons.person_rounded),
-              label: 'Profile',
+              icon: Icon(Icons.sports_esports_outlined),
+              activeIcon: Icon(Icons.sports_esports_rounded),
+              label: 'Games',
             ),
           ],
         ),
