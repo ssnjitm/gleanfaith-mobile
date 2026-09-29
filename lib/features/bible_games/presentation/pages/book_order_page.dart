@@ -8,13 +8,18 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
 import '../../domain/entities/bible_game_localization.dart';
+import '../../domain/entities/game_lives.dart';
 import '../../domain/services/bible_game_engine.dart';
 import '../../domain/services/bible_game_session.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../providers/game_lives_provider.dart';
 import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
+import '../widgets/game_cooldown_overlay.dart';
+import '../widgets/game_lives_widgets.dart';
 import 'bible_game_language_sync.dart';
+import 'game_lives_gate.dart';
 
 /// Book Order Race — tap the five book tiles in canonical Bible order.
 /// Endless rounds; auto-advances when a round is completed. Every open starts
@@ -31,7 +36,7 @@ class BookOrderPage extends ConsumerStatefulWidget {
 }
 
 class _BookOrderPageState extends ConsumerState<BookOrderPage>
-    with BibleGameLanguageSync<BookOrderPage> {
+    with BibleGameLanguageSync<BookOrderPage>, GameLivesGate<BookOrderPage> {
   static const int booksPerRound = 5;
 
   late BibleGameEngine _engine;
@@ -103,6 +108,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
       _roundLanguage = language;
       _loading = false;
     });
+    noteNewRound();
   }
 
   @override
@@ -118,14 +124,16 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
         books,
         numberOfBooks: booksPerRound,
         language: language,
-      );
+    );
     });
+    noteNewRound();
   }
 
   void _tap(BibleGameBook book) {
     final round = _round;
     final session = _session;
     if (round == null || session == null) return;
+    if (isLocked) return;
     if (_picked.length >= round.shuffledBooks.length) return;
     final expected = round.correctOrder[_picked.length].name;
 
@@ -135,6 +143,9 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
         session.registerResult(correct: true, points: 10, advanceRound: false);
       });
       if (_picked.length == round.shuffledBooks.length) {
+        // The whole set is in canonical order: this round is over, so test it
+        // for a perfect run before the next round resets the test.
+        noteRoundComplete();
         session.roundIndex += 1;
         Future.delayed(const Duration(milliseconds: 550), () {
           if (!mounted) return;
@@ -146,11 +157,20 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
         _wrongFlashName = book.name;
         session.registerResult(correct: false, points: 0, advanceRound: false);
       });
+      // A wrong tap here is recoverable — the book stays on the board — but it
+      // still costs a life and disqualifies the round from a perfect refund.
+      noteWrongTap();
       Future.delayed(const Duration(milliseconds: 400), () {
         if (mounted) setState(() => _wrongFlashName = null);
       });
     }
   }
+
+  @override
+  BibleGameKind get gameKind => BibleGameKind.bookOrder;
+
+  @override
+  GameSession? get livesSession => _session;
 
   /// The localized name for a DB book name that is part of this round.
   String _labelFor(BookOrderRound round, String bookName) {
@@ -167,6 +187,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
     final strings = ref.watch(bibleGameStringsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final language = ref.watch(bibleGameLanguageProvider);
+    final livesState = ref.watch(gameLivesProvider);
     watchBibleGameLanguage();
 
     if (_unavailable) {
@@ -179,23 +200,23 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
       );
     }
 
+    if (livesState.hasValue && isLocked) {
+      return AppScaffold(
+        appBar: _buildAppBar(strings, language),
+        body: GameCooldownOverlay(
+          kind: gameKind,
+          title: strings.bookOrderTitle,
+        ),
+      );
+    }
+
     return AppScaffold(
-      appBar: AppBar(
-        title: Text(strings.bookOrderTitle),
-        actions: [
-          BibleGameLanguageToggle(
-            value: language,
-            compact: true,
-            onChanged: (value) => ref
-                .read(bibleGameLanguageProvider.notifier)
-                .setLanguage(value),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _loading || round == null || session == null
+      appBar: _buildAppBar(strings, language),
+      body: _loading || round == null || session == null || !livesLoaded
           ? Center(child: AppLoading(message: strings.bookOrderLoading))
-          : ListView(
+          : LifeLossShake(
+              trigger: lifeLossTrigger,
+              child: ListView(
               padding: const EdgeInsets.all(AppDimensions.paddingLg),
               children: [
                 GameScoreHeader(
@@ -203,7 +224,9 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
                   streak: session.streak,
                   optional: strings.roundLabel(session.roundIndex + 1),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+                buildLivesHeader(strings),
+                const SizedBox(height: 10),
                 GameRoundCard(
                   title: strings.bookOrderQuestion,
                   child: Column(
@@ -262,6 +285,25 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
                 ),
               ],
             ),
+            ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BibleGameStrings strings,
+    BibleGameLanguage language,
+  ) {
+    return AppBar(
+      title: Text(strings.bookOrderTitle),
+      actions: [
+        BibleGameLanguageToggle(
+          value: language,
+          compact: true,
+          onChanged: (value) =>
+              ref.read(bibleGameLanguageProvider.notifier).setLanguage(value),
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 }

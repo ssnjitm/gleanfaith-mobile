@@ -9,13 +9,18 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
 import '../../domain/entities/bible_game_localization.dart';
+import '../../domain/entities/game_lives.dart';
 import '../../domain/services/bible_game_engine.dart';
 import '../../domain/services/bible_game_session.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../providers/game_lives_provider.dart';
 import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
+import '../widgets/game_cooldown_overlay.dart';
+import '../widgets/game_lives_widgets.dart';
 import 'bible_game_language_sync.dart';
+import 'game_lives_gate.dart';
 
 /// Guess the Book — read the opening words of a random verse and tap the book
 /// it comes from. Endless rounds, 10 points per correct answer, streak
@@ -36,7 +41,7 @@ class GuessBookPage extends ConsumerStatefulWidget {
 }
 
 class _GuessBookPageState extends ConsumerState<GuessBookPage>
-    with BibleGameLanguageSync<GuessBookPage> {
+    with BibleGameLanguageSync<GuessBookPage>, GameLivesGate<GuessBookPage> {
   late BibleGameEngine _engine;
   GameSession? _session;
 
@@ -110,6 +115,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
       _roundLanguage = language;
       _loading = false;
     });
+    noteNewRound();
   }
 
   @override
@@ -126,18 +132,30 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
     await _nextRound();
   }
 
+  @override
+  BibleGameKind get gameKind => BibleGameKind.guessBook;
+
+  @override
+  GameSession? get livesSession => _session;
+
   void _select(String book) {
     final round = _round;
     final session = _session;
     if (_answered || _selected != null || round == null || session == null) {
       return;
     }
+    if (isLocked) return;
     final isCorrect = book == round.correctBook;
     setState(() {
       _selected = book;
       _answered = true;
       session.registerResult(correct: isCorrect, points: 10);
     });
+    if (isCorrect) {
+      noteRoundComplete();
+    } else {
+      noteWrongTap();
+    }
   }
 
   void _advance() => _nextRound();
@@ -157,6 +175,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
     final strings = ref.watch(bibleGameStringsProvider);
     final language = ref.watch(bibleGameLanguageProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final livesState = ref.watch(gameLivesProvider);
     watchBibleGameLanguage();
 
     if (_unavailable) {
@@ -169,28 +188,28 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
       );
     }
 
+    if (livesState.hasValue && isLocked) {
+      return AppScaffold(
+        appBar: _buildAppBar(strings, language),
+        body: GameCooldownOverlay(
+          kind: gameKind,
+          title: strings.guessBookTitle,
+        ),
+      );
+    }
+
     // Rendered labels fall back to the DB names until a round exists.
     final labels = (round?.displayOptions.isNotEmpty ?? false)
         ? round!.displayOptions
         : round?.options ?? const <String>[];
 
     return AppScaffold(
-      appBar: AppBar(
-        title: Text(strings.guessBookTitle),
-        actions: [
-          BibleGameLanguageToggle(
-            value: language,
-            compact: true,
-            onChanged: (value) => ref
-                .read(bibleGameLanguageProvider.notifier)
-                .setLanguage(value),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _loading || round == null || session == null
+      appBar: _buildAppBar(strings, language),
+      body: _loading || round == null || session == null || !livesLoaded
           ? Center(child: AppLoading(message: strings.guessBookLoading))
-          : ListView(
+          : LifeLossShake(
+              trigger: lifeLossTrigger,
+              child: ListView(
               padding: const EdgeInsets.all(AppDimensions.paddingLg),
               children: [
                 GameScoreHeader(
@@ -198,7 +217,9 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
                   streak: session.streak,
                   optional: strings.roundLabel(session.roundIndex + 1),
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+                buildLivesHeader(strings),
+                const SizedBox(height: 10),
                 GameRoundCard(
                   title: strings.guessBookQuestion,
                   child: Column(
@@ -325,6 +346,25 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
                 ],
               ],
             ),
+            ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(
+    BibleGameStrings strings,
+    BibleGameLanguage language,
+  ) {
+    return AppBar(
+      title: Text(strings.guessBookTitle),
+      actions: [
+        BibleGameLanguageToggle(
+          value: language,
+          compact: true,
+          onChanged: (value) =>
+              ref.read(bibleGameLanguageProvider.notifier).setLanguage(value),
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 }

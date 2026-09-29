@@ -8,13 +8,18 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
 import '../../domain/entities/bible_game_localization.dart';
+import '../../domain/entities/game_lives.dart';
 import '../../domain/services/bible_game_engine.dart';
 import '../../domain/services/bible_game_session.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../providers/game_lives_provider.dart';
 import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
+import '../widgets/game_cooldown_overlay.dart';
+import '../widgets/game_lives_widgets.dart';
 import 'bible_game_language_sync.dart';
+import 'game_lives_gate.dart';
 
 /// Higher / Lower — endless streak round: tap the book with MORE chapters.
 /// Each open starts a fresh random session so the pairs are never predictable.
@@ -32,7 +37,7 @@ class HigherLowerPage extends ConsumerStatefulWidget {
 }
 
 class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
-    with BibleGameLanguageSync<HigherLowerPage> {
+    with BibleGameLanguageSync<HigherLowerPage>, GameLivesGate<HigherLowerPage> {
   static const int pointsPerRound = 10;
 
   late BibleGameEngine _engine;
@@ -95,6 +100,7 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
       _roundLanguage = ref.read(bibleGameLanguageProvider);
       _loading = false;
     });
+    noteNewRound();
   }
 
   @override
@@ -110,18 +116,30 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
     });
   }
 
+  @override
+  BibleGameKind get gameKind => BibleGameKind.higherLower;
+
+  @override
+  GameSession? get livesSession => _session;
+
   void _select(BibleGameBook tapped) {
     final round = _round;
     final session = _session;
     if (_answered || _selected != null || round == null || session == null) {
       return;
     }
+    if (isLocked) return;
     final isCorrect = tapped.name == round.higher.name;
     setState(() {
       _selected = tapped.name;
       _answered = true;
       session.registerResult(correct: isCorrect, points: pointsPerRound);
     });
+    if (isCorrect) {
+      noteRoundComplete();
+    } else {
+      noteWrongTap();
+    }
   }
 
   GameOptionState _tileState(String bookName) {
@@ -139,6 +157,8 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
     final strings = ref.watch(bibleGameStringsProvider);
     final language = ref.watch(bibleGameLanguageProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    // Subscribe to lives so a life lost in the overlay or the hub lands here.
+    final livesState = ref.watch(gameLivesProvider);
     watchBibleGameLanguage();
 
     if (_unavailable) {
@@ -151,23 +171,24 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
       );
     }
 
+    // Cooldown outranks everything: a locked game never shows a playable board.
+    if (livesState.hasValue && isLocked) {
+      return AppScaffold(
+        appBar: _buildAppBar(strings, language),
+        body: GameCooldownOverlay(
+          kind: gameKind,
+          title: strings.higherLowerTitle,
+        ),
+      );
+    }
+
     return AppScaffold(
-      appBar: AppBar(
-        title: Text(strings.higherLowerTitle),
-        actions: [
-          BibleGameLanguageToggle(
-            value: language,
-            compact: true,
-            onChanged: (value) => ref
-                .read(bibleGameLanguageProvider.notifier)
-                .setLanguage(value),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: _loading || round == null || session == null
+      appBar: _buildAppBar(strings, language),
+      body: _loading || round == null || session == null || !livesLoaded
           ? Center(child: AppLoading(message: strings.higherLowerLoading))
-          : ListView(
+          : LifeLossShake(
+              trigger: lifeLossTrigger,
+              child: ListView(
               padding: const EdgeInsets.all(AppDimensions.paddingLg),
               children: [
                 GameScoreHeader(
@@ -175,7 +196,8 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
                   streak: session.streak,
                   optional: strings.neverEnding,
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 10),
+                buildLivesHeader(strings),
                 GameRoundCard(
                   title: strings.higherLowerQuestion,
                   child: Column(
@@ -241,6 +263,22 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
                 ),
               ],
             ),
+            ),
+    );
+  }
+
+  PreferredSizeWidget _buildAppBar(BibleGameStrings strings, BibleGameLanguage language) {
+    return AppBar(
+      title: Text(strings.higherLowerTitle),
+      actions: [
+        BibleGameLanguageToggle(
+          value: language,
+          compact: true,
+          onChanged: (value) =>
+              ref.read(bibleGameLanguageProvider.notifier).setLanguage(value),
+        ),
+        const SizedBox(width: 8),
+      ],
     );
   }
 }

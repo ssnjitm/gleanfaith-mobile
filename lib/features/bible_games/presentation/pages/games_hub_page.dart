@@ -11,9 +11,13 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/features/profile/presentation/widgets/profile_top_bar_button.dart';
 import '../../domain/entities/bible_game_localization.dart';
+import '../../domain/entities/game_lives.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../providers/game_lives_provider.dart';
 import '../widgets/bible_game_language_toggle.dart';
+import '../widgets/game_cooldown_dial.dart';
+import '../widgets/game_lives_widgets.dart';
 
 /// Hub listing the four offline Bible games. Requires the bundled SQLite Bible
 /// DB (unavailable in fallback mode, e.g. on web) — otherwise shows an empty
@@ -23,14 +27,37 @@ import '../widgets/bible_game_language_toggle.dart';
 /// `AppBar` overrides it and the choice is remembered on the next launch. The
 /// same toggle is repeated on every game page, so the switch is reachable
 /// without coming back here.
-class GamesHubPage extends ConsumerWidget {
+class GamesHubPage extends ConsumerStatefulWidget {
   const GamesHubPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<GamesHubPage> createState() => _GamesHubPageState();
+}
+
+class _GamesHubPageState extends ConsumerState<GamesHubPage> {
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // A cooldown that lapsed while the app was backgrounded is most likely to be
+    // discovered right here, so settle on the way in.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        ref.read(gameLivesProvider.notifier).settleExpiredCooldowns();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final data = ref.watch(localizedBibleGamesDataProvider);
     final strings = ref.watch(bibleGameStringsProvider);
     final language = ref.watch(bibleGameLanguageProvider);
+    // Watching the map is what flips a tile from locked to playable: the
+    // provider-level clock refills the pool the moment a cooldown ends, whether
+    // or not the game itself was ever opened. The countdowns inside the tiles
+    // tick themselves, so this page needs no timer of its own.
+    final lives = ref.watch(gameLivesProvider).value ??
+        const <BibleGameKind, GameLives>{};
 
     return AppScaffold(
       appBar: AppBar(
@@ -67,6 +94,9 @@ class GamesHubPage extends ConsumerWidget {
               subtitle: strings.dataUnavailableBody,
             );
           }
+          GameLives livesFor(BibleGameKind kind) =>
+              lives[kind] ?? const GameLives.full();
+
           return ListView(
             padding: const EdgeInsets.all(AppDimensions.paddingLg),
             children: [
@@ -82,6 +112,9 @@ class GamesHubPage extends ConsumerWidget {
                 title: strings.guessBookTitle,
                 subtitle: strings.guessBookSubtitle,
                 gradient: const [Color(0xFF2563EB), Color(0xFF3B82F6)],
+                lives: livesFor(BibleGameKind.guessBook),
+                strings: strings,
+                language: language,
                 onTap: () => context.pushNamed(RouteNames.guessTheBook),
               ),
               _GameTile(
@@ -89,6 +122,9 @@ class GamesHubPage extends ConsumerWidget {
                 title: strings.higherLowerTitle,
                 subtitle: strings.higherLowerSubtitle,
                 gradient: const [Color(0xFFD97706), Color(0xFFF59E0B)],
+                lives: livesFor(BibleGameKind.higherLower),
+                strings: strings,
+                language: language,
                 onTap: () => context.pushNamed(RouteNames.higherLower),
               ),
               _GameTile(
@@ -96,6 +132,9 @@ class GamesHubPage extends ConsumerWidget {
                 title: strings.bookOrderTitle,
                 subtitle: strings.bookOrderSubtitle,
                 gradient: const [Color(0xFF059669), Color(0xFF10B981)],
+                lives: livesFor(BibleGameKind.bookOrder),
+                strings: strings,
+                language: language,
                 onTap: () => context.pushNamed(RouteNames.bookOrderRace),
               ),
               _GameTile(
@@ -103,6 +142,9 @@ class GamesHubPage extends ConsumerWidget {
                 title: strings.findChapterTitle,
                 subtitle: strings.findChapterSubtitle,
                 gradient: const [Color(0xFF7C3AED), Color(0xFFA78BFA)],
+                lives: livesFor(BibleGameKind.findChapter),
+                strings: strings,
+                language: language,
                 onTap: () => context.pushNamed(RouteNames.findTheChapter),
               ),
             ],
@@ -225,6 +267,11 @@ class _GameTile extends StatelessWidget {
   final String title;
   final String subtitle;
   final List<Color> gradient;
+
+  /// This game's own lives. Shown as hearts, or as a lock + remaining time.
+  final GameLives lives;
+  final BibleGameStrings strings;
+  final BibleGameLanguage language;
   final VoidCallback onTap;
 
   const _GameTile({
@@ -232,23 +279,32 @@ class _GameTile extends StatelessWidget {
     required this.title,
     required this.subtitle,
     required this.gradient,
+    required this.lives,
+    required this.strings,
+    required this.language,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final locked = lives.isCooldownActiveAt(DateTime.now());
+    final dimmed = locked;
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+          color: locked
+              ? AppColors.error.withValues(alpha: isDark ? 0.5 : 0.35)
+              : (isDark ? const Color(0xFF334155) : AppColors.borderLight),
         ),
       ),
       child: Material(
         color: Colors.transparent,
+        // A locked game must not look tappable: it is the affordance that
+        // decides whether the player expects to enter or to be turned away.
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
           onTap: onTap,
@@ -264,10 +320,18 @@ class _GameTile extends StatelessWidget {
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
-                      colors: gradient,
+                      colors: dimmed
+                          ? gradient
+                              .map((c) => Color.lerp(c, Colors.black, 0.45)!)
+                              .toList()
+                          : gradient,
                     ),
                   ),
-                  child: Icon(icon, color: AppColors.textWhite, size: 26),
+                  child: Icon(
+                    locked ? Icons.lock_rounded : icon,
+                    color: AppColors.textWhite,
+                    size: 26,
+                  ),
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -292,11 +356,47 @@ class _GameTile extends StatelessWidget {
                               : AppColors.textMuted,
                         ),
                       ),
+                      const SizedBox(height: 8),
+                      // A locked tile says *why* it is locked and for how long,
+                      // so the hub is a status board, not a list of dead ends.
+                      if (locked)
+                        Row(
+                          children: [
+                            const Icon(
+                              Icons.lock_clock_rounded,
+                              size: 14,
+                              color: AppColors.error,
+                            ),
+                            const SizedBox(width: 4),
+                            Text(
+                              strings.cooldownLockedLabel,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.error,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            // Live, not a snapshot: this re-derives from the
+                            // clock every second on its own, so the badge keeps
+                            // moving even if the player never opens the game.
+                            GameCooldownCountdown(
+                              lives: lives,
+                              style: const TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ],
+                        )
+                      else
+                        GameLivesRow(lives: lives.lives, compact: true),
                     ],
                   ),
                 ),
                 Icon(
-                  Icons.chevron_right_rounded,
+                  locked ? Icons.refresh_rounded : Icons.chevron_right_rounded,
                   color: isDark ? const Color(0xFF64748B) : AppColors.textLight,
                 ),
               ],

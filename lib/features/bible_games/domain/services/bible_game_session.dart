@@ -29,6 +29,10 @@ class GameSession {
   /// Best streak reached this session.
   int bestStreak = 0;
 
+  /// Wrong taps in the round in progress. Drives the perfect-round life bonus:
+  /// a round finished with 0 mistakes is what earns a life back.
+  int mistakesThisRound = 0;
+
   /// Session-scoped random generator — stable for the session, different for
   /// every open. Pass to `BibleGameEngine(random: ...)`.
   Random get random => Random(seed);
@@ -37,7 +41,10 @@ class GameSession {
   /// drawing fresh content without ever repeating a previous session's order.
   int seedForRound(int n) => (seed + n * 7919) & 0x7fffffff;
 
-  /// Registers one answered round and updates score/streak. Set
+  /// Whether the round in progress is still clean.
+  bool get roundIsPerfect => mistakesThisRound == 0;
+
+  /// Registers one answered round and updates score/streak/mistakes. Set
   /// [advanceRound] to false when the answer is not a full "round" (e.g. a
   /// single book tap inside a Book Order round).
   void registerResult({
@@ -52,6 +59,13 @@ class GameSession {
       if (streak > bestStreak) bestStreak = streak;
     } else {
       streak = 0;
+      mistakesThisRound += 1;
     }
+  }
+
+  /// Clears the per-round mistake counter. Call when a new round starts — the
+  /// bonus is judged on the round that just ended, not the one beginning.
+  void beginRound() {
+    mistakesThisRound = 0;
   }
 }

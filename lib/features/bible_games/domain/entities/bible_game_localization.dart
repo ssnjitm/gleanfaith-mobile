@@ -1049,6 +1049,54 @@ const Map<String, Map<String, String>> bibleGameUiCopy = {
     'np': 'फोनको भाषा अनुसार',
   },
 
+  // ---- Lives & cooldown ----------------------------------------------------
+  'livesLabel': {
+    'en': 'Lives',
+    'np': 'जीवन',
+  },
+  'livesRemaining': {
+    'en': '{0} of {1} lives left',
+    'np': '{1} मध्ये {0} जीवन बाँकी',
+  },
+  'lifeLost': {
+    'en': 'Life lost!',
+    'np': 'एक जीवन गयो!',
+  },
+  'lastLifeLost': {
+    'en': 'That was your last life — {0} cooldown',
+    'np': 'यो तपाईंको अन्तिम जीवन थियो — {0} प्रतीक्षा',
+  },
+  'perfectRound': {
+    'en': 'Perfect! Life restored',
+    'np': 'एकदम सही! जीवन पुनःस्थापित',
+  },
+  'cooldownTitle': {
+    'en': 'Out of lives',
+    'np': 'जीवन सकिए',
+  },
+  'cooldownBody': {
+    'en': 'Come back in {0} to refill all {1} lives.',
+    'np': '{1} जीवन भरिपर्न {0} पछि फर्कनुहोस्।',
+  },
+  'cooldownLockedBadge': {
+    'en': 'Locked · {0}',
+    'np': 'बन्द · {0}',
+  },
+  // Static half of the hub badge; the time beside it is a live widget, so the
+  // label must not carry a snapshot of it.
+  'cooldownLockedLabel': {
+    'en': 'Locked',
+    'np': 'बन्द',
+  },
+  'cooldownWaiting': {
+    'en': 'Locked for {0}',
+    'np': '{0} बन्द',
+  },
+  'livesFull': {
+    'en': 'All lives full',
+    'np': 'सबै जीवन भरिपर्को',
+  },
+
   // ---- Higher / Lower -----------------------------------------------------
   'higherLowerLoading': {
     'en': 'Scoring the books...',
@@ -1364,6 +1412,49 @@ class BibleGameStrings {
       text('gameLanguageManual', fallback: 'Chosen by you');
   String get gameLanguageUseDevice =>
       text('gameLanguageUseDevice', fallback: 'Follow phone language');
+
+  // ---- Lives & cooldown ----------------------------------------------------
+  String get livesLabel => text('livesLabel', fallback: 'Lives');
+  String get lifeLost => text('lifeLost', fallback: 'Life lost!');
+  String get perfectRound =>
+      text('perfectRound', fallback: 'Perfect! Life restored');
+  String get cooldownTitle => text('cooldownTitle', fallback: 'Out of lives');
+  String get livesFull => text('livesFull', fallback: 'All lives full');
+
+  String livesRemaining(int remaining, int max) => numberText(
+        'livesRemaining',
+        numbers: [remaining, max],
+        fallback: '$remaining of $max lives left',
+      );
+
+  String lastLifeLost(String cooldown) => text(
+        'lastLifeLost',
+        args: [cooldown],
+        fallback: 'That was your last life — $cooldown cooldown',
+      );
+
+  String cooldownBody(String remaining, int max) => text(
+        'cooldownBody',
+        args: [remaining, formatCount(max, language)],
+        fallback: 'Come back in $remaining to refill all $max lives.',
+      );
+
+  String cooldownLockedBadge(String remaining) => text(
+        'cooldownLockedBadge',
+        args: [remaining],
+        fallback: 'Locked · $remaining',
+      );
+
+  /// The static word beside a live countdown — do not use
+  /// [cooldownLockedBadge] for that, it would freeze the time it was given.
+  String get cooldownLockedLabel =>
+      text('cooldownLockedLabel', fallback: 'Locked');
+
+  String cooldownWaiting(String remaining) => text(
+        'cooldownWaiting',
+        args: [remaining],
+        fallback: 'Locked for $remaining',
+      );
 
   /// `1/12` style position indicator, numerals in this language's style.
   String counter(int index, int total) => text(
