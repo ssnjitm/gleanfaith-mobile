@@ -4,6 +4,10 @@ import '../../../../core/services/logger_service.dart';
 import '../../domain/entities/quiz_entities.dart';
 import '../models/quiz_models.dart';
 
+/// Devanagari block (U+0900–U+097F) — the script Nepali is written in. Duplicated
+/// from `quiz_models.dart` so this diagnostic never goes stale against it.
+final RegExp _devanagari = RegExp(r'[\u0900-\u097F]');
+
 class QuizRemoteDataSource {
   final Dio _dio;
 
@@ -87,9 +91,15 @@ class QuizRemoteDataSource {
     return ActiveQuizModel.fromJson(session, language: language);
   }
 
-  /// Logs the key shape of the first question so a translation problem is
-  /// diagnosable without guessing. Only key names and string lengths are
-  /// printed — never the copy itself.
+  /// Logs, per question, whether a Nepali variant actually arrived from the
+  /// backend and whether the parser kept it. Only key names, string lengths and
+  /// script flags are printed — never the copy itself.
+  ///
+  /// The three outcomes are distinct and each points somewhere different:
+  ///   * `np key: absent`        -> the response shape is not the one we parse
+  ///   * `np key: len=0`         -> the backend shipped no translation
+  ///   * `np key: len>0 non-np`  -> the translation is not Devanagari
+  ///   * `parsed=hasNepali`      -> the parser kept it; the UI is the problem
   void _logQuestionShape(Map<String, dynamic> session) {
     final questions = session['questions'];
     if (questions is! List || questions.isEmpty) {
@@ -98,18 +108,74 @@ class QuizRemoteDataSource {
       );
       return;
     }
-    final first = _asMap(questions.first);
-    if (first == null) return;
-    final question = _asMap(first['question']);
-    final options = first['options'];
-    final firstOption = options is List && options.isNotEmpty
-        ? _asMap(options.first)
-        : null;
-    LoggerService.info(
-      'Quiz question keys: ${first.keys.join(', ')} | '
-      'question is ${question == null ? 'a ${first['question'].runtimeType}' : 'a map with ${question.keys.join(', ')}'} | '
-      'option keys: ${firstOption?.keys.join(', ') ?? 'n/a'}',
-    );
+    for (final entry in questions.take(3)) {
+      final first = _asMap(entry);
+      if (first == null) continue;
+      final parsed = QuizQuestionModel.fromJson(
+        first,
+        fallbackIndex: 0,
+      ).toEntity();
+      LoggerService.info(
+        'Quiz q${first['id'] ?? parsed.questionIndex}: '
+        'keys[${first.keys.join(', ')}] | '
+        'q=${_npState(first['question'])} | '
+        'opt=${_npState(first['options'])} | '
+        'parsed hasNepali=${parsed.hasNepali} '
+        'enOptions=${parsed.options.length} '
+        'npOptions=${parsed.optionsNp.length}',
+      );
+    }
+  }
+
+  /// Describes where a Nepali variant sits inside [value] without printing it.
+  String _npState(dynamic value) {
+    if (value is String) {
+      return 'plain string len=${value.length} '
+          'devanagari=${_devanagari.hasMatch(value)}';
+    }
+    if (value is! List) {
+      final map = _asMap(value) ?? const <String, dynamic>{};
+      if (map.isEmpty) {
+        return '${value.runtimeType} (no map, no np key)';
+      }
+      return 'map[${map.keys.join(', ')}] '
+          'np=${_npValueState(map)}';
+    }
+    var maps = 0;
+    var withNp = 0;
+    var withNonEmptyNp = 0;
+    for (final option in value) {
+      final map = _asMap(option);
+      if (map == null || map.isEmpty) continue;
+      maps++;
+      if (map.containsKey('np')) {
+        withNp++;
+        final np = map['np'];
+        if (np is String && np.trim().isNotEmpty) withNonEmptyNp++;
+      }
+    }
+    return value.isEmpty
+        ? 'empty list'
+        : 'list len=${value.length} maps=$maps withNpKey=$withNp '
+            'withNonEmptyNp=$withNonEmptyNp '
+            '(sample option keys: '
+            '${(_asMap(value.first) ?? const <String, dynamic>{}).keys.join(', ')})';
+  }
+
+  String _npValueState(Map<String, dynamic> map) {
+    if (!map.containsKey('np')) {
+      final script = map.entries
+          .where((e) => e.value is String)
+          .map((e) => '${e.key}(len=${(e.value as String).length},'
+              'np=${_devanagari.hasMatch(e.value as String)})')
+          .join(' ');
+      return 'absent [$script]';
+    }
+    final np = map['np'];
+    if (np is String) {
+      return 'len=${np.length} devanagari=${_devanagari.hasMatch(np)}';
+    }
+    return 'present as ${np.runtimeType}';
   }
 
   Future<AnswerResultModel> submitAnswer({

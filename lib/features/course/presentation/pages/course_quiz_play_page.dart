@@ -8,6 +8,8 @@ import '../../../../core/common/widgets/app_error_widget.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
+import '../../../quiz/domain/entities/quiz_entities.dart';
+import '../../../quiz/presentation/widgets/quiz_language_toggle.dart';
 import '../../domain/entities/course_entities.dart';
 import '../../domain/entities/course_progress_entities.dart';
 import '../providers/course_detail_provider.dart';
@@ -43,6 +45,10 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
   double get _progress => _quiz == null || _quiz!.questions.isEmpty
       ? 0
       : (_current + 1) / _quiz!.questions.length;
+
+  /// Live content language for this session. Only backend-supplied copy (question
+  /// text, options, explanations) follows it; the app's own chrome stays English.
+  QuizLanguage _language = QuizLanguage.english;
 
   @override
   void initState() {
@@ -283,6 +289,12 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                     ),
                   ),
                   const Spacer(),
+                  // EN | NP switches the backend content only, live.
+                  QuizLanguageToggle(
+                    value: _language,
+                    onChanged: (next) => setState(() => _language = next),
+                  ),
+                  const SizedBox(width: 10),
                   Text(
                     '${_current + 1}/${quiz.questions.length}',
                     style: const TextStyle(
@@ -407,7 +419,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
           ),
           const SizedBox(height: AppDimensions.paddingMd),
           Text(
-            q.text,
+            q.textFor(_language),
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w600,
@@ -415,6 +427,30 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
               color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
+          // Scripture reference from the backend, when the question carries one.
+          if (q.scriptureReference != null && q.scriptureReference!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.menu_book_rounded,
+                    size: 13,
+                    color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    q.scriptureReference!,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w600,
+                      color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           const SizedBox(height: AppDimensions.paddingLg),
           ...List.generate(q.options.length, (i) {
             final isThis = selected == i;
@@ -423,7 +459,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
               padding: const EdgeInsets.only(bottom: AppDimensions.sm),
               child: _optionTile(
                 letter: String.fromCharCode(65 + i),
-                text: q.options[i],
+                text: q.optionsFor(_language)[i],
                 isThis: isThis,
                 answered: answered,
                 isCorrectOption: isCorrectOption,

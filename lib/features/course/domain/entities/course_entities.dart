@@ -1,3 +1,5 @@
+import 'package:glean_faith_app/features/quiz/domain/entities/quiz_entities.dart';
+
 class CourseProgressSummary {
   final String status; // in_progress | completed
   final int completedItems;
@@ -111,13 +113,54 @@ class CourseQuizQuestion {
   final double points;
   final String? explanation;
 
+  /// Nepali variants from the backend, when present.
+  final String? textNp;
+  final List<String> optionsNp;
+  final String? explanationNp;
+
+  /// Scripture reference printed under the question, e.g. `1 Kings 16:30-31`.
+  final String? scriptureReference;
+
   const CourseQuizQuestion({
     required this.text,
     required this.options,
     required this.correctAnswerIndex,
     required this.points,
     required this.explanation,
+    this.textNp,
+    this.optionsNp = const [],
+    this.explanationNp,
+    this.scriptureReference,
   });
+
+  /// Question text for [language], falling back to English.
+  String textFor(QuizLanguage language) {
+    if (language == QuizLanguage.nepali) {
+      final translated = textNp?.trim();
+      if (translated != null && translated.isNotEmpty) return translated;
+    }
+    return text;
+  }
+
+  /// Options for [language]. Falls back to English when the Nepali list is
+  /// missing or a different length, so answer indices stay valid.
+  List<String> optionsFor(QuizLanguage language) {
+    if (language == QuizLanguage.nepali &&
+        optionsNp.length == options.length &&
+        optionsNp.isNotEmpty) {
+      return optionsNp;
+    }
+    return options;
+  }
+
+  /// Whether the backend shipped a usable Nepali variant.
+  bool get hasNepali {
+    final translated = textNp?.trim();
+    if (translated != null && translated.isNotEmpty) return true;
+    return options.isNotEmpty &&
+        optionsNp.length == options.length &&
+        optionsNp.isNotEmpty;
+  }
 }
 
 class CourseQuizSet {

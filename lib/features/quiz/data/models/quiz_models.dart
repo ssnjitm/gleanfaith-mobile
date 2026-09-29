@@ -35,10 +35,14 @@ bool? _asBool(dynamic value) {
   return null;
 }
 
+/// Reads a scalar. Maps and lists are deliberately NOT stringified: doing so
+/// would render a bilingual node as the literal `{en: ..., np: ...}` and leak
+/// container text (a `type` of `mcq`) into a question body. Nested structures
+/// are resolved by `_bilingual` / `_asMap` instead.
 String? _asString(dynamic value) {
   if (value is String) return value.isEmpty ? null : value;
-  if (value == null) return null;
-  return value.toString();
+  if (value is num || value is bool) return value.toString();
+  return null;
 }
 
 DateTime? _asDate(dynamic value) {
@@ -200,6 +204,7 @@ class QuizQuestionModel {
   final int questionIndex;
   final String? textNp;
   final List<String> optionsNp;
+  final String? scriptureReference;
 
   const QuizQuestionModel({
     required this.text,
@@ -207,6 +212,7 @@ class QuizQuestionModel {
     required this.questionIndex,
     this.textNp,
     this.optionsNp = const [],
+    this.scriptureReference,
   });
 
   factory QuizQuestionModel.fromJson(
@@ -263,6 +269,12 @@ class QuizQuestionModel {
           optionsNp.length == options.length && _usable(optionsNp)
           ? optionsNp
           : const [],
+      scriptureReference:
+          _asString(json['scripture_reference']) ??
+          _asString(json['scriptureReference']) ??
+          _asString(json['reference']) ??
+          _asString(json['scripture']) ??
+          _asString(json['verse_reference']),
     );
   }
 
@@ -277,29 +289,36 @@ class QuizQuestionModel {
 
   /// English question text.
   static String _englishText(Map<String, dynamic> json) {
-    // (a) `question: {en, np}`
-    final question = _asMap(json['question']);
-    if (question != null) {
-      final en = _bilingual(question).en;
+    // (a) `question: {en, np}` — or the same bilingual node on `text`, which is
+    // what the start endpoint uses today for its plain `text` string.
+    for (final key in const ['question', 'text']) {
+      final node = _asMap(json[key]);
+      if (node == null) continue;
+      final en = _bilingual(node).en;
       if (en != null) return en;
     }
     // (b) a plain `question` / `text` string.
     final plain = _asString(json['question']) ?? _asString(json['text']);
     if (plain != null) return plain;
-    // (c) `en: {text, options}`
-    final en = _node(json, 'en');
-    final nested = _asString(en?['text']) ?? _asString(en?['question']);
+    // (c) top-level `en` as a node (`{text, options}`) or a plain string.
+    final enNode = json['en'];
+    final nested = _asString(_asMap(enNode)?['text']) ??
+        _asString(_asMap(enNode)?['question']) ??
+        _asString(enNode);
     if (nested != null) return nested;
-    return _bilingual(json).en ?? '';
+    // Nothing identifiable: an empty body is far better than a container
+    // `toString()` or the question `type` leaking in as the question.
+    return '';
   }
 
   /// Nepali question text: known keys first, then a script scan so a renamed
   /// field cannot leave the EN | NP toggle inert.
   static String? _nepaliText(Map<String, dynamic> json, {required String english}) {
-    // (a) `question: {en, np}`
-    final question = _asMap(json['question']);
-    if (question != null) {
-      final np = _bilingual(question).np;
+    // (a) `question: {en, np}` or `text: {en, np}`.
+    for (final key in const ['question', 'text']) {
+      final node = _asMap(json[key]);
+      if (node == null) continue;
+      final np = _bilingual(node).np;
       if (np != null) return np;
     }
     // (b) sibling keys.
@@ -315,8 +334,10 @@ class QuizQuestionModel {
       if (_looksNepali(candidate)) return candidate;
     }
     // (c) / (d) `np: {text, options}`.
-    final np = _node(json, 'np');
-    final nested = _asString(np?['text']) ?? _asString(np?['question']);
+    final npNode = json['np'];
+    final nested = _asString(_asMap(npNode)?['text']) ??
+        _asString(_asMap(npNode)?['question']) ??
+        _asString(npNode);
     if (_looksNepali(nested)) return nested;
 
     // Last resort: any Devanagari string on the question that is not the
@@ -451,6 +472,7 @@ class QuizQuestionModel {
     questionIndex: questionIndex,
     textNp: textNp,
     optionsNp: optionsNp,
+    scriptureReference: scriptureReference,
   );
 }
 

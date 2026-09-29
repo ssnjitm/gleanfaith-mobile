@@ -113,12 +113,16 @@ class QuizQuestion {
   final String? textNp;
   final List<String> optionsNp;
 
+  /// Scripture reference from the backend, e.g. `1 Kings 16:30-31`.
+  final String? scriptureReference;
+
   const QuizQuestion({
     required this.text,
     required this.options,
     required this.questionIndex,
     this.textNp,
     this.optionsNp = const [],
+    this.scriptureReference,
   });
 
   /// Question text for the selected language, falling back to English when no

@@ -129,6 +129,136 @@ void main() {
       expect(daily.metadata?['dailyDate'], '2026-09-28');
     });
 
+    test('accepts the bilingual object on `text` (the start endpoint key)', () {
+      // Regression: `_asString` used to stringify a Map, which rendered the
+      // question body as "{en: ..., np: ...}".
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'durationSeconds': 600,
+        'questions': [
+          {
+            'index': 0,
+            'text': {
+              'en': "Which Psalm begins with 'Blessed is the man'?",
+              'np': "'धन्य छ मानिस' बाट सुरु हुने गीत कुन हो?",
+            },
+            'type': 'mcq',
+            'options': [
+              {
+                'id': 'a',
+                'text': {'en': 'Psalm 1', 'np': 'गीत १'},
+                'is_correct': true,
+              },
+              {
+                'id': 'b',
+                'text': {'en': 'Psalm 19', 'np': 'गीत १९'},
+                'is_correct': false,
+              },
+            ],
+            'points': 1,
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.text, "Which Psalm begins with 'Blessed is the man'?");
+      expect(question.text, isNot(contains('{')));
+      expect(question.text, isNot(contains('mcq')));
+      expect(question.textFor(QuizLanguage.nepali), "'धन्य छ मानिस' बाट सुरु हुने गीत कुन हो?");
+      expect(question.optionsFor(QuizLanguage.nepali), ['गीत १', 'गीत १९']);
+      expect(question.hasNepali, isTrue);
+      expect(question.questionIndex, 0);
+    });
+
+    test('accepts additive textNp / optionsNp next to plain English strings', () {
+      final model = ActiveQuizModel.fromJson({
+        'questions': [
+          {
+            'index': 0,
+            'text': 'Which Psalm begins with Blessed is the man?',
+            'textNp': 'धन्य छ मानिस बाट सुरु हुने गीत कुन हो?',
+            'options': ['Psalm 1', 'Psalm 19'],
+            'optionsNp': ['गीत १', 'गीत १९'],
+            'type': 'mcq',
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.text, 'Which Psalm begins with Blessed is the man?');
+      expect(question.hasNepali, isTrue);
+      expect(question.optionsFor(QuizLanguage.nepali), ['गीत १', 'गीत १९']);
+    });
+
+    test('accepts top-level en / np plain strings', () {
+      final model = ActiveQuizModel.fromJson({
+        'questions': [
+          {
+            'en': 'Who killed Absalom?',
+            'np': 'अबशालोमलाई कसले मार्‍यो?',
+            'options': [
+              {'en': 'Joab', 'np': 'योआब'},
+              {'en': 'Abner', 'np': 'अब्नेर'},
+            ],
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.text, 'Who killed Absalom?');
+      expect(question.optionsFor(QuizLanguage.nepali), ['योआब', 'अब्नेर']);
+    });
+
+    test('the English-only start payload still renders without a translation', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'index': 0,
+            'text': 'Which Psalm begins with Blessed is the man?',
+            'type': 'mcq',
+            'options': ['Psalm 1', 'Psalm 19', 'Psalm 51', 'Psalm 100'],
+            'points': 1,
+          },
+        ],
+        'durationSeconds': 600,
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.text, 'Which Psalm begins with Blessed is the man?');
+      expect(question.options.length, 4);
+      expect(question.hasNepali, isFalse);
+      expect(
+        question.textFor(QuizLanguage.nepali),
+        'Which Psalm begins with Blessed is the man?',
+      );
+    });
+
+    test('picks up scripture_reference and the is_correct answer key', () {
+      final model = ActiveQuizModel.fromJson({
+        'sessionId': 's-1',
+        'questions': [
+          {
+            'id': 'q_001',
+            'question': {
+              'en': 'Which king was married to Jezebel?',
+              'np': 'कुन राजाको विवाह इजबेलसँग थियो?',
+            },
+            'options': [
+              {'id': 'a', 'text': {'en': 'Ahab', 'np': 'आहाब'}, 'is_correct': true},
+              {'id': 'b', 'text': {'en': 'David', 'np': 'दाउद'}, 'is_correct': false},
+            ],
+            'scripture_reference': '1 Kings 16:30-31',
+          },
+        ],
+      });
+      final question = model.toEntity().questions.single;
+
+      expect(question.scriptureReference, '1 Kings 16:30-31');
+      expect(question.textFor(QuizLanguage.nepali), 'कुन राजाको विवाह इजबेलसँग थियो?');
+      expect(question.optionsFor(QuizLanguage.nepali), ['आहाब', 'दाउद']);
+    });
+
     test('parses the live payload where question and option text are {en, np} objects', () {
       // Verbatim shape from GET /quiz-schedule/{id}/start. `question` is an
       // object, not a string, and every option wraps its copy in

@@ -609,6 +609,33 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
               color: isDark ? Colors.white : AppColors.textPrimary,
             ),
           ),
+          // Scripture reference from the backend, when the question carries one.
+          if (q.scriptureReference != null &&
+              q.scriptureReference!.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.menu_book_rounded,
+                    size: 13,
+                    color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    q.scriptureReference!,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontStyle: FontStyle.italic,
+                      fontWeight: FontWeight.w600,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : AppColors.textMuted,
+                    ),
+                  ),
+                ],
+              ),
+            ),
           // Explicit proof of whether the Nepali variant was found, so a
           // backend that omits it is distinguishable from a broken toggle.
           if (_language == QuizLanguage.nepali && !q.hasNepali)
