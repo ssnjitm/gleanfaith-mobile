@@ -5,11 +5,15 @@ import '../../../../core/common/widgets/app_error_widget.dart';
 import '../../../../core/common/widgets/shimmer_widget.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
+import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
 
 /// Reveals one Bible fun fact at a time — a pure "did you know?" card, NOT a
 /// game. Cycles through every fact the offline DB can produce. Shown on the
 /// Home tab right after the quick actions.
+///
+/// Renders in the device language; `bibleFunFactsProvider` already bakes the
+/// translation into each fact.
 class HomeFunFactsCard extends ConsumerStatefulWidget {
   const HomeFunFactsCard({super.key});
 
@@ -30,6 +34,7 @@ class _HomeFunFactsCardState extends ConsumerState<HomeFunFactsCard> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final facts = ref.watch(bibleFunFactsProvider);
+    final strings = ref.watch(bibleGameStringsProvider);
 
     return facts.when(
       loading: () => const Padding(
@@ -43,7 +48,7 @@ class _HomeFunFactsCardState extends ConsumerState<HomeFunFactsCard> {
       error: (_, _) => Padding(
         padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
         child: AppErrorWidget(
-          message: 'Could not load Bible facts.',
+          message: strings.loadFailed,
           onRetry: () => ref.invalidate(bibleFunFactsProvider),
         ),
       ),
@@ -82,10 +87,10 @@ class _HomeFunFactsCardState extends ConsumerState<HomeFunFactsCard> {
                         ),
                       ),
                       const SizedBox(width: 10),
-                      const Expanded(
+                      Expanded(
                         child: Text(
-                          'Bible Fun Facts',
-                          style: TextStyle(
+                          strings.factsTitle,
+                          style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                             color: AppColors.textPrimary,
@@ -93,7 +98,7 @@ class _HomeFunFactsCardState extends ConsumerState<HomeFunFactsCard> {
                         ),
                       ),
                       Text(
-                        '${index + 1}/${list.length}',
+                        strings.counter(index + 1, list.length),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -155,9 +160,12 @@ class _HomeFunFactsCardState extends ConsumerState<HomeFunFactsCard> {
                         minimumSize: Size.zero,
                         tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                       ),
-                      child: const Text(
-                        'Next fact  ›',
-                        style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600),
+                      child: Text(
+                        strings.factsNext,
+                        style: const TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ),

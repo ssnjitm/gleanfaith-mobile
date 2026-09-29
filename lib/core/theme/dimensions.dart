@@ -12,6 +12,7 @@ class AppDimensions {
   static const double radiusMd = 8;
   static const double radiusLg = 12;
   static const double radiusXl = 16;
+  static const double radiusPill = 999;
 
   static const double paddingSm = 8;
   static const double paddingMd = 16;

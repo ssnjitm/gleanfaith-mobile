@@ -21,4 +21,8 @@ class AppConstants {
   static const String refreshTokenKey = 'refresh_token';
   static const String userIdKey = 'user_id';
   static const String courseQuizAttemptsKey = 'course_quiz_attempts';
+
+  /// Bible games EN | NP override. Holds `en` or `ne`; absent means "follow the
+  /// device locale".
+  static const String bibleGameLanguageKey = 'bible_game_language';
 }

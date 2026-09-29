@@ -2,6 +2,7 @@ import 'dart:math';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:glean_faith_app/features/bible_games/domain/entities/bible_game_entities.dart';
+import 'package:glean_faith_app/features/bible_games/domain/entities/bible_game_localization.dart';
 import 'package:glean_faith_app/features/bible_games/domain/services/bible_game_engine.dart';
 import 'package:glean_faith_app/features/bible_games/domain/services/bible_game_session.dart';
 
@@ -37,6 +38,7 @@ void main() {
       final engine = BibleGameEngine(random: Random(1));
       final round = engine.guessBookRound(
         books: _books,
+        language: BibleGameLanguage.english,
         verses: const [
           BibleGameVerse(
             book: 'Psalms',
@@ -57,6 +59,7 @@ void main() {
       final round = engine.guessBookRound(
         books: _books,
         wordsShown: 6,
+        language: BibleGameLanguage.english,
         verses: const [
           BibleGameVerse(
             book: 'Genesis',
@@ -179,8 +182,10 @@ void main() {
   group('bookHint', () {
     test('hints by book size without naming the book or its section', () {
       final engine = BibleGameEngine(random: Random(1));
-      String hintFor(String name) =>
-          engine.bookHint(_books.firstWhere((b) => b.name == name));
+      String hintFor(String name) => engine.bookHint(
+            _books.firstWhere((b) => b.name == name),
+            BibleGameLanguage.english,
+          );
 
       expect(hintFor('Genesis'), 'One of the longer books of the Bible');
       expect(hintFor('Psalms'), 'One of the longer books of the Bible');
@@ -188,6 +193,196 @@ void main() {
       expect(hintFor('John'), 'A mid-sized book');
       expect(hintFor('Revelation'), 'A mid-sized book');
       expect(hintFor('Amos'), 'A shorter book');
+    });
+  });
+
+  group('localization', () {
+    test('fromCode accepts every Nepali alias and rejects the rest', () {
+      for (final code in ['ne', 'np', 'nep', 'nepali', 'ne_NP', 'ne-Latn-NP']) {
+        expect(
+          BibleGameLanguage.fromCode(code),
+          BibleGameLanguage.nepali,
+          reason: '"\$code" should resolve to Nepali',
+        );
+      }
+      for (final code in ['en', 'en-US', '', '   ', null, 'fr']) {
+        expect(
+          BibleGameLanguage.fromCode(code),
+          BibleGameLanguage.english,
+          reason: '"\$code" should fall back to English',
+        );
+      }
+    });
+
+    test('the book catalog holds all 66 books with unique slugs', () {
+      expect(bibleGameBookCatalog.length, 66);
+      expect(
+        bibleGameBookCatalog.map((b) => b.slug).toSet().length,
+        66,
+        reason: 'slugs must be unique',
+      );
+      for (final book in bibleGameBookCatalog) {
+        expect(book.nameEn, isNotEmpty);
+        expect(book.nameNp, isNotEmpty);
+        expect(book.chapters, greaterThan(0));
+        expect(book.verses, greaterThan(0));
+      }
+    });
+
+    test('every copy entry has both English and Nepali text', () {
+      expect(bibleGameUiCopy, isNotEmpty);
+      for (final entry in bibleGameUiCopy.entries) {
+        final en = entry.value['en'];
+        final np = entry.value['np'];
+        expect(en, isNotNull, reason: '"\${entry.key}" has no English copy');
+        expect(np, isNotNull, reason: '"\${entry.key}" has no Nepali copy');
+        expect(en, isNotEmpty, reason: '"\${entry.key}" English copy is empty');
+        expect(np, isNotEmpty, reason: '"\${entry.key}" Nepali copy is empty');
+      }
+    });
+
+    test('the Nepali bundle resolves Nepali copy, not the English fallback', () {
+      // Regression: the copy map is keyed `np` while the ISO code is `ne`, so a
+      // lookup by the raw code silently returned English for every string.
+      final np = BibleGameStrings.of(BibleGameLanguage.nepali);
+      final en = BibleGameStrings.of(BibleGameLanguage.english);
+      for (final entry in bibleGameUiCopy.entries) {
+        expect(
+          np.text(entry.key),
+          entry.value['np'],
+          reason: '"\${entry.key}" did not resolve its Nepali copy',
+        );
+      }
+      expect(np.higherLowerQuestion, isNot(en.higherLowerQuestion));
+    });
+
+    test('the persisted code round-trips through fromCode', () {
+      // The EN | NP toggle stores `language.code` in secure storage and reads it
+      // back through `fromCode`. If a code is ever renamed, previously saved
+      // choices would silently fall back to English.
+      for (final language in BibleGameLanguage.values) {
+        expect(BibleGameLanguage.fromCode(language.code), language);
+      }
+    });
+
+    test('numberText renders Devanagari digits in Nepali only', () {
+      final np = BibleGameStrings.of(BibleGameLanguage.nepali);
+      final en = BibleGameStrings.of(BibleGameLanguage.english);
+      expect(toNepaliDigits('150'), '१५०');
+      expect(en.roundLabel(3), contains('3'));
+      expect(np.roundLabel(3), contains('३'));
+      expect(np.roundLabel(3), isNot(contains('3')));
+    });
+
+    test('placeholders are substituted and never leak as {0}', () {
+      final en = BibleGameStrings.of(BibleGameLanguage.english);
+      final rendered = en.higherLowerCorrect('Psalms', 150);
+      expect(rendered, contains('Psalms'));
+      expect(rendered, contains('150'));
+      expect(rendered, isNot(contains('{0}')));
+      expect(rendered, isNot(contains('{1}')));
+    });
+
+    test('displayNameFor localizes the book name but keeps identity intact', () {
+      final book = _book('Psalms', chapters: 150, index: 18);
+      expect(book.displayNameFor(BibleGameLanguage.english), 'Psalms');
+      final npName = book.displayNameFor(BibleGameLanguage.nepali);
+      expect(npName, isNotEmpty);
+      expect(npName, isNot('Psalms'));
+      final localized = book.localized(BibleGameLanguage.nepali);
+      expect(localized.name, 'Psalms', reason: 'identity must stay the DB name');
+      expect(localized.label, npName);
+    });
+
+    test('a curated verse is translated, an unlisted one falls back', () {
+      final curated = bibleGameVerseCatalog.first;
+      final translated = BibleGameVerse(
+        book: curated.bookEn,
+        chapter: curated.chapter,
+        verse: curated.verse,
+        text: curated.textEn,
+      ).localized(BibleGameLanguage.nepali);
+      expect(translated.hasTranslation, isTrue);
+      expect(translated.label, curated.textNp);
+      // The KJV text stays authoritative and untouched.
+      expect(translated.text, curated.textEn);
+      expect(translated.bookLabel, curated.bookNp);
+
+      final unlisted =
+          const BibleGameVerse(
+            book: 'Obadiah',
+            chapter: 1,
+            verse: 21,
+            text: 'And Zedekiah was in the house of prison.',
+          ).localized(BibleGameLanguage.nepali);
+      expect(unlisted.hasTranslation, isFalse);
+      expect(unlisted.label, 'And Zedekiah was in the house of prison.');
+    });
+
+    test('re-localizing switches back instead of keeping the old name', () {
+      // Regression: `localized` compared the resolved name against the DB name,
+      // so English looked like "no change" and left the Nepali displayName on
+      // screen. The EN | NP toggle re-localizes the same objects, so this is
+      // the exact path a live language switch takes.
+      final book = _book('Psalms', chapters: 150, index: 18);
+      final np = book.localized(BibleGameLanguage.nepali);
+      final backToEn = np.localized(BibleGameLanguage.english);
+      expect(np.label, isNot('Psalms'));
+      expect(backToEn.label, 'Psalms');
+      expect(backToEn.displayName, 'Psalms');
+      expect(backToEn.name, 'Psalms');
+
+      // And a full round trip is stable in both directions.
+      final again = backToEn.localized(BibleGameLanguage.nepali);
+      expect(again.label, np.label);
+      expect(again.label, isNot('Psalms'));
+    });
+
+    test('a localized round is rebuilt in the new language', () {
+      final engine = BibleGameEngine(random: Random(11));
+      final npBooks = _books
+          .map((b) => b.localized(BibleGameLanguage.nepali))
+          .toList();
+      final enBooks =
+          _books.map((b) => b.localized(BibleGameLanguage.english)).toList();
+
+      final npRound = engine.higherLowerRound(
+        npBooks,
+        language: BibleGameLanguage.nepali,
+      );
+      final enRound = engine.higherLowerRound(
+        enBooks,
+        language: BibleGameLanguage.english,
+      );
+      expect(npRound.left.label, isNot(enRound.left.label));
+
+      final npGrid = engine.findChapterRound(
+        npBooks,
+        language: BibleGameLanguage.nepali,
+      );
+      expect(npGrid.optionLabels.length, npGrid.options.length);
+      expect(npGrid.targetLabelText, isNotEmpty);
+
+      // Re-localizing the *same* objects must also flip the rendered labels —
+      // this is the exact path a live EN <-> NP tap takes inside a running game.
+      final flipped = engine.higherLowerRound(
+        npBooks.map((b) => b.localized(BibleGameLanguage.english)).toList(),
+        language: BibleGameLanguage.english,
+      );
+      expect(flipped.left.label, isNot(npRound.left.label));
+      expect(flipped.left.label, isNot(npRound.right.label));
+      expect(flipped.right.label, isNot(npRound.left.label));
+      expect(flipped.right.label, isNot(npRound.right.label));
+    });
+
+    test('chapter counts use the DB value, falling back to the catalog', () {
+      final dbBook = _book('Amos', chapters: 9, index: 29);
+      expect(dbBook.localized(BibleGameLanguage.nepali).chapterCount, 9);
+      // Zero counts (web fallback mode) are patched from the inline catalog.
+      final empty = dbBook.copyWith(chapterCount: 0, verseCount: 0);
+      final patched = empty.localized(BibleGameLanguage.nepali);
+      expect(patched.chapterCount, greaterThan(0));
+      expect(patched.verseCount, greaterThan(0));
     });
   });
 

@@ -610,7 +610,13 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
             ),
           ),
           // Scripture reference from the backend, when the question carries one.
-          if (q.scriptureReference != null &&
+          //
+          // Revealed ONLY after the answer is graded. A question like "Which
+          // book does this verse come from?" is answered by the reference, so
+          // showing `John 3:16` above the options hands over the answer and
+          // makes the daily quiz predictable. It appears with the feedback.
+          if (_lastAnswer != null &&
+              q.scriptureReference != null &&
               q.scriptureReference!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),

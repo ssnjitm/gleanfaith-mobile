@@ -9,14 +9,24 @@ import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
+import '../../domain/entities/bible_game_localization.dart';
 import '../../domain/services/bible_game_engine.dart';
 import '../../domain/services/bible_game_session.dart';
+import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
+import 'bible_game_language_sync.dart';
 
 /// Find the Chapter — a 60-second blitz. Tap the tile holding the target
 /// "book chapter"; every hit fires a fresh round instantly. Every open starts
 /// a fresh random session so the grid layout is never the same twice.
+///
+/// Renders in the device language by default, overridable with the `EN | NP`
+/// toggle in the `AppBar`: tiles show the localized book name and Devanagari
+/// chapter numbers, while the tap comparison runs against the DB identity
+/// labels. Switching language rebuilds the grid in place and keeps the clock
+/// running, so a mid-blitz switch neither costs nor grants time.
 class FindChapterPage extends ConsumerStatefulWidget {
   const FindChapterPage({super.key});
 
@@ -24,7 +34,8 @@ class FindChapterPage extends ConsumerStatefulWidget {
   ConsumerState<FindChapterPage> createState() => _FindChapterPageState();
 }
 
-class _FindChapterPageState extends ConsumerState<FindChapterPage> {
+class _FindChapterPageState extends ConsumerState<FindChapterPage>
+    with BibleGameLanguageSync<FindChapterPage> {
   static const int roundSeconds = 60;
   static const int gridSize = 16;
 
@@ -41,6 +52,12 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage> {
   bool _unavailable = false;
   int _secondsLeft = roundSeconds;
   int _correctCount = 0;
+
+  /// The language the visible grid was built with.
+  BibleGameLanguage _roundLanguage = BibleGameLanguage.english;
+
+  @override
+  BibleGameLanguage get roundLanguage => _roundLanguage;
 
   @override
   void initState() {
@@ -70,7 +87,7 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage> {
       _loading = true;
       _unavailable = false;
     });
-    final data = await ref.read(bibleGamesDataProvider.future);
+    final data = await ref.read(localizedBibleGamesDataProvider.future);
     if (!mounted) return;
     if (data.isEmpty) {
       setState(() {
@@ -98,11 +115,36 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage> {
   }
 
   void _nextRound() {
+    final language = ref.read(bibleGameLanguageProvider);
     setState(() {
       _successLabel = null;
       _wrongFlashLabel = null;
-      _round = _engine.findChapterRound(_books, gridSize: gridSize);
+      _round = _engine.findChapterRound(
+        _books,
+        gridSize: gridSize,
+        language: language,
+      );
+      _roundLanguage = language;
       _loading = false;
+    });
+  }
+
+  @override
+  Future<void> applyBibleGameLanguage(BibleGameLanguage language) async {
+    final books = await localizedBooks();
+    if (!mounted) return;
+    // A finished blitz keeps its result card — there is no grid to relabel.
+    if (_finished) return;
+    setState(() {
+      _books = books;
+      _successLabel = null;
+      _wrongFlashLabel = null;
+      _roundLanguage = language;
+      _round = _engine.findChapterRound(
+        books,
+        gridSize: gridSize,
+        language: language,
+      );
     });
   }
 
@@ -136,47 +178,75 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage> {
   Widget build(BuildContext context) {
     final round = _round;
     final session = _session;
+    final strings = ref.watch(bibleGameStringsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final language = ref.watch(bibleGameLanguageProvider);
+    watchBibleGameLanguage();
 
     if (_unavailable) {
-      return const AppScaffold(
+      return AppScaffold(
         body: AppEmptyState(
           icon: Icons.menu_book_outlined,
-          title: 'Bible data unavailable',
-          subtitle: 'This game needs the offline Bible database, which is not '
-              'available in this build.',
+          title: strings.dataUnavailableTitle,
+          subtitle: strings.dataUnavailableBody,
         ),
       );
     }
 
     if (_finished) {
       return AppScaffold(
+        appBar: AppBar(
+          title: Text(strings.findChapterTitle),
+          actions: [
+            BibleGameLanguageToggle(
+              value: language,
+              compact: true,
+              onChanged: (value) => ref
+                  .read(bibleGameLanguageProvider.notifier)
+                  .setLanguage(value),
+            ),
+            const SizedBox(width: 8),
+          ],
+        ),
         body: GameResultCard(
           score: session?.score ?? 0,
           bestStreak: session?.bestStreak ?? 0,
           totalAnswered: _correctCount,
-          title: 'Find the Chapter',
-          subtitle: 'Time is up — you found $_correctCount chapters!',
+          title: strings.findChapterTitle,
+          subtitle: strings.findChapterTimeUp(_correctCount),
+          strings: strings,
           onReplay: _startGame,
         ),
       );
     }
 
     return AppScaffold(
-      appBar: AppBar(title: const Text('Find the Chapter')),
+      appBar: AppBar(
+        title: Text(strings.findChapterTitle),
+        actions: [
+          BibleGameLanguageToggle(
+            value: language,
+            compact: true,
+            onChanged: (value) => ref
+                .read(bibleGameLanguageProvider.notifier)
+                .setLanguage(value),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: _loading || round == null || session == null
-          ? const Center(child: AppLoading(message: 'Laying out the grid…'))
+          ? Center(child: AppLoading(message: strings.findChapterLoading))
           : ListView(
               padding: const EdgeInsets.all(AppDimensions.paddingLg),
               children: [
                 GameScoreHeader(
                   score: session.score,
                   streak: session.streak,
-                  optional: '${_secondsLeft}s left',
+                  optional: strings.secondsLeft(_secondsLeft),
                 ),
                 const SizedBox(height: 16),
                 GameRoundCard(
-                  title: 'Tap “${round.targetLabel}”',
+                  title: strings.findChapterTap(round.targetLabelText),
                   child: GridView.count(
                     crossAxisCount: 4,
                     shrinkWrap: true,
@@ -185,23 +255,22 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage> {
                     crossAxisSpacing: 8,
                     childAspectRatio: 1.05,
                     children: [
-                      for (final option in round.options)
+                      for (var i = 0; i < round.options.length; i++)
                         _ChapterTile(
-                          label: option,
-                          state: option == _successLabel
+                          label: round.optionLabels[i],
+                          state: round.options[i] == _successLabel
                               ? GameOptionState.correct
-                              : (option == _wrongFlashLabel
+                              : (round.options[i] == _wrongFlashLabel
                                   ? GameOptionState.wrong
                                   : GameOptionState.idle),
-                          onTap: () => _tap(option),
+                          onTap: () => _tap(round.options[i]),
                         ),
                     ],
                   ),
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Find “${round.targetLabel}” fast — each hit scores 10 and a '
-                  'new grid appears. Wrong taps cost your streak.',
+                  strings.findChapterFooter(round.targetLabelText),
                   style: TextStyle(
                     fontSize: 13,
                     color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,

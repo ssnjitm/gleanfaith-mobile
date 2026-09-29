@@ -7,14 +7,22 @@ import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
+import '../../domain/entities/bible_game_localization.dart';
 import '../../domain/services/bible_game_engine.dart';
 import '../../domain/services/bible_game_session.dart';
+import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
+import 'bible_game_language_sync.dart';
 
 /// Book Order Race — tap the five book tiles in canonical Bible order.
 /// Endless rounds; auto-advances when a round is completed. Every open starts
 /// a fresh random session so the book sets/order are never predictable.
+///
+/// Renders in the device language by default, overridable with the `EN | NP`
+/// toggle in the `AppBar`. Tiles are compared by DB book name, so a Nepali
+/// round is scored exactly like an English one.
 class BookOrderPage extends ConsumerStatefulWidget {
   const BookOrderPage({super.key});
 
@@ -22,7 +30,8 @@ class BookOrderPage extends ConsumerStatefulWidget {
   ConsumerState<BookOrderPage> createState() => _BookOrderPageState();
 }
 
-class _BookOrderPageState extends ConsumerState<BookOrderPage> {
+class _BookOrderPageState extends ConsumerState<BookOrderPage>
+    with BibleGameLanguageSync<BookOrderPage> {
   static const int booksPerRound = 5;
 
   late BibleGameEngine _engine;
@@ -30,10 +39,19 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage> {
 
   List<BibleGameBook> _books = const [];
   BookOrderRound? _round;
+
+  /// DB book names already tapped this round, in tap order. Identity, not
+  /// labels — the chips render the localized name.
   final List<String> _picked = [];
   String? _wrongFlashName;
   bool _loading = true;
   bool _unavailable = false;
+
+  /// The language the visible tile set was built with.
+  BibleGameLanguage _roundLanguage = BibleGameLanguage.english;
+
+  @override
+  BibleGameLanguage get roundLanguage => _roundLanguage;
 
   @override
   void initState() {
@@ -59,7 +77,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage> {
       _wrongFlashName = null;
     });
     _picked.clear();
-    final data = await ref.read(bibleGamesDataProvider.future);
+    final data = await ref.read(localizedBibleGamesDataProvider.future);
     if (!mounted) return;
     if (data.isEmpty) {
       setState(() {
@@ -73,11 +91,34 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage> {
   }
 
   void _nextRound() {
+    final language = ref.read(bibleGameLanguageProvider);
     setState(() {
       _picked.clear();
       _wrongFlashName = null;
-      _round = _engine.bookOrderRound(_books, numberOfBooks: booksPerRound);
+      _round = _engine.bookOrderRound(
+        _books,
+        numberOfBooks: booksPerRound,
+        language: language,
+      );
+      _roundLanguage = language;
       _loading = false;
+    });
+  }
+
+  @override
+  Future<void> applyBibleGameLanguage(BibleGameLanguage language) async {
+    final books = await localizedBooks();
+    if (!mounted) return;
+    setState(() {
+      _books = books;
+      _picked.clear();
+      _wrongFlashName = null;
+      _roundLanguage = language;
+      _round = _engine.bookOrderRound(
+        books,
+        numberOfBooks: booksPerRound,
+        language: language,
+      );
     });
   }
 
@@ -111,45 +152,66 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage> {
     }
   }
 
+  /// The localized name for a DB book name that is part of this round.
+  String _labelFor(BookOrderRound round, String bookName) {
+    for (final book in round.shuffledBooks) {
+      if (book.name == bookName) return book.label;
+    }
+    return bookName;
+  }
+
   @override
   Widget build(BuildContext context) {
     final round = _round;
     final session = _session;
+    final strings = ref.watch(bibleGameStringsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final language = ref.watch(bibleGameLanguageProvider);
+    watchBibleGameLanguage();
 
     if (_unavailable) {
-      return const AppScaffold(
+      return AppScaffold(
         body: AppEmptyState(
           icon: Icons.menu_book_outlined,
-          title: 'Bible data unavailable',
-          subtitle: 'This game needs the offline Bible database, which is not '
-              'available in this build.',
+          title: strings.dataUnavailableTitle,
+          subtitle: strings.dataUnavailableBody,
         ),
       );
     }
 
     return AppScaffold(
-      appBar: AppBar(title: const Text('Book Order Race')),
+      appBar: AppBar(
+        title: Text(strings.bookOrderTitle),
+        actions: [
+          BibleGameLanguageToggle(
+            value: language,
+            compact: true,
+            onChanged: (value) => ref
+                .read(bibleGameLanguageProvider.notifier)
+                .setLanguage(value),
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
       body: _loading || round == null || session == null
-          ? const Center(child: AppLoading(message: 'Shuffling the books…'))
+          ? Center(child: AppLoading(message: strings.bookOrderLoading))
           : ListView(
               padding: const EdgeInsets.all(AppDimensions.paddingLg),
               children: [
                 GameScoreHeader(
                   score: session.score,
                   streak: session.streak,
-                  optional: 'Round ${session.roundIndex + 1}',
+                  optional: strings.roundLabel(session.roundIndex + 1),
                 ),
                 const SizedBox(height: 16),
                 GameRoundCard(
-                  title: 'Tap the books in Bible order',
+                  title: strings.bookOrderQuestion,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       if (_picked.isEmpty)
                         Text(
-                          'Round ${session.roundIndex + 1} — '
-                          'start with the earliest book.',
+                          strings.bookOrderStartWith(session.roundIndex + 1),
                           style: TextStyle(
                             fontSize: 13,
                             color: isDark
@@ -163,7 +225,10 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage> {
                           runSpacing: 8,
                           children: [
                             for (var i = 0; i < _picked.length; i++)
-                              _OrderChip(index: i + 1, name: _picked[i]),
+                              _OrderChip(
+                                index: i + 1,
+                                name: _labelFor(round, _picked[i]),
+                              ),
                           ],
                         ),
                       const SizedBox(height: 16),
@@ -178,7 +243,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage> {
                           for (final book in round.shuffledBooks)
                             if (!_picked.contains(book.name))
                               _OrderTile(
-                                name: book.name,
+                                name: book.label,
                                 isWrongFlash: book.name == _wrongFlashName,
                                 onTap: () => _tap(book),
                               ),
@@ -189,8 +254,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Pick the next book in canonical order. A wrong tap breaks '
-                  'your streak but keeps you on this round.',
+                  strings.bookOrderFooter,
                   style: TextStyle(
                     fontSize: 13,
                     color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,

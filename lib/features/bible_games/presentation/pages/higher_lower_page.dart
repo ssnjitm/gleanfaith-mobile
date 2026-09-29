@@ -7,13 +7,23 @@ import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
+import '../../domain/entities/bible_game_localization.dart';
 import '../../domain/services/bible_game_engine.dart';
 import '../../domain/services/bible_game_session.dart';
+import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
+import 'bible_game_language_sync.dart';
 
 /// Higher / Lower — endless streak round: tap the book with MORE chapters.
 /// Each open starts a fresh random session so the pairs are never predictable.
+///
+/// Renders in the device language by default, overridable with the `EN | NP`
+/// toggle in the `AppBar` (see `bibleGameLanguageProvider`): the book names, the
+/// chapter counts and every line of copy all come from the inline localization
+/// data. Identity comparisons still use the DB book names, so a Nepali round
+/// scores exactly like an English one.
 class HigherLowerPage extends ConsumerStatefulWidget {
   const HigherLowerPage({super.key});
 
@@ -21,7 +31,8 @@ class HigherLowerPage extends ConsumerStatefulWidget {
   ConsumerState<HigherLowerPage> createState() => _HigherLowerPageState();
 }
 
-class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
+class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
+    with BibleGameLanguageSync<HigherLowerPage> {
   static const int pointsPerRound = 10;
 
   late BibleGameEngine _engine;
@@ -33,6 +44,13 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
   bool _loading = true;
   bool _answered = false;
   bool _unavailable = false;
+
+  /// The language the current pair was built with, so the sync mixin can tell a
+  /// real switch apart from a rebuild.
+  BibleGameLanguage _roundLanguage = BibleGameLanguage.english;
+
+  @override
+  BibleGameLanguage get roundLanguage => _roundLanguage;
 
   @override
   void initState() {
@@ -52,7 +70,7 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
       _loading = true;
       _unavailable = false;
     });
-    final data = await ref.read(bibleGamesDataProvider.future);
+    final data = await ref.read(localizedBibleGamesDataProvider.future);
     if (!mounted) return;
     if (data.isEmpty) {
       setState(() {
@@ -62,6 +80,7 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
       return;
     }
     setState(() => _books = data.books);
+    _roundLanguage = ref.read(bibleGameLanguageProvider);
     _nextRound();
   }
 
@@ -69,8 +88,25 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
     setState(() {
       _answered = false;
       _selected = null;
-      _round = _engine.higherLowerRound(_books);
+      _round = _engine.higherLowerRound(
+        _books,
+        language: ref.read(bibleGameLanguageProvider),
+      );
+      _roundLanguage = ref.read(bibleGameLanguageProvider);
       _loading = false;
+    });
+  }
+
+  @override
+  Future<void> applyBibleGameLanguage(BibleGameLanguage language) async {
+    final books = await localizedBooks();
+    if (!mounted) return;
+    setState(() {
+      _books = books;
+      _roundLanguage = language;
+      _answered = false;
+      _selected = null;
+      _round = _engine.higherLowerRound(books, language: language);
     });
   }
 
@@ -100,50 +136,64 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
   Widget build(BuildContext context) {
     final round = _round;
     final session = _session;
+    final strings = ref.watch(bibleGameStringsProvider);
+    final language = ref.watch(bibleGameLanguageProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    watchBibleGameLanguage();
 
     if (_unavailable) {
-      return const AppScaffold(
+      return AppScaffold(
         body: AppEmptyState(
           icon: Icons.menu_book_outlined,
-          title: 'Bible data unavailable',
-          subtitle: 'This game needs the offline Bible database, which is not '
-              'available in this build.',
+          title: strings.dataUnavailableTitle,
+          subtitle: strings.dataUnavailableBody,
         ),
       );
     }
 
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('Higher / Lower'),
+        title: Text(strings.higherLowerTitle),
+        actions: [
+          BibleGameLanguageToggle(
+            value: language,
+            compact: true,
+            onChanged: (value) => ref
+                .read(bibleGameLanguageProvider.notifier)
+                .setLanguage(value),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _loading || round == null || session == null
-          ? const Center(child: AppLoading(message: 'Scoring the books…'))
+          ? Center(child: AppLoading(message: strings.higherLowerLoading))
           : ListView(
               padding: const EdgeInsets.all(AppDimensions.paddingLg),
               children: [
                 GameScoreHeader(
                   score: session.score,
                   streak: session.streak,
-                  optional: 'Never-ending',
+                  optional: strings.neverEnding,
                 ),
                 const SizedBox(height: 16),
                 GameRoundCard(
-                  title: 'Which book has more chapters?',
+                  title: strings.higherLowerQuestion,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _BookTapTile(
-                        label: round.left.name,
-                        chapterCount: _answered ? round.left.chapterCount : null,
+                        label: round.left.label,
+                        chapterLabel: _answered
+                            ? strings.chaptersSuffix(round.left.chapterCount)
+                            : null,
                         state: _tileState(round.left.name),
                         onTap: () => _select(round.left),
                       ),
                       const SizedBox(height: 12),
                       _BookTapTile(
-                        label: round.right.name,
-                        chapterCount: _answered
-                            ? round.right.chapterCount
+                        label: round.right.label,
+                        chapterLabel: _answered
+                            ? strings.chaptersSuffix(round.right.chapterCount)
                             : null,
                         state: _tileState(round.right.name),
                         onTap: () => _select(round.right),
@@ -152,10 +202,14 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
                         const SizedBox(height: 16),
                         Text(
                           _selected == round.higher.name
-                              ? 'More chapters: ${round.higher.name} '
-                                  '(${round.higher.chapterCount}).'
-                              : 'Streak broken! ${round.higher.name} wins with '
-                                  '${round.higher.chapterCount} chapters.',
+                              ? strings.higherLowerCorrect(
+                                  round.higher.label,
+                                  round.higher.chapterCount,
+                                )
+                              : strings.higherLowerWrong(
+                                  round.higher.label,
+                                  round.higher.chapterCount,
+                                ),
                           style: const TextStyle(
                             fontSize: 14,
                             fontWeight: FontWeight.w600,
@@ -168,7 +222,7 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
                           child: ElevatedButton(
                             style: AppButtonStyles.primaryGradientButton,
                             onPressed: _nextRound,
-                            child: const Text('Next Round'),
+                            child: Text(strings.nextRound),
                           ),
                         ),
                       ],
@@ -177,11 +231,12 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  'Chapter counts are hidden until you pick. Keep your streak '
-                  'alive — wrong picks reset it.',
+                  strings.higherLowerFooter,
                   style: TextStyle(
                     fontSize: 13,
-                    color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : AppColors.textMuted,
                   ),
                 ),
               ],
@@ -191,14 +246,19 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage> {
 }
 
 class _BookTapTile extends StatelessWidget {
+  /// The book name to render, already localized by the engine.
   final String label;
-  final int? chapterCount;
+
+  /// Shown only after answering; already formatted for the active language
+  /// (e.g. `50 ch` or `५० अध्याय`).
+  final String? chapterLabel;
+
   final GameOptionState state;
   final VoidCallback onTap;
 
   const _BookTapTile({
     required this.label,
-    required this.chapterCount,
+    required this.chapterLabel,
     required this.state,
     required this.onTap,
   });
@@ -271,9 +331,9 @@ class _BookTapTile extends StatelessWidget {
                   ),
                 ),
               ),
-              if (chapterCount != null)
+              if (chapterLabel != null)
                 Text(
-                  '$chapterCount ch',
+                  chapterLabel!,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,

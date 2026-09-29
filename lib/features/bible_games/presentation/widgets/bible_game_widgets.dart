@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
+import '../../domain/entities/bible_game_localization.dart';
 
 enum GameOptionState { idle, selected, correct, wrong }
 
@@ -218,12 +219,17 @@ class GameOptionTile extends StatelessWidget {
 
 /// End-of-game summary card with the score, best streak and replay/home
 /// actions.
+///
+/// [strings] supplies the four remaining labels (replay, home, the correct
+/// count and the best-streak line) so the card renders in the device language
+/// like the rest of the games.
 class GameResultCard extends StatelessWidget {
   final int score;
   final int bestStreak;
   final int totalAnswered;
   final String title;
   final String subtitle;
+  final BibleGameStrings strings;
   final VoidCallback onReplay;
 
   const GameResultCard({
@@ -233,6 +239,7 @@ class GameResultCard extends StatelessWidget {
     required this.totalAnswered,
     required this.title,
     required this.subtitle,
+    required this.strings,
     required this.onReplay,
   });
 
@@ -315,7 +322,7 @@ class GameResultCard extends StatelessWidget {
                       ),
                     ),
                     Text(
-                      'Correct answers out of $totalAnswered',
+                      strings.correctOutOf(totalAnswered),
                       style: const TextStyle(
                         fontSize: 13,
                         color: AppColors.textMuted,
@@ -332,7 +339,7 @@ class GameResultCard extends StatelessWidget {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          'Best streak: $bestStreak',
+                          strings.bestStreak(bestStreak),
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
@@ -351,7 +358,7 @@ class GameResultCard extends StatelessWidget {
                     child: OutlinedButton(
                       style: AppButtonStyles.outlinedButton,
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Home'),
+                      child: Text(strings.goHome),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -359,7 +366,7 @@ class GameResultCard extends StatelessWidget {
                     child: ElevatedButton(
                       style: AppButtonStyles.primaryGradientButton,
                       onPressed: onReplay,
-                      child: const Text('Play Again'),
+                      child: Text(strings.playAgain),
                     ),
                   ),
                 ],

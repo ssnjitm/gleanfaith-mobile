@@ -8,16 +8,26 @@ import '../../../../core/services/database_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
+import '../../domain/entities/bible_game_localization.dart';
 import '../../domain/services/bible_game_engine.dart';
 import '../../domain/services/bible_game_session.dart';
+import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
+import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
+import 'bible_game_language_sync.dart';
 
 /// Guess the Book — read the opening words of a random verse and tap the book
 /// it comes from. Endless rounds, 10 points per correct answer, streak
 /// tracking. A fresh random session is created on every open, so the verse
 /// order is never the same twice. The verse reference stays hidden until you
 /// answer so it can't give the book away.
+///
+/// Renders in the device language by default, overridable with the `EN | NP`
+/// toggle in the `AppBar`. The offline DB supplies the KJV verse, but in Nepali
+/// mode the inline catalog's translation is used when it holds one for that
+/// exact book/chapter/verse; otherwise the KJV text is shown together with a
+/// visible "no translation" note rather than passing for Nepali.
 class GuessBookPage extends ConsumerStatefulWidget {
   const GuessBookPage({super.key});
 
@@ -25,7 +35,8 @@ class GuessBookPage extends ConsumerStatefulWidget {
   ConsumerState<GuessBookPage> createState() => _GuessBookPageState();
 }
 
-class _GuessBookPageState extends ConsumerState<GuessBookPage> {
+class _GuessBookPageState extends ConsumerState<GuessBookPage>
+    with BibleGameLanguageSync<GuessBookPage> {
   late BibleGameEngine _engine;
   GameSession? _session;
 
@@ -35,6 +46,12 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
   bool _loading = true;
   bool _answered = false;
   bool _unavailable = false;
+
+  /// The language the visible verse and options were built with.
+  BibleGameLanguage _roundLanguage = BibleGameLanguage.english;
+
+  @override
+  BibleGameLanguage get roundLanguage => _roundLanguage;
 
   @override
   void initState() {
@@ -54,7 +71,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
       _loading = true;
       _unavailable = false;
     });
-    final data = await ref.read(bibleGamesDataProvider.future);
+    final data = await ref.read(localizedBibleGamesDataProvider.future);
     if (!mounted) return;
     if (data.isEmpty) {
       setState(() {
@@ -80,11 +97,33 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
       seed: session.seedForRound(session.roundIndex),
     );
     if (!mounted) return;
-    final verses = rows.map(BibleGameVerse.fromDbRow).toList();
+    final language = ref.read(bibleGameLanguageProvider);
+    final verses = [
+      for (final row in rows) BibleGameVerse.fromDbRow(row).localized(language),
+    ];
     setState(() {
-      _round = _engine.guessBookRound(books: _books, verses: verses);
+      _round = _engine.guessBookRound(
+        books: _books,
+        verses: verses,
+        language: language,
+      );
+      _roundLanguage = language;
       _loading = false;
     });
+  }
+
+  @override
+  Future<void> applyBibleGameLanguage(BibleGameLanguage language) async {
+    final books = await localizedBooks();
+    if (!mounted) return;
+    setState(() {
+      _books = books;
+      _roundLanguage = language;
+      _answered = false;
+      _selected = null;
+      _loading = true;
+    });
+    await _nextRound();
   }
 
   void _select(String book) {
@@ -115,36 +154,53 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
   Widget build(BuildContext context) {
     final round = _round;
     final session = _session;
+    final strings = ref.watch(bibleGameStringsProvider);
+    final language = ref.watch(bibleGameLanguageProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    watchBibleGameLanguage();
 
     if (_unavailable) {
-      return const AppScaffold(
+      return AppScaffold(
         body: AppEmptyState(
           icon: Icons.menu_book_outlined,
-          title: 'Bible data unavailable',
-          subtitle: 'This game needs the offline Bible database, which is not '
-              'available in this build.',
+          title: strings.dataUnavailableTitle,
+          subtitle: strings.dataUnavailableBody,
         ),
       );
     }
 
+    // Rendered labels fall back to the DB names until a round exists.
+    final labels = (round?.displayOptions.isNotEmpty ?? false)
+        ? round!.displayOptions
+        : round?.options ?? const <String>[];
+
     return AppScaffold(
       appBar: AppBar(
-        title: const Text('Guess the Book'),
+        title: Text(strings.guessBookTitle),
+        actions: [
+          BibleGameLanguageToggle(
+            value: language,
+            compact: true,
+            onChanged: (value) => ref
+                .read(bibleGameLanguageProvider.notifier)
+                .setLanguage(value),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: _loading || round == null || session == null
-          ? const Center(child: AppLoading(message: 'Finding a verse…'))
+          ? Center(child: AppLoading(message: strings.guessBookLoading))
           : ListView(
               padding: const EdgeInsets.all(AppDimensions.paddingLg),
               children: [
                 GameScoreHeader(
                   score: session.score,
                   streak: session.streak,
-                  optional: 'Round ${session.roundIndex + 1}',
+                  optional: strings.roundLabel(session.roundIndex + 1),
                 ),
                 const SizedBox(height: 16),
                 GameRoundCard(
-                  title: 'Which book is this?',
+                  title: strings.guessBookQuestion,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -167,7 +223,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              '“${round.fullText}”',
+                              '"${round.fullText}"',
                               style: const TextStyle(
                                 fontSize: 17,
                                 fontStyle: FontStyle.italic,
@@ -175,10 +231,25 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
                                 color: AppColors.textPrimary,
                               ),
                             ),
+                            // Nepali mode with no catalog entry: say so
+                            // instead of letting English pass for Nepali.
+                            if (language == BibleGameLanguage.nepali &&
+                                !round.hasTranslation) ...[
+                              const SizedBox(height: 8),
+                              Text(
+                                strings.noNepaliVerse,
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: isDark
+                                      ? const Color(0xFF94A3B8)
+                                      : AppColors.textMuted,
+                                ),
+                              ),
+                            ],
                             if (_answered) ...[
                               const SizedBox(height: 10),
                               Text(
-                                '— ${round.reference}',
+                                '- ${round.referenceLabel}',
                                 style: TextStyle(
                                   fontSize: 13,
                                   color: isDark
@@ -201,7 +272,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
-                                    'Hint: ${round.hint}',
+                                    strings.guessBookHint(round.hint),
                                     style: TextStyle(
                                       fontSize: 13,
                                       fontWeight: FontWeight.w600,
@@ -222,8 +293,11 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
                 const SizedBox(height: 18),
                 Text(
                   _answered
-                      ? 'Answer: ${round.correctBook} — ${round.reference}'
-                      : 'Choose the book',
+                      ? strings.guessBookAnswer(
+                          round.correctBookLabel,
+                          round.referenceLabel,
+                        )
+                      : strings.guessBookChoose,
                   style: const TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -231,14 +305,13 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                ...round.options.map(
-                  (option) => GameOptionTile(
-                    label: option,
-                    state: _tileState(option),
+                for (var i = 0; i < round.options.length; i++)
+                  GameOptionTile(
+                    label: labels[i],
+                    state: _tileState(round.options[i]),
                     disabled: _answered,
-                    onTap: () => _select(option),
+                    onTap: () => _select(round.options[i]),
                   ),
-                ),
                 if (_answered) ...[
                   const SizedBox(height: 12),
                   SizedBox(
@@ -246,7 +319,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage> {
                     child: ElevatedButton(
                       style: AppButtonStyles.primaryGradientButton,
                       onPressed: _advance,
-                      child: const Text('Next Verse'),
+                      child: Text(strings.guessBookNext),
                     ),
                   ),
                 ],

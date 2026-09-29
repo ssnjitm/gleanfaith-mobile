@@ -428,7 +428,14 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
             ),
           ),
           // Scripture reference from the backend, when the question carries one.
-          if (q.scriptureReference != null && q.scriptureReference!.isNotEmpty)
+          //
+          // Revealed ONLY once the question is answered, for the same reason as
+          // the daily quiz: a question asking which book a verse comes from is
+          // answered by its own reference, so showing it up front gives the
+          // answer away.
+          if (answered &&
+              q.scriptureReference != null &&
+              q.scriptureReference!.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 6),
               child: Row(
