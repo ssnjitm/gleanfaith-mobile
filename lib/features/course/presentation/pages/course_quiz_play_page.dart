@@ -3,9 +3,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/common/providers/audio_providers.dart';
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
+import '../../../../core/constants/asset_paths.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/services/audio_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../quiz/domain/entities/quiz_entities.dart';
@@ -50,9 +53,14 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
   /// text, options, explanations) follows it; the app's own chrome stays English.
   QuizLanguage _language = QuizLanguage.english;
 
+  /// App-wide sound effects, owned by [audioServiceProvider] and intentionally
+  /// not disposed with this page.
+  late final AudioService _sfx;
+
   @override
   void initState() {
     super.initState();
+    _sfx = ref.read(audioServiceProvider);
     _load();
   }
 
@@ -102,6 +110,26 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
       _answers[_current] = index;
       _answeredCount += 1;
     });
+    _playAnswerFeedback(index);
+  }
+
+  /// Plays the correct/incorrect cue for the answer just locked in.
+  ///
+  /// Reads the same [CourseQuizQuestion.correctAnswerIndex] the green/red badge
+  /// is drawn from, so the sound can never contradict what is on screen.
+  ///
+  /// Note the model coerces a missing key to `0`, so a question the backend did
+  /// not send an answer for reports "option 0 is correct". That is a pre-existing
+  /// scoring/badging gap, not something audio should paper over by disagreeing
+  /// with the badge.
+  void _playAnswerFeedback(int index) {
+    final questions = _quiz?.questions;
+    if (_current < 0 || _current >= (questions?.length ?? 0)) return;
+    _sfx.play(
+      index == questions![_current].correctAnswerIndex
+          ? SfxSound.correct
+          : SfxSound.incorrect,
+    );
   }
 
   void _goTo(int index) {
@@ -116,6 +144,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
   Future<void> _submit() async {
     final args = widget.args;
     if (args == null || _quiz == null || _completing) return;
+    _sfx.play(SfxSound.ending);
     setState(() {
       _completing = true;
       _completeError = null;

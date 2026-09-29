@@ -145,6 +145,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
       if (_picked.length == round.shuffledBooks.length) {
         // The whole set is in canonical order: this round is over, so test it
         // for a perfect run before the next round resets the test.
+        noteCorrectAnswer();
         noteRoundComplete();
         session.roundIndex += 1;
         Future.delayed(const Duration(milliseconds: 550), () {

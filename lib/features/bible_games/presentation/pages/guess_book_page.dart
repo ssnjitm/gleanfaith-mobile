@@ -152,6 +152,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
       session.registerResult(correct: isCorrect, points: 10);
     });
     if (isCorrect) {
+      noteCorrectAnswer();
       noteRoundComplete();
     } else {
       noteWrongTap();

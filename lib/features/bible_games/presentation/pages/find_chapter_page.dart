@@ -168,6 +168,7 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage>
         _correctCount += 1;
         session.registerResult(correct: true, points: 10);
       });
+      noteCorrectAnswer();
       noteRoundComplete();
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) _nextRound();

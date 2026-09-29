@@ -3,6 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../../core/common/providers/audio_providers.dart';
+import '../../../../core/constants/asset_paths.dart';
+import '../../../../core/services/audio_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../domain/entities/bible_game_localization.dart';
 import '../../domain/entities/game_lives.dart';
@@ -16,9 +19,11 @@ import '../widgets/game_lives_widgets.dart';
 /// Lives are **per game** (see [BibleGameKind]), so a page only ever touches its
 /// own pool. The three calls a page makes:
 ///
-/// * [noteWrongTap] — inside the wrong-answer branch. Costs a life and fires the
-///   shake.
+/// * [noteWrongTap] — inside the wrong-answer branch. Costs a life, plays the
+///   incorrect cue and fires the shake.
 /// * [noteNewRound] — when a round is generated. Resets the perfect-round test.
+/// * [noteCorrectAnswer] — inside the correct-answer branch. Plays the correct
+///   cue.
 /// * [noteRoundComplete] — when a round is answered correctly. A round with zero
 ///   mistakes refunds one life (capped at 3).
 ///
@@ -71,12 +76,13 @@ mixin GameLivesGate<T extends ConsumerStatefulWidget> on ConsumerState<T> {
   /// Whether this game is locked right now.
   bool get isLocked => lives.isCooldownActiveAt(DateTime.now());
 
-  /// A wrong tap: one life, the shake, and the localized message.
+  /// A wrong tap: one life, the shake, the incorrect cue, and the message.
   ///
   /// The message differs on the last life because the consequence differs —
   /// "Life lost!" is not enough to explain why the game just closed on you.
   void noteWrongTap() {
     final wasLast = lives.lives <= 1;
+    _sfx.play(SfxSound.incorrect);
     ref.read(gameLivesProvider.notifier).registerMistake(gameKind);
     if (!mounted) return;
     final strings = ref.read(bibleGameStringsProvider);
@@ -102,6 +108,19 @@ mixin GameLivesGate<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     livesSession?.beginRound();
     ref.read(gameLivesProvider.notifier).beginRound(gameKind);
   }
+
+  /// The correct-answer cue.
+  ///
+  /// Deliberately separate from [noteRoundComplete]: that one early-returns on
+  /// an imperfect round, so a player who answers correctly after an earlier
+  /// mistake in a multi-round game (Find the Chapter, Book Order) would get no
+  /// feedback at all. Feedback for the answer you just gave must not depend on
+  /// how the round as a whole has gone.
+  void noteCorrectAnswer() {
+    _sfx.play(SfxSound.correct);
+  }
+
+  AudioService get _sfx => ref.read(audioServiceProvider);
 
   /// A round finished. A clean round refunds a life.
   ///

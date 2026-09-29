@@ -6,9 +6,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/common/providers/audio_providers.dart';
 import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/constants/app_constants.dart';
+import '../../../../core/constants/asset_paths.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/services/audio_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/quiz_entities.dart';
@@ -55,6 +58,11 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   late final AnimationController _feedbackController;
   late final AnimationController _pointsPopController;
 
+  /// App-wide sound effects. Held as a field so a tap does not do a provider
+  /// lookup, and deliberately NOT disposed here — the service is owned by
+  /// [audioServiceProvider] and outlives this page.
+  late final AudioService _sfx;
+
   QuizPlayArgs get _args => widget.args;
 
   bool get _isDaily => _args.isDaily;
@@ -76,6 +84,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   @override
   void initState() {
     super.initState();
+    _sfx = ref.read(audioServiceProvider);
     _language = _args.language;
     _stopwatch.start();
     _remainingSeconds = _resolveDurationSeconds();
@@ -88,6 +97,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
           if (_remainingSeconds == 0) unawaited(_onTimeUp());
         }
       });
+      _maybeTick();
     });
     _feedbackController = AnimationController(
       vsync: this,
@@ -124,6 +134,18 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
 
   bool get _isTimed => _resolveDurationSeconds() > 0;
 
+  /// Last stretch of the countdown where each second gets a blip.
+  static const int _timerTickThresholdSeconds = 10;
+
+  /// Plays a countdown tick. Called outside `setState` on purpose — playing
+  /// audio is a side effect, not state, and firing it during a build-phase
+  /// callback is how you end up with sounds that lag a frame behind the numbers.
+  void _maybeTick() {
+    if (_remainingSeconds <= 0) return;
+    if (_remainingSeconds > _timerTickThresholdSeconds) return;
+    _sfx.play(SfxSound.timer);
+  }
+
   Future<void> _submitAnswer() async {
     final quiz = _activeQuiz;
     if (quiz == null || _selectedOption == null || _submitting) return;
@@ -157,10 +179,12 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
       _bestStreak = math.max(_bestStreak, _streak);
       _totalScore += result.pointsEarned;
       unawaited(HapticFeedback.mediumImpact());
+      _sfx.play(SfxSound.correct);
       setState(() => _showConfetti = true);
     } else {
       _streak = 0;
       unawaited(HapticFeedback.lightImpact());
+      _sfx.play(SfxSound.incorrect);
     }
     unawaited(_feedbackController.forward(from: 0));
     unawaited(_pointsPopController.forward(from: 0));
@@ -213,6 +237,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   Future<void> _completeQuiz() async {
     if (_finishing) return;
     setState(() => _finishing = true);
+    _sfx.play(SfxSound.ending);
 
     final result = await ref
         .read(quizProvider.notifier)

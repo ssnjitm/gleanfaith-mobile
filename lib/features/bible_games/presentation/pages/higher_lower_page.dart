@@ -136,6 +136,7 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
       session.registerResult(correct: isCorrect, points: pointsPerRound);
     });
     if (isCorrect) {
+      noteCorrectAnswer();
       noteRoundComplete();
     } else {
       noteWrongTap();

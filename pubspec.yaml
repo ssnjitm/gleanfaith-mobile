@@ -46,6 +46,9 @@ dependencies:
   video_player: ^2.11.1
   chewie: ^1.14.1
   just_audio: ^0.10.6
+  # Endorsed federated plugin. Without it just_audio throws MissingPluginException
+  # on web, which is where the app runs in the browser.
+  just_audio_web: ^0.4.16
   pdfx: ^2.9.2
   flutter_local_notifications: ^22.3.0
   timezone: ^0.11.1
@@ -74,11 +77,13 @@ flutter:
     # Bible Database
     - assets/databases/topical_bible.db
     - assets/databases/bible_crossword_50_sets.json
-    
+
+    # Sound effects (correct / incorrect / timer / ending)
+    - assets/audios/
+
     # Other assets (uncomment as you add them)
     # - assets/images/
     # - assets/icons/
     # - assets/fonts/
     # - assets/lottie/
-    # - assets/audio/
     # - assets/videos/
