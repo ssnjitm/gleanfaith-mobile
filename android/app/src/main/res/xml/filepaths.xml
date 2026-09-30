@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Scopes `sk.fourq.otaupdate.OtaUpdateFileProvider` to the single directory the
+  `ota_update` plugin downloads into (`<app files dir>/ota_update/`).
+
+  The path must match the plugin exactly, or `FileProvider.getUriForFile` throws
+  IllegalArgumentException at install time — a runtime crash with no compile-time
+  warning, so this file is the first thing to check when the update downloads
+  fine but the installer never opens.
+
+  Deliberately narrow: only this one subdirectory is exposed, so a bug elsewhere
+  in the app cannot be turned into a content:// URI for an arbitrary file.
+-->
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <files-path name="internal_apk_storage" path="ota_update/"/>
+</paths>

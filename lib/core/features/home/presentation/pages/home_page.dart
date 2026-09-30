@@ -8,6 +8,8 @@ import '../../../../router/route_names.dart';
 // import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../services/logger_service.dart';
 import '../../../../services/notification_service.dart';
+import '../../../../../features/app_update/presentation/providers/app_update_provider.dart';
+import '../../../../../features/app_update/presentation/widgets/app_update_dialog.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
 import '../../../../../features/bible/domain/entities/verse_of_the_day.dart';
 import '../../../../../features/bible/presentation/providers/verse_language_provider.dart';
@@ -27,12 +29,17 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver {
+  /// `versionCode` of the update dialog currently on screen, so re-entering the
+  /// check cannot stack a second dialog for the same release.
+  int _shownUpdateVersionCode = 0;
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _scheduleDailyVerseNotification();
+      _checkForAppUpdate();
     });
   }
 
@@ -46,6 +53,37 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _scheduleDailyVerseNotification();
+      // Re-checked on resume, not only on first build: an update published
+      // while the app sat in the background should still be offered, and this is
+      // also how a user returns after dismissing the installer.
+      _checkForAppUpdate();
+    }
+  }
+
+  /// Offers a newer release, if one is published.
+  ///
+  /// Runs after the first frame so it never delays the Home render, and it
+  /// swallows its own failures: the update check is a convenience and must not
+  /// interfere with anything else on this page. The dismissal cache inside the
+  /// notifier is what stops an optional update reappearing on every launch.
+  Future<void> _checkForAppUpdate() async {
+    try {
+      final notifier = ref.read(appUpdateProvider.notifier);
+      await notifier.check();
+      if (!mounted) return;
+      await AppUpdateDialog.showIfNeeded(
+        context,
+        ref,
+        shownVersionCode: _shownUpdateVersionCode,
+      );
+      // Remember what was on screen so a rebuild while the dialog is open
+      // cannot stack a second copy of it.
+      final release = ref.read(appUpdateProvider).release;
+      if (release != null) {
+        _shownUpdateVersionCode = release.versionCode;
+      }
+    } catch (error) {
+      LoggerService.warning('Update prompt skipped: $error');
     }
   }
 

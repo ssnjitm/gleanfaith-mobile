@@ -81,6 +81,28 @@ class ApiConstants {
   static String notificationMarkRead(String id) =>
       '/notifications/user/$id/read';
 
+  // ── App self-update (Android sideload) ───────────────────────────────────
+  //
+  // Returns the latest published release so the app can offer an in-place
+  // update. It must be **unauthenticated**: the check runs before/independently
+  // of a session, and a user with a dead token still needs to be able to update
+  // out of a broken release. Keep it on a separate Dio for that reason — see
+  // `appUpdateDioProvider`.
+  //
+  // Response (a bare object or `{ "data": { ... } }` is both accepted):
+  //   { "version": "1.1.0", "versionCode": 2, "forceUpdate": false,
+  //     "releaseNotes": "...", "apkUrl": "https://cdn/...apk",
+  //     "sizeBytes": 52345678, "sha256": "..." }
+  static const String appLatestVersion = '/app/version/latest';
+
+  /// Generous: this is a tiny JSON request, but it sits on the app's launch
+  /// path and must never hold the UI hostage.
+  static const Duration appUpdateTimeout = Duration(seconds: 15);
+
+  /// An APK is tens of megabytes on a mobile connection, so the download gets a
+  /// much longer budget than the metadata check.
+  static const Duration appDownloadTimeout = Duration(minutes: 10);
+
   // Timeouts
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);

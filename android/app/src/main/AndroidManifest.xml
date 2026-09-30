@@ -5,6 +5,21 @@
     <!-- Required for local notifications (daily verse reminder) -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- Required by the in-app update flow so the system installer can be opened
+         for a downloaded APK. Android 8+ still needs the user to grant "Install
+         unknown apps" for this app; that grant cannot be requested from code.
+         Only ever used for sideloaded distribution — a Play build must not rely
+         on this, because Play rejects apps that self-install updates. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
+    <queries>
+        <!-- Required on Android 11+ so the package installer shows up as an
+             ACTION_VIEW handler for application/vnd.android.package-archive.
+             Without it the installer intent resolves to nothing. -->
+        <intent>
+            <action android:name="android.intent.action.VIEW"/>
+            <data android:mimeType="application/vnd.android.package-archive"/>
+        </intent>
+    </queries>
     <application
         android:label="glean_faith_app"
         android:name="${applicationName}"
@@ -32,6 +47,22 @@
                 <category android:name="android.intent.category.LAUNCHER"/>
             </intent-filter>
         </activity>
+        <!-- Required by the `ota_update` plugin to hand the downloaded APK to
+             the system installer. The plugin's own manifest declares only
+             permissions, NOT this provider, so it must be declared here.
+             The authority must stay `${applicationId}.ota_update_provider`:
+             that is the default the plugin falls back to when Dart passes no
+             `androidProviderAuthority`, and a mismatch makes
+             FileProvider.getUriForFile throw at install time. -->
+        <provider
+            android:name="sk.fourq.otaupdate.OtaUpdateFileProvider"
+            android:authorities="${applicationId}.ota_update_provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/filepaths" />
+        </provider>
         <!-- Receivers required by flutter_local_notifications for scheduled
              notifications to be shown and re-scheduled after a reboot. -->
         <receiver android:exported="false" android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver" />
