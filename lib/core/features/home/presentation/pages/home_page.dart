@@ -9,7 +9,9 @@ import '../../../../router/route_names.dart';
 import '../../../../services/logger_service.dart';
 import '../../../../services/notification_service.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
-import '../../../../../features/bible/presentation/providers/bible_providers.dart';
+import '../../../../../features/bible/domain/entities/verse_of_the_day.dart';
+import '../../../../../features/bible/presentation/providers/verse_language_provider.dart';
+import '../../../../../features/bible/presentation/providers/verse_of_the_day_provider.dart';
 import '../../../../../features/bible_games/presentation/widgets/home_fun_facts_card.dart';
 import '../../../../../features/bible_study/presentation/widgets/continue_reading_card.dart';
 import '../../../profile/presentation/widgets/profile_top_bar_button.dart';
@@ -52,9 +54,9 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
       final user = ref.read(authProvider).user;
       final firstName = (user?.fullName ?? '').split(' ').first.trim();
 
-      // Determine the date the next 7:00 AM notification fires on, and fetch
-      // the deterministic verse for THAT date so the notification matches the
-      // verse of the day shown on the home page that day.
+      // Determine the date the next 7:00 AM notification fires on, and load
+      // the verse for THAT date so the notification matches the verse of the
+      // day shown on the home page that day.
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final nextFireAt7am = today.add(const Duration(hours: 7));
@@ -62,24 +64,22 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
           ? today
           : today.add(const Duration(days: 1));
 
-      final result = await ref
-          .read(getVerseOfTheDayUseCaseProvider)
-          .call(date: targetDate)
-          .run();
-      final verse = result.fold(
-        (failure) => throw failure,
-        (v) => v,
+      // Same loader the Home card uses, so the two can never disagree — and it
+      // honours the EN | NP toggle, meaning the notification body is Nepali
+      // when the user has selected Nepali. The title stays English. Both
+      // languages resolve the *same* curated verse, so a language change
+      // re-renders one verse rather than swapping in a different one.
+      final verse = await loadVerseOfTheDay(
+        date: targetDate,
+        language: ref.read(verseLanguageProvider),
+        getRemoteVerse: ref.read(getRemoteVerseUseCaseProvider),
       );
-      if (verse == null) return;
-
-      // Clean brackets if present in raw verse text
-      final cleanedText = verse.text.replaceAll('{', '').replaceAll('}', '');
 
       await NotificationService.instance.requestPermissions();
       await NotificationService.instance.scheduleDailyVerse(
         userName: firstName,
-        verseText: cleanedText,
-        verseReference: verse.formattedReference,
+        verseText: verse.text,
+        verseReference: verse.reference,
         date: targetDate,
       );
     } catch (e) {
@@ -89,6 +89,15 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
 
   @override
   Widget build(BuildContext context) {
+    // The notification body is baked in at schedule time, so a language change
+    // has to re-schedule it. Without this the 7:00 AM verse would keep the
+    // previous language until the app happened to be resumed.
+    ref.listen<VerseLanguage>(verseLanguageProvider, (previous, next) {
+      if (previous != next) {
+        _scheduleDailyVerseNotification();
+      }
+    });
+
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -213,7 +222,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
 
   Widget _buildGreeting(BuildContext context, String? fullName, bool isDark) {
     final hour = DateTime.now().hour;
-    String greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
+    final greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../common/widgets/shimmer_widget.dart';
+import 'verse_language_toggle.dart';
 
 class VerseOfTheDayCard extends StatelessWidget {
   final String text;
@@ -10,12 +11,26 @@ class VerseOfTheDayCard extends StatelessWidget {
   final VoidCallback? onTap;
   final bool isLoading;
 
+  /// True when the text is Nepali. Drives text sizing only — Devanagari
+  /// conjuncts and the `।` danda need a little more line height than Latin text
+  /// to stay legible, and a Nepali verse is usually longer than its English
+  /// counterpart.
+  final bool isNepali;
+
+  /// True when the body on screen is not in the selected language, because that
+  /// translation could not be fetched. A one-line notice says so out loud
+  /// instead of passing the other language off as a translation. The verse
+  /// itself is unchanged either way — only the language is.
+  final bool showTranslationNotice;
+
   const VerseOfTheDayCard({
     super.key,
     required this.text,
     required this.reference,
     this.onTap,
     this.isLoading = false,
+    this.isNepali = false,
+    this.showTranslationNotice = false,
   });
 
   @override
@@ -65,14 +80,7 @@ class VerseOfTheDayCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Verse of the Day',
-                    style: TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                      color: AppColors.primaryAmber,
-                    ),
-                  ),
+                  _header(),
                   const SizedBox(height: AppDimensions.xs),
                   if (isLoading) ...[
                     const ShimmerWidget(
@@ -87,18 +95,14 @@ class VerseOfTheDayCard extends StatelessWidget {
                       borderRadius: 4,
                     ),
                     const SizedBox(height: AppDimensions.sm),
-                    const ShimmerWidget(
-                      width: 90,
-                      height: 12,
-                      borderRadius: 4,
-                    ),
+                    const ShimmerWidget(width: 90, height: 12, borderRadius: 4),
                   ] else ...[
                     Text(
                       '"$text"',
                       style: TextStyle(
                         fontSize: 14,
                         fontStyle: FontStyle.italic,
-                        height: 1.4,
+                        height: isNepali ? 1.6 : 1.4,
                         color: isDark ? Colors.white : AppColors.textPrimary,
                       ),
                     ),
@@ -111,6 +115,21 @@ class VerseOfTheDayCard extends StatelessWidget {
                         color: isDark ? Colors.grey[400] : AppColors.textMuted,
                       ),
                     ),
+                    if (showTranslationNotice) ...[
+                      const SizedBox(height: AppDimensions.xs),
+                      Text(
+                        // Names the language actually being shown, which is the
+                        // opposite of the selected one whenever this renders.
+                        isNepali
+                            ? 'Nepali translation unavailable. Showing English.'
+                            : 'English translation unavailable. Showing Nepali.',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontStyle: FontStyle.italic,
+                          color: isDark ? Colors.grey[500] : Colors.grey[600],
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
@@ -118,6 +137,30 @@ class VerseOfTheDayCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+
+  /// Title on the left, `EN | NP` on the right. The toggle is hidden while
+  /// loading so the header does not jump when the card resolves.
+  Widget _header() {
+    return Row(
+      children: [
+        const Expanded(
+          child: Text(
+            'Verse of the Day',
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.primaryAmber,
+            ),
+          ),
+        ),
+        if (!isLoading)
+          const Padding(
+            padding: EdgeInsets.only(left: AppDimensions.xs),
+            child: VerseLanguageToggle(),
+          ),
+      ],
     );
   }
 }

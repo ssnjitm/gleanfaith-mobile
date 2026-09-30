@@ -851,6 +851,49 @@ const List<String> _kjvBooks = [
 /// testament without depending on the private constant.
 const List<String> kjvCanonicalBooks = _kjvBooks;
 
+const List<String> _kjvBookCodes = [
+  // Old Testament
+  'GEN', 'EXO', 'LEV', 'NUM', 'DEU', 'JOS', 'JDG', 'RUT', '1SA', '2SA',
+  '1KI', '2KI', '1CH', '2CH', 'EZR', 'NEH', 'EST', 'JOB', 'PSA', 'PRO',
+  'ECC', 'SNG', 'ISA', 'JER', 'LAM', 'EZK', 'DAN', 'HOS', 'JOL', 'AMO',
+  'OBA', 'JON', 'MIC', 'NAM', 'HAB', 'ZEP', 'HAG', 'ZEC', 'MAL',
+  // New Testament
+  'MAT', 'MRK', 'LUK', 'JHN', 'ACT', 'ROM', '1CO', '2CO', 'GAL', 'EPH',
+  'PHP', 'COL', '1TH', '2TH', '1TI', '2TI', 'TIT', 'PHM', 'HEB', 'JAS',
+  '1PE', '2PE', '1JN', '2JN', '3JN', 'JUD', 'REV',
+];
+
+/// USFM 3-letter book codes, aligned index-for-index with
+/// [kjvCanonicalBooks].
+///
+/// This is the vocabulary used to address scripture on the free remote Bible
+/// endpoint (`/api/{translation}/JHN/3.json`) and by the backend's book codes.
+/// It lives beside [kjvCanonicalBooks] rather than in a feature so the index
+/// correspondence can only ever exist in one place.
+const List<String> kjvCanonicalBookCodes = _kjvBookCodes;
+
+/// Map a USFM book code (e.g. `'JHN'`) to its canonical KJV display name
+/// (e.g. `'John'`), so a verse fetched by code can still be deep-linked into
+/// the local reader. Falls back to the raw code when unknown.
+String kjvBookNameForCode(String bookCode) {
+  final clean = bookCode.trim().toUpperCase();
+  final index = kjvCanonicalBookCodes.indexOf(clean);
+  if (index < 0 || index >= kjvCanonicalBooks.length) {
+    return bookCode.trim();
+  }
+  return kjvCanonicalBooks[index];
+}
+
+/// Map a canonical display name (e.g. `'1 Samuel'`) to its USFM book code
+/// (e.g. `'1SA'`). Falls back to the uppercased canonical name when unknown.
+String kjvBookCodeForName(String bookName) {
+  final index = kjvCanonicalBooks.indexOf(normalizeBookName(bookName));
+  if (index < 0 || index >= kjvCanonicalBookCodes.length) {
+    return bookName.toUpperCase();
+  }
+  return kjvCanonicalBookCodes[index];
+}
+
 /// The slug built from a canonical display name, e.g.
 /// `'1 Samuel'` → `'1-samuel'`, `'Song of Solomon'` → `'song-of-solomon'`.
 ///

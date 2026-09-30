@@ -2,8 +2,8 @@ class ApiConstants {
   ApiConstants._();
 
   // static const String baseUrl = 'http://192.168.1.78:8000/api/v1';
-  static const String baseUrl = 'https://glean-faith-temp-backend-production.up.railway.app/api/v1';
-
+  static const String baseUrl =
+      'https://glean-faith-temp-backend-production.up.railway.app/api/v1';
 
   // Auth
   static const String login = '/auth/login';
@@ -85,4 +85,51 @@ class ApiConstants {
   static const Duration connectTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
   static const Duration sendTimeout = Duration(seconds: 30);
+
+  // ── Free Use Bible API (bible.helloao.org) ──────────────────────────────
+  //
+  // A completely separate host from [baseUrl]: no auth token is attached, no
+  // auth refresh happens, and an outage here must never disturb the app's own
+  // API calls. MIT-licensed, no API key, no quota, no signup.
+  //
+  // Serves the Home verse of the day in both languages. Fetching instead of
+  // bundling keeps a Nepali Bible (megabytes of text) out of the app for a
+  // feature used once a day, and keeps the English text in the same versification
+  // as the Nepali — see `DailyVersePlan` for why that has to match.
+  //
+  // The endpoint is chapter-grained — `/{translation}/{USFM_BOOK}/{chapter}.json`
+  // — so one request returns ~3-8 KB and a single verse is picked out of it.
+  static const String freeBibleBaseUrl = 'https://bible.helloao.org';
+
+  /// Nepali translation id on the Free Use Bible API. `npi` is Nepali
+  /// (Devanagari script).
+  ///
+  /// Chosen over the other Nepali entry, `npi_ncb`, because `npi_ncb` currently
+  /// serves its verse bodies as literal `?` characters instead of Devanagari.
+  /// `npi_ulb` ("पवित्र बाइबल", full 66 books) is verified to return real text.
+  static const String nepaliTranslationId = 'npi_ulb';
+
+  /// English translation id on the Free Use Bible API.
+  ///
+  /// `eng_web` is "World English Bible Classic" (Public Domain). It is the
+  /// English half of the verse of the day rather than the bundled SQLite KJV
+  /// database, because English and Nepali must show the *same* verse: the two
+  /// texts are resolved from the same curated reference, so a versification
+  /// difference could otherwise put two different verses under one date.
+  ///
+  /// Do not substitute a non-English id that merely starts with `eng` — the host
+  /// also serves e.g. `amp` (Chichewa), which answers 200 with the wrong script.
+  static const String englishTranslationId = 'eng_web';
+
+  /// Deliberately short. A slow free endpoint must not leave the verse card
+  /// shimmering: the caller falls back to the other language, then to a
+  /// hardcoded verse.
+  static const Duration freeBibleTimeout = Duration(seconds: 12);
+
+  /// Path of a single chapter, e.g. `/api/npi_ulb/JHN/3.json`.
+  static String freeBibleChapter({
+    required String translationId,
+    required String usfmBook,
+    required int chapter,
+  }) => '/api/$translationId/$usfmBook/$chapter.json';
 }
