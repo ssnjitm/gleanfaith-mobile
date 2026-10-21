@@ -25,6 +25,9 @@ import '../widgets/game_lives_widgets.dart';
 ///
 /// The games follow the **global** content language: the `EN | NP` control on
 /// this page is a mirror of the one in Settings, not a second preference.
+///
+/// The hub renders that control **once**, in the `AppBar` — the same place the
+/// four game pages use it. The `_LanguageCard` below only explains it.
 class GamesHubPage extends ConsumerStatefulWidget {
   const GamesHubPage({super.key});
 
@@ -91,7 +94,7 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
           return ListView(
             padding: const EdgeInsets.all(AppDimensions.paddingLg),
             children: [
-              const _LanguageCard(),
+              // const _LanguageCard(),
               _GameTile(
                 icon: Icons.book_rounded,
                 title: strings.guessBookTitle,
@@ -136,74 +139,78 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
   }
 }
 
-class _LanguageCard extends ConsumerWidget {
-  const _LanguageCard();
+/// Explains where the games' language comes from.
+///
+/// It is an **info banner, not a control**: the single `EN | NP` toggle of the
+/// games section lives in the `AppBar`, exactly like on the four game pages.
+/// Rendering a second toggle here is what produced the duplicate-toggler bug
+/// (issue #2) — one control, one place.
+// class _LanguageCard extends ConsumerWidget {
+//   const _LanguageCard();
 
-  @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final strings = ref.watch(bibleGameStringsProvider);
+//   @override
+//   Widget build(BuildContext context, WidgetRef ref) {
+//     final isDark = Theme.of(context).brightness == Brightness.dark;
+//     final strings = ref.watch(bibleGameStringsProvider);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: AppColors.primaryBlue.withValues(alpha: 0.12),
-            ),
-            child: const Icon(
-              Icons.translate_rounded,
-              color: AppColors.primaryBlue,
-              size: 22,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  strings.gameLanguage,
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.textPrimary,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  // The games follow the app-wide content language, so this is
-                  // a mirror of the control in Settings — not a second setting.
-                  strings.gameLanguageGlobal,
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: isDark
-                        ? const Color(0xFF94A3B8)
-                        : AppColors.textMuted,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          const ContentLanguageToggle(),
-        ],
-      ),
-    );
-  }
-}
+//     return Container(
+//       margin: const EdgeInsets.only(bottom: 12),
+//       padding: const EdgeInsets.all(16),
+//       decoration: BoxDecoration(
+//         color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+//         borderRadius: BorderRadius.circular(16),
+//         border: Border.all(
+//           color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+//         ),
+//       ),
+//       child: Row(
+//         children: [
+//           Container(
+//             width: 44,
+//             height: 44,
+//             decoration: BoxDecoration(
+//               shape: BoxShape.circle,
+//               color: AppColors.primaryBlue.withValues(alpha: 0.12),
+//             ),
+//             child: const Icon(
+//               Icons.translate_rounded,
+//               color: AppColors.primaryBlue,
+//               size: 22,
+//             ),
+//           ),
+//           const SizedBox(width: 12),
+//           Expanded(
+//             child: Column(
+//               crossAxisAlignment: CrossAxisAlignment.start,
+//               children: [
+//                 Text(
+//                   strings.gameLanguage,
+//                   style: const TextStyle(
+//                     fontSize: 15,
+//                     fontWeight: FontWeight.w700,
+//                     color: AppColors.textPrimary,
+//                   ),
+//                 ),
+//                 const SizedBox(height: 2),
+//                 Text(
+//                   // The games follow the app-wide content language, so this is
+//                   // a mirror of the control in Settings — not a second setting.
+//                   strings.gameLanguageGlobal,
+//                   style: TextStyle(
+//                     fontSize: 12,
+//                     color: isDark
+//                         ? const Color(0xFF94A3B8)
+//                         : AppColors.textMuted,
+//                   ),
+//                 ),
+//               ],
+//             ),
+//           ),
+//         ],
+//       ),
+//     );
+//   }
+// }
 
 class _GameTile extends StatelessWidget {
   final IconData icon;

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -240,5 +242,47 @@ void main() {
 
       expect(container.read(bibleGameLanguageProvider), BibleGameLanguage.nepali);
     });
+  });
+
+  // Issue #2: the games hub rendered the EN | NP control twice (the AppBar
+  // action *and* the language card), so the Game section showed two togglers
+  // at once. These are source-level guards rather than widget tests because
+  // the hub needs the bundled SQLite Bible DB, which does not exist in a unit
+  // test environment — but the duplication was a pure layout fact, so reading
+  // the source is enough to pin it.
+  group('the EN | NP control is rendered exactly once per screen', () {
+    const screens = <String, int>{
+      // The Game section: one toggle in the hub AppBar, one on each game page.
+      'lib/features/bible_games/presentation/pages/games_hub_page.dart': 1,
+      'lib/features/bible_games/presentation/pages/higher_lower_page.dart': 1,
+      'lib/features/bible_games/presentation/pages/guess_book_page.dart': 1,
+      'lib/features/bible_games/presentation/pages/book_order_page.dart': 1,
+      'lib/features/bible_games/presentation/pages/find_chapter_page.dart': 1,
+      // The other mirrors: one each, and none where there is no control.
+      'lib/core/features/home/presentation/widgets/verse_of_the_day_card.dart': 1,
+      'lib/core/features/home/presentation/pages/home_page.dart': 0,
+      'lib/features/settings/presentation/pages/settings_page.dart': 1,
+      'lib/features/quiz/presentation/pages/quiz_play_page.dart': 1,
+      'lib/features/quiz/presentation/widgets/daily_quiz_hero_card.dart': 1,
+      'lib/features/course/presentation/pages/course_quiz_play_page.dart': 1,
+      'lib/core/features/quiz/presentation/pages/quiz_home_page.dart': 0,
+    };
+
+    for (final entry in screens.entries) {
+      test('${entry.key} renders ${entry.value} toggle(s)', () {
+        final source = File(entry.key).readAsStringSync();
+        // `QuizLanguageToggle` is the quiz feature's wrapper around
+        // `ContentLanguageToggle`; both render the same EN | NP control.
+        final count = RegExp(
+          r'(Content|Quiz)LanguageToggle\(',
+        ).allMatches(source).length;
+
+        expect(
+          count,
+          entry.value,
+          reason: 'a screen must never show more than one EN | NP toggle',
+        );
+      });
+    }
   });
 }
