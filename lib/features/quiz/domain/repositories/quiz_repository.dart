@@ -15,11 +15,22 @@ abstract class QuizRepository {
     String quizScheduleId, {
     QuizLanguage language,
   });
+
+  /// Re-reads a running session in another language.
+  ///
+  /// A session is answered in the language it was started with, so the other
+  /// wording has to be fetched for the same session id — starting a second
+  /// session would burn the single daily attempt.
+  TaskEither<Failure, ActiveQuiz> getSession(
+    String sessionId, {
+    QuizLanguage language,
+  });
   TaskEither<Failure, AnswerResult> submitAnswer({
     required String sessionId,
     required int questionIndex,
     required int selectedOptionIndex,
     required int timeSpentSeconds,
+    QuizLanguage language,
   });
   TaskEither<Failure, QuizResult> completeQuiz(String sessionId);
 }

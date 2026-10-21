@@ -1,5 +1,8 @@
 import '../../domain/entities/course_entities.dart';
 import '../../domain/entities/course_progress_entities.dart';
+// The shared EN | NP enum. The only cross-feature domain import in the app —
+// the course quiz speaks the same language switch as the daily quiz.
+import '../../../quiz/domain/entities/quiz_entities.dart';
 
 List<dynamic> _asList(dynamic value) {
   if (value is List) return value;
@@ -71,7 +74,11 @@ bool _looksNepali(String? value) => value != null && _devanagari.hasMatch(value)
   final map = _maybeMap(value);
   if (map == null) {
     final text = _asString(value);
-    return (en: text, np: _looksNepali(text) ? text : null);
+    if (text == null) return (en: null, np: null);
+    // A Devanagari string is Nepali, never English. Treating it as English
+    // is how a Nepali-only quiz set ended up with Nepali text in the English
+    // slot, which made the EN | NP toggle look dead.
+    return _looksNepali(text) ? (en: null, np: text) : (en: text, np: null);
   }
   var en =
       _asString(map['en']) ??
@@ -97,9 +104,31 @@ bool _looksNepali(String? value) => value != null && _devanagari.hasMatch(value)
   return (en: en.isEmpty ? null : en, np: np.isEmpty ? null : np);
 }
 
-/// One label per option for the requested language. An entry may be a plain
+/// Which slot of an option list is being read.
+enum _OptionMode {
+  /// The English slot. A plain string only qualifies when it is not written in
+  /// Devanagari.
+  english,
+
+  /// The Nepali slot. A plain string only qualifies when it is written in
+  /// Devanagari.
+  nepali,
+
+  /// The options exactly as delivered, with no script check.
+  delivered,
+}
+
+/// One label per option for the requested slot. An entry may be a plain
 /// string, `{text: "..."}` or `{text: {en, np}}`.
-List<String> _optionLabels(dynamic value, {required bool nepali}) {
+///
+/// A plain string is only accepted for a language when it is actually written
+/// in that language's script, so a Nepali-only payload cannot masquerade as an
+/// English translation.
+List<String> _optionLabels(
+  dynamic value, {
+  required _OptionMode mode,
+  QuizLanguage language = QuizLanguage.english,
+}) {
   final labels = <String>[];
   for (final option in _asList(value)) {
     if (option is bool) {
@@ -110,18 +139,44 @@ List<String> _optionLabels(dynamic value, {required bool nepali}) {
     if (map == null) {
       final label = _asString(option);
       if (label == null) continue;
-      labels.add(nepali ? (_looksNepali(label) ? label : '') : label);
+      labels.add(_labelForScript(label, mode));
       continue;
     }
     final inner = map['text'] ?? map['label'] ?? map['option'];
     var pair = _bilingual(inner);
-    if ((nepali ? pair.np : pair.en) == null) {
+    if ((mode == _OptionMode.nepali ? pair.np : pair.en) == null) {
       pair = _bilingual(map);
     }
-    final label = nepali ? pair.np : pair.en;
+    final label = switch (mode) {
+      _OptionMode.english => pair.en,
+      _OptionMode.nepali => pair.np,
+      _OptionMode.delivered => _pickLanguage(pair.en, pair.np, language),
+    };
     labels.add((label == null || label.isEmpty) ? '' : label);
   }
   return labels;
+}
+
+/// A plain string belongs to the English slot when it is not written in
+/// Devanagari, and to the Nepali slot when it is.
+String _labelForScript(String label, _OptionMode mode) {
+  switch (mode) {
+    case _OptionMode.english:
+      return _looksNepali(label) ? '' : label;
+    case _OptionMode.nepali:
+      return _looksNepali(label) ? label : '';
+    case _OptionMode.delivered:
+      return label;
+  }
+}
+
+/// The slot matching [language], falling back to the other one.
+String? _pickLanguage(String? en, String? np, QuizLanguage language) {
+  final preferred = language == QuizLanguage.nepali ? np : en;
+  if (preferred != null && preferred.trim().isNotEmpty) return preferred;
+  final other = language == QuizLanguage.nepali ? en : np;
+  if (other != null && other.trim().isNotEmpty) return other;
+  return null;
 }
 
 bool _isMetadataKey(String key) {
@@ -512,8 +567,12 @@ class CourseQuizSetModel {
           // `options: [{id, text: {en, np}, is_correct}]`. Plain strings are
           // still accepted.
           final question = _bilingual(q['question'] ?? q['text'] ?? q['en']);
-          final options = _optionLabels(q['options'], nepali: false);
-          final optionsNp = _optionLabels(q['options'], nepali: true);
+          final options = _optionLabels(q['options'], mode: _OptionMode.english);
+          final optionsNp = _optionLabels(q['options'], mode: _OptionMode.nepali);
+          final primaryOptions = _optionLabels(
+            q['options'],
+            mode: _OptionMode.delivered,
+          );
           return CourseQuizQuestion(
             text: question.en ?? '',
             options: options,
@@ -527,6 +586,10 @@ class CourseQuizSetModel {
                     optionsNp.every((option) => option.isNotEmpty)
                 ? optionsNp
                 : const [],
+            primaryText: question.en ?? question.np ?? '',
+            primaryOptions: primaryOptions.isNotEmpty
+                ? primaryOptions
+                : options,
             explanationNp: _nepaliString(
               q['explanationNp'] ?? q['explanation_np'] ?? q['npExplanation'],
             ),

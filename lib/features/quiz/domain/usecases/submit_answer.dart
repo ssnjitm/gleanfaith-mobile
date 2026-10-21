@@ -12,12 +12,14 @@ class SubmitAnswerUseCase {
     required int questionIndex,
     required int selectedOptionIndex,
     required int timeSpentSeconds,
+    QuizLanguage language = QuizLanguage.english,
   }) {
     return _repository.submitAnswer(
       sessionId: sessionId,
       questionIndex: questionIndex,
       selectedOptionIndex: selectedOptionIndex,
       timeSpentSeconds: timeSpentSeconds,
+      language: language,
     );
   }
 }

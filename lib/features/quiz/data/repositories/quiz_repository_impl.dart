@@ -70,11 +70,26 @@ class QuizRepositoryImpl implements QuizRepository {
   }
 
   @override
+  TaskEither<Failure, ActiveQuiz> getSession(
+    String sessionId, {
+    QuizLanguage language = QuizLanguage.english,
+  }) {
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.getSession(
+        sessionId,
+        language: language,
+      );
+      return result.toEntity();
+    }, (error, stackTrace) => handleError(error));
+  }
+
+  @override
   TaskEither<Failure, AnswerResult> submitAnswer({
     required String sessionId,
     required int questionIndex,
     required int selectedOptionIndex,
     required int timeSpentSeconds,
+    QuizLanguage language = QuizLanguage.english,
   }) {
     return TaskEither.tryCatch(() async {
       final result = await _remoteDataSource.submitAnswer(
@@ -82,6 +97,7 @@ class QuizRepositoryImpl implements QuizRepository {
         questionIndex: questionIndex,
         selectedOptionIndex: selectedOptionIndex,
         timeSpentSeconds: timeSpentSeconds,
+        language: language,
       );
       return result.toEntity();
     }, (error, stackTrace) => handleError(error));

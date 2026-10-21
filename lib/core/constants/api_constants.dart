@@ -34,6 +34,13 @@ class ApiConstants {
   static const String quizSessionAnswer = '/quiz-schedule/session/';
   static const String quizSessionComplete = '/quiz-schedule/session/';
 
+  /// `GET /quiz-schedule/session/{sessionId}` — re-reads a running session.
+  ///
+  /// Used by the EN | NP control: a session started in one language can carry
+  /// only that language, so the other one has to be fetched for the same
+  /// session id.
+  static const String quizSessionGet = '/quiz-schedule/session/';
+
   // Daily Quiz
   static const String dailyQuizToday = '/daily-quiz/today';
   static const String dailyQuizUpcoming = '/daily-quiz/upcoming';

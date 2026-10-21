@@ -14,6 +14,7 @@ import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/asset_paths.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/services/audio_service.dart';
+import '../../../../core/services/logger_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/quiz_entities.dart';
@@ -55,6 +56,24 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   /// from the build, and `ref.watch` is not allowed outside a build.
   late QuizLanguage _language;
 
+  /// The session whose questions are on screen.
+  ///
+  /// It starts as the session handed over through the route, and it is
+  /// replaced — same session id, same question count, same order — when the
+  /// EN | NP control asks the backend for the other wording. A session is
+  /// answered in the language it was started with, so without this the toggle
+  /// had nothing to switch to and looked dead.
+  ActiveQuiz? _session;
+
+  /// True while the session is being re-read in another language.
+  bool _translating = false;
+
+  /// The language whose session is currently being re-read, if any.
+  QuizLanguage? _loadingLanguage;
+
+  /// Why the requested language is not available, when it is not.
+  String? _languageNotice;
+
   /// Seconds left in the countdown (requirement: daily quiz is time boxed).
   int _remainingSeconds = 0;
   Timer? _timer;
@@ -85,7 +104,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   /// Session resolved from the route extra first, provider second. The play
   /// page never depends on mutable global state to render.
   ActiveQuiz? get _activeQuiz =>
-      _args.activeQuiz ?? ref.read(quizProvider).activeQuiz;
+      _session ?? _args.activeQuiz ?? ref.read(quizProvider).activeQuiz;
 
   @override
   void initState() {
@@ -95,6 +114,15 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     // record the language the session was *started* with, and the user is free
     // to change their mind (in Settings, or on this page) at any time.
     _language = ref.read(dailyQuizLanguageProvider);
+    _session = widget.args.activeQuiz ?? ref.read(quizProvider).activeQuiz;
+    // The session may have been started in another language than the one the
+    // user is reading now (the global switch can be flipped in Settings while
+    // the quiz is not open). The other wording is fetched for the same
+    // session id, so the questions on screen match the toggle.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      unawaited(_loadSessionLanguage(_language));
+    });
     _stopwatch.start();
     _remainingSeconds = _resolveDurationSeconds();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -155,6 +183,129 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     _sfx.play(SfxSound.timer);
   }
 
+  /// Applies a language change coming from the EN | NP control.
+  ///
+  /// The control is global, so the choice is written to the global provider
+  /// first — the verse card, the reader and the games follow it. The questions
+  /// then follow the session's wording, which may need a round trip to the
+  /// backend.
+  void _onLanguageChanged(QuizLanguage next) {
+    if (next == _language) return;
+    setState(() {
+      _language = next;
+      _languageNotice = null;
+    });
+    // The control is global: the same switch drives the verse card, the
+    // reader and the games.
+    ref.read(contentLanguageProvider.notifier).setLanguage(
+          next == QuizLanguage.nepali
+              ? ContentLanguage.nepali
+              : ContentLanguage.english,
+        );
+    unawaited(_loadSessionLanguage(next));
+  }
+
+  /// Makes sure the questions on screen are in [language].
+  ///
+  /// A session is answered in the language it was started with, so a session
+  /// started in Nepali carries no English wording at all — flipping the toggle
+  /// then changed nothing, which is exactly the reported bug. The other
+  /// language is fetched for the **same session id**: starting a second session
+  /// would burn the single daily attempt.
+  Future<void> _loadSessionLanguage(QuizLanguage language) async {
+    if (!mounted) return;
+    final session = _session;
+    if (session == null || session.questions.isEmpty) return;
+    if (_sessionHasLanguage(session, language)) return;
+    // A second request for the same language is pointless while one is in
+    // flight; a request for a *different* language supersedes this one.
+    if (_loadingLanguage == language) return;
+    _loadingLanguage = language;
+
+    setState(() => _translating = true);
+    final reloaded = await ref
+        .read(quizProvider.notifier)
+        .loadSession(session.sessionId, language: language);
+    if (!mounted) return;
+    setState(() {
+      _translating = false;
+      if (_loadingLanguage == language) _loadingLanguage = null;
+    });
+    // The user flipped the control again while this request was running.
+    if (_language != language) return;
+
+    if (reloaded == null) {
+      // The request itself failed (offline, 404, timeout). The wording the
+      // quiz was started with stays on screen.
+      setState(() => _languageNotice = _unavailableMessage(language));
+      return;
+    }
+    if (reloaded.questions.isEmpty) {
+      setState(() => _languageNotice = _missingLanguageMessage(language));
+      return;
+    }
+    if (reloaded.questions.length != session.questions.length) {
+      // The answer key is per question index, so a different question count
+      // cannot be swapped in without misaligning the scores.
+      LoggerService.warning(
+        'Quiz session ${session.sessionId} returned '
+        '${reloaded.questions.length} questions in ${language.code}, '
+        'expected ${session.questions.length}',
+      );
+      setState(() => _languageNotice = _unavailableMessage(language));
+      return;
+    }
+    if (!_sessionHasLanguage(reloaded, language)) {
+      setState(() => _languageNotice = _missingLanguageMessage(language));
+      return;
+    }
+
+    setState(() {
+      _session = ActiveQuiz(
+        sessionId: reloaded.sessionId.isEmpty
+            ? session.sessionId
+            : reloaded.sessionId,
+        durationSeconds: reloaded.durationSeconds,
+        questions: reloaded.questions,
+        scheduleId: reloaded.scheduleId ?? session.scheduleId,
+        title: reloaded.title ?? session.title,
+        isDaily: reloaded.isDaily || session.isDaily,
+        isSeries: reloaded.isSeries || session.isSeries,
+        language: language,
+      );
+      _languageNotice = null;
+    });
+  }
+
+  /// True when the session already carries wording in [language].
+  bool _sessionHasLanguage(ActiveQuiz session, QuizLanguage language) {
+    if (session.questions.isEmpty) return false;
+    return session.questions.any(
+      (question) => language == QuizLanguage.nepali
+          ? question.hasNepali
+          : question.hasEnglish,
+    );
+  }
+
+  /// The message shown when the requested language is not available.
+  String _missingLanguageMessage(QuizLanguage language) {
+    return language == QuizLanguage.nepali
+        ? 'This quiz is only available in English.'
+        : 'This quiz is only available in Nepali.';
+  }
+
+  /// The message shown when the other language could not be loaded.
+  ///
+  /// It says what is on screen instead of blaming the toggle: the questions
+  /// keep the wording the session was started with.
+  String _unavailableMessage(QuizLanguage language) {
+    return language == QuizLanguage.nepali
+        ? 'Could not load the Nepali wording. The quiz keeps the wording it '
+              'was started with.'
+        : 'Could not load the English wording. The quiz keeps the wording it '
+              'was started with.';
+  }
+
   Future<void> _submitAnswer() async {
     final quiz = _activeQuiz;
     if (quiz == null || _selectedOption == null || _submitting) return;
@@ -167,6 +318,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
           questionIndex: _currentIndex,
           selectedOptionIndex: _selectedOption!,
           timeSpentSeconds: _timeSpentOnCurrentQuestion,
+          // The explanation comes back with the answer, so the content
+          // language travels with the request.
+          language: _language,
         );
     if (!mounted) return;
 
@@ -299,6 +453,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     ref.listen<QuizLanguage>(dailyQuizLanguageProvider, (previous, next) {
       if (next == _language) return;
       setState(() => _language = next);
+      // The questions may have to be re-read in the new language.
+      unawaited(_loadSessionLanguage(next));
     });
 
     if (quiz == null || quiz.questions.isEmpty) {
@@ -636,20 +792,55 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
               // `hasNepali` is surfaced as a hint instead.
               QuizLanguageToggle(
                 value: _language,
-                onChanged: (next) {
-                  setState(() => _language = next);
-                  // The control is global: the same switch drives the verse
-                  // card, the reader and the games.
-                  ref.read(contentLanguageProvider.notifier).setLanguage(
-                        next == QuizLanguage.nepali
-                            ? ContentLanguage.nepali
-                            : ContentLanguage.english,
-                      );
-                },
+                onChanged: _onLanguageChanged,
               ),
             ],
           ),
           const SizedBox(height: AppDimensions.paddingMd),
+          // A language change can need a round trip to the backend: a session
+          // is answered in the language it was started with, so the other
+          // wording is fetched for the same session id. The notice says what is
+          // happening instead of leaving the toggle looking dead.
+          if (_translating || _languageNotice != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppDimensions.paddingSm),
+              child: Row(
+                children: [
+                  if (_translating)
+                    SizedBox(
+                      width: 12,
+                      height: 12,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : AppColors.textMuted,
+                      ),
+                    )
+                  else
+                    Icon(
+                      Icons.info_outline_rounded,
+                      size: 13,
+                      color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,
+                    ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      _translating
+                          ? 'Loading the other language...'
+                          : _languageNotice!,
+                      style: TextStyle(
+                        fontSize: 12,
+                        fontStyle: FontStyle.italic,
+                        color: isDark
+                            ? const Color(0xFF94A3B8)
+                            : AppColors.textMuted,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
           Text(
             q.textFor(_language),
             style: TextStyle(
@@ -692,13 +883,18 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                 ],
               ),
             ),
-          // Explicit proof of whether the Nepali variant was found, so a
+          // Explicit proof of whether the requested variant was found, so a
           // backend that omits it is distinguishable from a broken toggle.
-          if (_language == QuizLanguage.nepali && !q.hasNepali)
+          // The notice is symmetric: a Nepali session has no English wording
+          // either, and saying so is what makes the toggle honest.
+          if ((_language == QuizLanguage.nepali && !q.hasNepali) ||
+              (_language == QuizLanguage.english && !q.hasEnglish))
             Padding(
               padding: const EdgeInsets.only(top: AppDimensions.xs),
               child: Text(
-                'No Nepali translation for this question',
+                _language == QuizLanguage.nepali
+                    ? 'No Nepali translation for this question'
+                    : 'No English translation for this question',
                 style: TextStyle(
                   fontSize: 12,
                   fontStyle: FontStyle.italic,

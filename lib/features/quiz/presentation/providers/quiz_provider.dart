@@ -9,6 +9,7 @@ import '../../domain/entities/quiz_entities.dart';
 import '../../domain/repositories/quiz_repository.dart';
 import '../../domain/usecases/complete_quiz.dart';
 import '../../domain/usecases/get_quiz_history.dart';
+import '../../domain/usecases/get_quiz_session.dart';
 import '../../domain/usecases/get_upcoming_quizzes.dart';
 import '../../domain/usecases/start_quiz.dart';
 import '../../domain/usecases/submit_answer.dart';
@@ -35,6 +36,10 @@ final getQuizHistoryUseCaseProvider = Provider<GetQuizHistoryUseCase>((ref) {
 
 final startQuizUseCaseProvider = Provider<StartQuizUseCase>((ref) {
   return StartQuizUseCase(ref.watch(quizRepositoryProvider));
+});
+
+final getQuizSessionUseCaseProvider = Provider<GetQuizSessionUseCase>((ref) {
+  return GetQuizSessionUseCase(ref.watch(quizRepositoryProvider));
 });
 
 final submitAnswerUseCaseProvider = Provider<SubmitAnswerUseCase>((ref) {
@@ -252,11 +257,41 @@ class QuizNotifier extends StateNotifier<QuizState> {
     );
   }
 
+  /// Re-reads a running session in another language.
+  ///
+  /// The backend answers a session in the language it was started with, so a
+  /// session started in Nepali carries no English wording. The other language
+  /// has to be fetched for the same session id — starting a second session
+  /// would burn the single daily attempt.
+  ///
+  /// Returns `null` when the session could not be re-read; the caller then
+  /// keeps the questions it already has and says so.
+  Future<ActiveQuiz?> loadSession(
+    String sessionId, {
+    QuizLanguage language = QuizLanguage.english,
+  }) async {
+    if (sessionId.isEmpty) return null;
+    final result = await _ref
+        .read(getQuizSessionUseCaseProvider)(sessionId, language: language)
+        .run();
+    return result.fold(
+      (failure) {
+        LoggerService.warning(
+          'Quiz session $sessionId could not be re-read in ${language.code}: '
+          '${failure.message}',
+        );
+        return null;
+      },
+      (quiz) => quiz,
+    );
+  }
+
   Future<AnswerResult?> submitAnswer({
     required String sessionId,
     required int questionIndex,
     required int selectedOptionIndex,
     required int timeSpentSeconds,
+    QuizLanguage language = QuizLanguage.english,
   }) async {
     final result = await _ref
         .read(submitAnswerUseCaseProvider)
@@ -265,6 +300,7 @@ class QuizNotifier extends StateNotifier<QuizState> {
           questionIndex: questionIndex,
           selectedOptionIndex: selectedOptionIndex,
           timeSpentSeconds: timeSpentSeconds,
+          language: language,
         )
         .run();
     return result.fold((failure) {

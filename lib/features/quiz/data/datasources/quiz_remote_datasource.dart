@@ -87,7 +87,28 @@ class QuizRemoteDataSource {
       queryParameters: {'language': language.code},
     );
     final session = _extractSessionMap(response.data);
-    _logQuestionShape(session);
+    _logQuestionShape(session, language: language);
+    return ActiveQuizModel.fromJson(session, language: language);
+  }
+
+  /// Re-reads a running session in another language.
+  ///
+  /// The backend answers a session in the language it was started with, so a
+  /// session started in Nepali carries no English. Asking for the same session
+  /// id with `?language=en` is the only way to get the other wording without
+  /// starting a second attempt (which the daily quiz allows only once).
+  ///
+  /// A failure here is not fatal: the caller keeps the questions it has.
+  Future<ActiveQuizModel> getSession(
+    String sessionId, {
+    QuizLanguage language = QuizLanguage.english,
+  }) async {
+    final response = await _dio.get(
+      '${ApiConstants.quizSessionGet}$sessionId',
+      queryParameters: {'language': language.code},
+    );
+    final session = _extractSessionMap(response.data);
+    _logQuestionShape(session, language: language);
     return ActiveQuizModel.fromJson(session, language: language);
   }
 
@@ -100,7 +121,10 @@ class QuizRemoteDataSource {
   ///   * `np key: len=0`         -> the backend shipped no translation
   ///   * `np key: len>0 non-np`  -> the translation is not Devanagari
   ///   * `parsed=hasNepali`      -> the parser kept it; the UI is the problem
-  void _logQuestionShape(Map<String, dynamic> session) {
+  void _logQuestionShape(
+    Map<String, dynamic> session, {
+    required QuizLanguage language,
+  }) {
     final questions = session['questions'];
     if (questions is! List || questions.isEmpty) {
       LoggerService.warning(
@@ -114,13 +138,16 @@ class QuizRemoteDataSource {
       final parsed = QuizQuestionModel.fromJson(
         first,
         fallbackIndex: 0,
+        language: language,
       ).toEntity();
       LoggerService.info(
         'Quiz q${first['id'] ?? parsed.questionIndex}: '
+        'lang=${language.code} '
         'keys[${first.keys.join(', ')}] | '
         'q=${_npState(first['question'])} | '
         'opt=${_npState(first['options'])} | '
         'parsed hasNepali=${parsed.hasNepali} '
+        'hasEnglish=${parsed.hasEnglish} '
         'enOptions=${parsed.options.length} '
         'npOptions=${parsed.optionsNp.length}',
       );
@@ -183,9 +210,11 @@ class QuizRemoteDataSource {
     required int questionIndex,
     required int selectedOptionIndex,
     required int timeSpentSeconds,
+    QuizLanguage language = QuizLanguage.english,
   }) async {
     final response = await _dio.post(
       '${ApiConstants.quizSessionAnswer}$sessionId/answer',
+      queryParameters: {'language': language.code},
       data: {
         'questionIndex': questionIndex,
         'selectedOptionIndex': selectedOptionIndex,

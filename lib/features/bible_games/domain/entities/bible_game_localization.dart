@@ -1254,11 +1254,11 @@ const Map<String, Map<String, String>> bibleGameUiCopy = {
   },
   'factNtMostChapters': {
     'en': 'Most-chaptered book of the New Testament',
-    'np': 'नयाठमा सबैभन्दा धेरै अध्याय भएको पुस्तक',
+    'np': 'नयाँ नियममा सबैभन्दा धेरै अध्याय भएको पुस्तक',
   },
   'factNtMostVerses': {
     'en': 'Most-versed book of the New Testament',
-    'np': 'नयाठमा सबैभन्दा धेरै वचन भएको पुस्तक',
+    'np': 'नयाँ नियममा सबैभन्दा धेरै वचन भएको पुस्तक',
   },
   'factBookCount': {
     'en': 'Books in the Bible',

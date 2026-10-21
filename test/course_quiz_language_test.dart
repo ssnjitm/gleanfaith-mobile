@@ -65,4 +65,39 @@ void main() {
     expect(question.hasNepali, isFalse);
     expect(question.textFor(QuizLanguage.nepali), 'Plain question');
   });
+
+  test('a Nepali-only quiz set does not put Nepali in the English slot', () {
+    // Same failure mode as the daily quiz: a flat, single-language payload.
+    // The Nepali text must not masquerade as English, or the EN | NP control
+    // changes nothing.
+    final model = CourseQuizSetModel.fromJson({
+      'questions': [
+        {
+          'text': 'कुन राजाको विवाह इजबेलसँग थियो?',
+          'options': ['राजा आहाब', 'राजा यारोबाम'],
+          'correctAnswerIndex': 0,
+        },
+      ],
+    });
+    final question = model.set.questions.single;
+
+    expect(question.text, isEmpty);
+    expect(question.textNp, 'कुन राजाको विवाह इजबेलसँग थियो?');
+    expect(question.hasEnglish, isFalse);
+    expect(question.hasNepali, isTrue);
+    // The body is never blank, whatever the toggle says.
+    expect(
+      question.textFor(QuizLanguage.english),
+      'कुन राजाको विवाह इजबेलसँग थियो?',
+    );
+    expect(question.textFor(QuizLanguage.nepali), 'कुन राजाको विवाह इजबेलसँग थियो?');
+    expect(question.optionsFor(QuizLanguage.english), [
+      'राजा आहाब',
+      'राजा यारोबाम',
+    ]);
+    expect(question.optionsFor(QuizLanguage.nepali), [
+      'राजा आहाब',
+      'राजा यारोबाम',
+    ]);
+  });
 }

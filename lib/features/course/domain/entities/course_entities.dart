@@ -118,6 +118,16 @@ class CourseQuizQuestion {
   final List<String> optionsNp;
   final String? explanationNp;
 
+  /// The question text exactly as delivered, used as the fallback when the
+  /// requested language is not part of the payload. A quiz set that only ships
+  /// one language must still render a question, not a blank body.
+  final String primaryText;
+
+  /// The options exactly as delivered, used as the fallback for a missing
+  /// language and as the guarantee that the option count matches the answer
+  /// key.
+  final List<String> primaryOptions;
+
   /// Scripture reference printed under the question, e.g. `1 Kings 16:30-31`.
   final String? scriptureReference;
 
@@ -130,27 +140,42 @@ class CourseQuizQuestion {
     this.textNp,
     this.optionsNp = const [],
     this.explanationNp,
+    this.primaryText = '',
+    this.primaryOptions = const [],
     this.scriptureReference,
   });
 
-  /// Question text for [language], falling back to English.
+  /// Question text for [language], falling back to the delivered wording.
   String textFor(QuizLanguage language) {
     if (language == QuizLanguage.nepali) {
       final translated = textNp?.trim();
       if (translated != null && translated.isNotEmpty) return translated;
+    } else {
+      final english = text.trim();
+      if (english.isNotEmpty) return english;
     }
+    if (primaryText.isNotEmpty) return primaryText;
     return text;
   }
 
-  /// Options for [language]. Falls back to English when the Nepali list is
-  /// missing or a different length, so answer indices stay valid.
+  /// Options for [language]. Falls back to the delivered wording when the
+  /// Nepali list is missing or a different length, so answer indices stay
+  /// valid.
   List<String> optionsFor(QuizLanguage language) {
-    if (language == QuizLanguage.nepali &&
-        optionsNp.length == options.length &&
-        optionsNp.isNotEmpty) {
-      return optionsNp;
+    final variant = language == QuizLanguage.nepali ? optionsNp : options;
+    final expected = primaryOptions.isNotEmpty
+        ? primaryOptions.length
+        : options.length;
+    if (variant.isNotEmpty &&
+        variant.every((option) => option.isNotEmpty) &&
+        variant.length == expected) {
+      return variant;
     }
-    return options;
+    if (primaryOptions.isNotEmpty &&
+        primaryOptions.every((option) => option.isNotEmpty)) {
+      return primaryOptions;
+    }
+    return options.isNotEmpty ? options : primaryOptions;
   }
 
   /// Whether the backend shipped a usable Nepali variant.
@@ -160,6 +185,12 @@ class CourseQuizQuestion {
     return options.isNotEmpty &&
         optionsNp.length == options.length &&
         optionsNp.isNotEmpty;
+  }
+
+  /// Whether the backend shipped a usable English variant.
+  bool get hasEnglish {
+    if (text.trim().isNotEmpty) return true;
+    return options.isNotEmpty && options.every((option) => option.isNotEmpty);
   }
 }
 

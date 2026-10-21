@@ -198,12 +198,39 @@ class QuizScheduleModel {
   }
 }
 
+/// Which slot of an option list is being read.
+enum _OptionMode {
+  /// The English slot. A plain string only qualifies when it is not written in
+  /// Devanagari.
+  english,
+
+  /// The Nepali slot. A plain string only qualifies when it is written in
+  /// Devanagari.
+  nepali,
+
+  /// The options exactly as delivered, in the session's language. No script
+  /// check — this is what the server's answer key lines up with.
+  delivered,
+}
+
 class QuizQuestionModel {
+  /// The English question text. Empty when the payload carried no English.
   final String text;
+
+  /// The English options. Empty slots mean "no English option here".
   final List<String> options;
   final int questionIndex;
   final String? textNp;
   final List<String> optionsNp;
+
+  /// The text exactly as delivered, in the language the session was requested
+  /// in. The fallback when the requested language is not part of the payload.
+  final String primaryText;
+
+  /// The options exactly as delivered. The fallback for a missing language and
+  /// the guarantee that the option count matches the server's answer key.
+  final List<String> primaryOptions;
+
   final String? scriptureReference;
 
   const QuizQuestionModel({
@@ -212,30 +239,54 @@ class QuizQuestionModel {
     required this.questionIndex,
     this.textNp,
     this.optionsNp = const [],
+    this.primaryText = '',
+    this.primaryOptions = const [],
     this.scriptureReference,
   });
 
   factory QuizQuestionModel.fromJson(
     Map<String, dynamic> json, {
     int fallbackIndex = 0,
+    QuizLanguage language = QuizLanguage.english,
   }) {
     // Shapes seen from the backend, all accepted:
     //  a) `question: {en, np}` + `options: [{id, text: {en, np}, is_correct}]`
     //  b) `text: "..."`      + `textNp: "..."`, `options: [...]`, `optionsNp: [...]`
     //  c) `en: {text, options}` + `np: {text, options}`
     //  d) `question: {np: {text, options}}` alongside an English `question`
+    //
+    // A fifth shape exists and it is the one that broke the EN | NP toggle:
+    //  e) a **flat, single-language** payload — `text: "<nepali>"` and a list
+    //     of Nepali option strings — which is what the backend returns for a
+    //     session started with `?language=np`.
+    //
+    // The parser therefore never assumes the primary string is English: the
+    // script decides which slot it belongs to. Assuming English made a Nepali
+    // session render Nepali under the EN toggle, and the toggle looked inert.
+    final delivered = _deliveredText(json, language: language);
     final text = _englishText(json);
     final textNp = _nepaliText(json, english: text);
 
-    var options = _optionLabels(json['options'], nepali: false);
-    var optionsNp = _optionLabels(json['options'], nepali: true);
+    var options = _optionLabels(json['options'], mode: _OptionMode.english);
+    var optionsNp = _optionLabels(json['options'], mode: _OptionMode.nepali);
+    var primaryOptions = _optionLabels(
+      json['options'],
+      mode: _OptionMode.delivered,
+      language: language,
+    );
 
     // (c) the language nodes carry their own text and options.
     if (options.isEmpty) {
-      options = _optionLabels(_node(json, 'en')?['options'], nepali: false);
+      options = _optionLabels(
+        _node(json, 'en')?['options'],
+        mode: _OptionMode.english,
+      );
     }
     if (!_usable(optionsNp)) {
-      optionsNp = _optionLabels(_node(json, 'np')?['options'], nepali: true);
+      optionsNp = _optionLabels(
+        _node(json, 'np')?['options'],
+        mode: _OptionMode.nepali,
+      );
     }
     // (b) a sibling list of Nepali options.
     if (!_usable(optionsNp)) {
@@ -246,12 +297,22 @@ class QuizQuestionModel {
         'optionsNepali',
         'optionTranslations',
       ]) {
-        final labels = _optionLabels(json[key], nepali: true);
+        final labels = _optionLabels(json[key], mode: _OptionMode.nepali);
         if (labels.isNotEmpty) {
           optionsNp = labels;
           break;
         }
       }
+    }
+    if (!_usable(primaryOptions)) {
+      primaryOptions = _optionLabels(
+        json['options'],
+        mode: _OptionMode.delivered,
+        language: language,
+      );
+    }
+    if (primaryOptions.isEmpty && options.isNotEmpty) {
+      primaryOptions = options;
     }
 
     return QuizQuestionModel(
@@ -264,11 +325,14 @@ class QuizQuestionModel {
           fallbackIndex,
       textNp: textNp,
       // A partial or mismatched Nepali list is discarded so answer indices stay
-      // aligned with the answer key; `optionsFor` then falls back to English.
+      // aligned with the answer key; `optionsFor` then falls back to the
+      // delivered options.
       optionsNp:
           optionsNp.length == options.length && _usable(optionsNp)
           ? optionsNp
           : const [],
+      primaryText: delivered.isNotEmpty ? delivered : text,
+      primaryOptions: primaryOptions,
       scriptureReference:
           _asString(json['scripture_reference']) ??
           _asString(json['scriptureReference']) ??
@@ -288,6 +352,11 @@ class QuizQuestionModel {
   }
 
   /// English question text.
+  ///
+  /// A plain string written in Devanagari is **not** English. The backend
+  /// answers a `?language=np` session with a flat Nepali payload, and calling
+  /// that text English is what made the EN | NP toggle look inert: the
+  /// "English" slot held Nepali, so switching to English changed nothing.
   static String _englishText(Map<String, dynamic> json) {
     // (a) `question: {en, np}` — or the same bilingual node on `text`, which is
     // what the start endpoint uses today for its plain `text` string.
@@ -299,16 +368,67 @@ class QuizQuestionModel {
     }
     // (b) a plain `question` / `text` string.
     final plain = _asString(json['question']) ?? _asString(json['text']);
-    if (plain != null) return plain;
+    if (plain != null) return _looksNepali(plain) ? '' : plain;
     // (c) top-level `en` as a node (`{text, options}`) or a plain string.
     final enNode = json['en'];
     final nested = _asString(_asMap(enNode)?['text']) ??
         _asString(_asMap(enNode)?['question']) ??
         _asString(enNode);
-    if (nested != null) return nested;
+    if (nested != null) return _looksNepali(nested) ? '' : nested;
     // Nothing identifiable: an empty body is far better than a container
     // `toString()` or the question `type` leaking in as the question.
     return '';
+  }
+
+  /// The question text exactly as the backend delivered it.
+  ///
+  /// For a bilingual payload that is the slot of the language the session was
+  /// requested in; for a flat payload it is the string itself. It is the
+  /// fallback for a language the payload does not carry, so the question never
+  /// renders blank.
+  static String _deliveredText(
+    Map<String, dynamic> json, {
+    required QuizLanguage language,
+  }) {
+    // (a) a bilingual node on `question` / `text`.
+    for (final key in const ['question', 'text']) {
+      final node = _asMap(json[key]);
+      if (node == null) continue;
+      final pair = _bilingual(node);
+      final delivered = _pickLanguage(pair.en, pair.np, language);
+      if (delivered != null) return delivered;
+    }
+    // (b) a flat `question` / `text` string.
+    final plain = _asString(json['question']) ?? _asString(json['text']);
+    if (plain != null) return plain;
+    // (c) the language nodes.
+    final enNode = _asMap(json['en']);
+    final npNode = _asMap(json['np']);
+    if (enNode != null || npNode != null) {
+      final delivered = _pickLanguage(
+        _asString(enNode?['text']) ?? _asString(enNode?['question']),
+        _asString(npNode?['text']) ?? _asString(npNode?['question']),
+        language,
+      );
+      if (delivered != null) return delivered;
+    }
+    // (d) the language keys as plain strings.
+    final delivered = _pickLanguage(
+      _asString(json['en']),
+      _asString(json['np']),
+      language,
+    );
+    if (delivered != null) return delivered;
+    return '';
+  }
+
+  /// The slot matching [language], falling back to the other one.
+  static String? _pickLanguage(String? en, String? np, QuizLanguage language) {
+    final preferred = language == QuizLanguage.nepali ? np : en;
+    if (preferred != null && preferred.trim().isNotEmpty) return preferred;
+    final other = language == QuizLanguage.nepali ? en : np;
+    if (other != null && other.trim().isNotEmpty) return other;
+    return null;
   }
 
   /// Nepali question text: known keys first, then a script scan so a renamed
@@ -345,12 +465,21 @@ class QuizQuestionModel {
     return _scanNepali(json, exclude: english);
   }
 
-  /// Reads one label per option for the requested language.
+  /// Reads one label per option for the requested slot.
   ///
   /// An entry may be a plain string, a boolean (TRUE_FALSE), `{text: "..."}` or
   /// `{text: {en, np}}`. When the inner value holds only one language, the whole
   /// entry is re-scanned by script, so `{text, translation}` also resolves.
-  static List<String> _optionLabels(dynamic value, {required bool nepali}) {
+  ///
+  /// A plain string is only accepted for a language when it is actually
+  /// written in that language's script. A Nepali-only payload therefore cannot
+  /// masquerade as an English translation — that mislabelling is exactly what
+  /// made the EN | NP toggle look inert.
+  static List<String> _optionLabels(
+    dynamic value, {
+    required _OptionMode mode,
+    QuizLanguage language = QuizLanguage.english,
+  }) {
     final labels = <String>[];
     for (final option in _asList(value)) {
       if (option is bool) {
@@ -362,20 +491,35 @@ class QuizQuestionModel {
       if (map == null) {
         final label = _asString(option);
         if (label == null) continue;
-        // A plain string list is English; only accept it as Nepali when it is
-        // actually written in Devanagari.
-        labels.add(nepali ? (_looksNepali(label) ? label : '') : label);
+        labels.add(_labelForScript(label, mode));
         continue;
       }
       final inner = map['text'] ?? map['label'] ?? map['option'];
       var pair = _bilingual(inner);
-      if ((nepali ? pair.np : pair.en) == null) {
+      if ((mode == _OptionMode.nepali ? pair.np : pair.en) == null) {
         pair = _bilingual(map);
       }
-      final label = nepali ? pair.np : pair.en;
+      final label = switch (mode) {
+        _OptionMode.english => pair.en,
+        _OptionMode.nepali => pair.np,
+        _OptionMode.delivered => _pickLanguage(pair.en, pair.np, language),
+      };
       labels.add((label == null || label.isEmpty) ? '' : label);
     }
     return labels;
+  }
+
+  /// A plain string belongs to the English slot when it is not written in
+  /// Devanagari, and to the Nepali slot when it is.
+  static String _labelForScript(String label, _OptionMode mode) {
+    switch (mode) {
+      case _OptionMode.english:
+        return _looksNepali(label) ? '' : label;
+      case _OptionMode.nepali:
+        return _looksNepali(label) ? label : '';
+      case _OptionMode.delivered:
+        return label;
+    }
   }
 
   /// Resolves a value that is either a plain string or a `{en, np}` object.
@@ -388,7 +532,10 @@ class QuizQuestionModel {
     final map = _asMap(value);
     if (map == null) {
       final text = _asString(value);
-      return (en: text, np: _looksNepali(text) ? text : null);
+      if (text == null) return (en: null, np: null);
+      // A Devanagari string is Nepali, never English. Treating it as English
+      // is how a Nepali session ended up with Nepali text in the English slot.
+      return _looksNepali(text) ? (en: null, np: text) : (en: text, np: null);
     }
 
     var en =
@@ -472,6 +619,8 @@ class QuizQuestionModel {
     questionIndex: questionIndex,
     textNp: textNp,
     optionsNp: optionsNp,
+    primaryText: primaryText,
+    primaryOptions: primaryOptions,
     scriptureReference: scriptureReference,
   );
 }
@@ -519,7 +668,11 @@ class ActiveQuizModel {
       final raw = _asMap(rawQuestions[index]);
       if (raw == null) continue;
       questions.add(
-        QuizQuestionModel.fromJson(raw, fallbackIndex: index).toEntity(),
+        QuizQuestionModel.fromJson(
+          raw,
+          fallbackIndex: index,
+          language: language,
+        ).toEntity(),
       );
     }
 
@@ -577,22 +730,35 @@ class AnswerResultModel {
   final int pointsEarned;
   final String? explanationNp;
 
+  /// The explanation exactly as the backend sent it. The fallback when the
+  /// requested language is not part of the payload.
+  final String primaryExplanation;
+
   const AnswerResultModel({
     required this.isCorrect,
     required this.correctAnswerIndex,
     required this.explanation,
     required this.pointsEarned,
     this.explanationNp,
+    this.primaryExplanation = '',
   });
 
   factory AnswerResultModel.fromJson(Map<String, dynamic> json) {
-    final explanation = _asString(json['explanation']) ?? '';
+    final delivered = _asString(json['explanation']) ?? '';
+    // A Devanagari explanation is Nepali, never English. The backend answers
+    // in the session's language, so a Nepali session returns a Nepali
+    // explanation — calling that English made the EN | NP toggle look dead
+    // on the feedback line too.
+    final isNepali = _looksNepali(delivered);
     return AnswerResultModel(
       isCorrect: _asBool(json['isCorrect']) ?? false,
       correctAnswerIndex: _asInt(json['correctAnswerIndex']) ?? -1,
-      explanation: explanation,
+      explanation: isNepali ? '' : delivered,
       pointsEarned: _asInt(json['pointsEarned']) ?? 0,
-      explanationNp: _findNepaliExplanation(json, explanation: explanation),
+      explanationNp: isNepali
+          ? delivered
+          : _findNepaliExplanation(json, explanation: delivered),
+      primaryExplanation: delivered,
     );
   }
 
@@ -639,6 +805,7 @@ class AnswerResultModel {
     explanation: explanation,
     pointsEarned: pointsEarned,
     explanationNp: explanationNp,
+    primaryExplanation: primaryExplanation,
   );
 }
 

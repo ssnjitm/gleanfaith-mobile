@@ -124,14 +124,35 @@ class QuizSchedule {
 }
 
 class QuizQuestion {
+  /// The English question text.
+  ///
+  /// Empty when the backend sent no English variant — a session started with
+  /// `?language=np` answers in Nepali only. The content is still available
+  /// through [primaryText], so a question never renders blank.
   final String text;
+
+  /// The English options. Same rule as [text]: the list can be empty or hold
+  /// empty slots when the payload carried no English.
   final List<String> options;
   final int questionIndex;
 
-  /// Nepali variants supplied by the backend, when present. Empty lists mean
-  /// "no translation available" and the English text is used instead.
+  /// Nepali variants supplied by the backend, when present. A `null` list or a
+  /// `null` text means "no Nepali variant available".
   final String? textNp;
   final List<String> optionsNp;
+
+  /// The text exactly as the backend delivered it, in the language the session
+  /// was requested in.
+  ///
+  /// This is the fallback for a language the payload does not carry: a Nepali
+  /// session that has no English must still show *something*, and the honest
+  /// thing to show is the delivered Nepali text.
+  final String primaryText;
+
+  /// The options exactly as the backend delivered them. The fallback for a
+  /// language the payload does not carry, and the guarantee that the option
+  /// count and order always match the server's answer key.
+  final List<String> primaryOptions;
 
   /// Scripture reference from the backend, e.g. `1 Kings 16:30-31`.
   final String? scriptureReference;
@@ -142,44 +163,77 @@ class QuizQuestion {
     required this.questionIndex,
     this.textNp,
     this.optionsNp = const [],
+    this.primaryText = '',
+    this.primaryOptions = const [],
     this.scriptureReference,
   });
 
-  /// Question text for the selected language, falling back to English when no
-  /// Nepali variant was provided by the backend.
+  /// Question text for the selected language.
+  ///
+  /// Falls back to [primaryText] — the text the backend actually delivered —
+  /// when the requested language is missing. Returning an empty string instead
+  /// would blank the question body, and showing the wrong language without
+  /// saying so is what made the EN | NP toggle look broken.
   String textFor(QuizLanguage language) {
     if (language == QuizLanguage.nepali) {
       final translated = textNp?.trim();
       if (translated != null && translated.isNotEmpty) return translated;
+    } else {
+      final english = text.trim();
+      if (english.isNotEmpty) return english;
     }
+    if (primaryText.isNotEmpty) return primaryText;
     return text;
   }
 
-    /// Options for the selected language. Falls back to [options] when the
-    /// translation is missing or has a different length (indices must stay
-    /// aligned with the answer key).
-    List<String> optionsFor(QuizLanguage language) {
-      if (language == QuizLanguage.nepali &&
-          optionsNp.length == options.length &&
-          optionsNp.isNotEmpty) {
-        return optionsNp;
-      }
-      return options;
+  /// Options for the selected language.
+  ///
+  /// Falls back to [primaryOptions] when the requested language is missing or
+  /// has a different length (indices must stay aligned with the answer key,
+  /// which follows the delivered list).
+  List<String> optionsFor(QuizLanguage language) {
+    final variant = language == QuizLanguage.nepali ? optionsNp : options;
+    final expected = primaryOptions.isNotEmpty
+        ? primaryOptions.length
+        : options.length;
+    if (variant.isNotEmpty && _usable(variant) && variant.length == expected) {
+      return variant;
     }
-
-    /// True when the backend shipped a usable Nepali variant for this question.
-    ///
-    /// The play page shows the EN | NP toggle whenever this holds, so a
-    /// bilingual quiz is never locked to English because the schedule itself
-    /// did not advertise Nepali support.
-    bool get hasNepali {
-      final translated = textNp?.trim();
-      if (translated != null && translated.isNotEmpty) return true;
-      return options.isNotEmpty &&
-          optionsNp.length == options.length &&
-          optionsNp.isNotEmpty;
+    if (primaryOptions.isNotEmpty && _usable(primaryOptions)) {
+      return primaryOptions;
     }
+    return options.isNotEmpty ? options : primaryOptions;
   }
+
+  /// True when the backend shipped a usable Nepali variant for this question.
+  ///
+  /// The play page shows the EN | NP toggle whenever this holds, so a
+  /// bilingual quiz is never locked to English because the schedule itself
+  /// did not advertise Nepali support.
+  bool get hasNepali {
+    final translated = textNp?.trim();
+    if (translated != null && translated.isNotEmpty) return true;
+    return options.isNotEmpty &&
+        optionsNp.length == options.length &&
+        optionsNp.isNotEmpty;
+  }
+
+  /// True when the backend shipped a usable English variant.
+  ///
+  /// A session started in Nepali can carry no English at all; the play page
+  /// then says so instead of silently showing the Nepali text under an English
+  /// toggle.
+  bool get hasEnglish {
+    if (text.trim().isNotEmpty) return true;
+    return options.isNotEmpty && _usable(options);
+  }
+
+  /// True when every slot holds real copy. A list of empty placeholders is not
+  /// a translation.
+  static bool _usable(List<String> labels) {
+    return labels.isNotEmpty && labels.every((label) => label.isNotEmpty);
+  }
+}
 
 class ActiveQuiz {
   final String sessionId;
@@ -212,9 +266,15 @@ class ActiveQuiz {
 class AnswerResult {
   final bool isCorrect;
   final int correctAnswerIndex;
+
+  /// The English explanation. Empty when the backend answered in Nepali.
   final String explanation;
   final int pointsEarned;
   final String? explanationNp;
+
+  /// The explanation exactly as the backend sent it. The fallback for a
+  /// language the payload does not carry, so the feedback line never blanks.
+  final String primaryExplanation;
 
   const AnswerResult({
     required this.isCorrect,
@@ -222,13 +282,20 @@ class AnswerResult {
     required this.explanation,
     required this.pointsEarned,
     this.explanationNp,
+    this.primaryExplanation = '',
   });
 
+  /// The explanation for the selected language, falling back to the delivered
+  /// wording when the requested one is missing.
   String explanationFor(QuizLanguage language) {
     if (language == QuizLanguage.nepali) {
       final translated = explanationNp?.trim();
       if (translated != null && translated.isNotEmpty) return translated;
+    } else {
+      final english = explanation.trim();
+      if (english.isNotEmpty) return english;
     }
+    if (primaryExplanation.isNotEmpty) return primaryExplanation;
     return explanation;
   }
 }
