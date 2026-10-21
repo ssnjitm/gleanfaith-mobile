@@ -43,17 +43,20 @@ class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final versesAsync = ref.watch(
-      bibleChapterVersesProvider((book: widget.book, chapter: widget.chapter)),
+    final chapterAsync = ref.watch(
+      bibleChapterProvider((book: widget.book, chapter: widget.chapter)),
     );
     final chaptersAsync = ref.watch(bibleChaptersProvider(widget.book));
     final arg = (book: widget.book, chapter: widget.chapter);
     final bookmarksState = ref.watch(chapterBookmarksProvider(arg));
     final isBookmarked = bookmarksState.isBookmarked(null);
+    final chapter = chapterAsync.value;
+    final title = chapter?.title ??
+        '${normalizeBookName(widget.book)} ${widget.chapter}';
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text('${normalizeBookName(widget.book)} ${widget.chapter}'),
+        title: Text(title),
         centerTitle: true,
         actions: [
           IconButton(
@@ -79,7 +82,7 @@ class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
           ),
         ],
       ),
-      body: versesAsync.when(
+      body: chapterAsync.when(
         loading: () => const Padding(
           padding: EdgeInsets.all(AppDimensions.md),
           child: VerseListShimmer(),
@@ -94,11 +97,12 @@ class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
             ),
           ),
         ),
-        data: (verses) => _ChapterBody(
+        data: (data) => _ChapterBody(
           book: widget.book,
           chapter: widget.chapter,
-          verses: verses,
+          verses: data.verses,
           chapters: chaptersAsync.value ?? const [],
+          isFallback: data.isFallback,
         ),
       ),
     );
@@ -123,11 +127,17 @@ class _ChapterBody extends ConsumerStatefulWidget {
   final List<Verse> verses;
   final List<int> chapters;
 
+  /// True when the chapter could not be served in the selected language and the
+  /// English text was used instead. A one-line notice says so out loud rather
+  /// than passing English off as a translation.
+  final bool isFallback;
+
   const _ChapterBody({
     required this.book,
     required this.chapter,
     required this.verses,
     required this.chapters,
+    this.isFallback = false,
   });
 
   @override
@@ -211,6 +221,7 @@ class _ChapterBodyState extends ConsumerState<_ChapterBody> {
 
     return Column(
       children: [
+        if (widget.isFallback) const _TranslationFallbackNotice(),
         Expanded(
           child: ListView.builder(
             controller: _scrollController,
@@ -241,6 +252,60 @@ class _ChapterBodyState extends ConsumerState<_ChapterBody> {
           hasNext: hasNext,
         ),
       ],
+    );
+  }
+}
+
+/// Says out loud that the selected language was unavailable for this chapter
+/// and the English text was served instead.
+///
+/// The chapter is the same either way — only the language changed — so a
+/// silent swap would look like a broken translation rather than an outage.
+class _TranslationFallbackNotice extends StatelessWidget {
+  const _TranslationFallbackNotice();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(
+        AppDimensions.paddingMd,
+        AppDimensions.sm,
+        AppDimensions.paddingMd,
+        0,
+      ),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.paddingMd,
+        vertical: AppDimensions.sm,
+      ),
+      decoration: BoxDecoration(
+        color: AppColors.primaryAmber.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
+        border: Border.all(
+          color: AppColors.primaryAmber.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.translate_rounded,
+            size: 16,
+            color: AppColors.primaryAmber,
+          ),
+          const SizedBox(width: AppDimensions.sm),
+          Expanded(
+            child: Text(
+              'Nepali translation unavailable. Showing English.',
+              style: TextStyle(
+                fontSize: 12,
+                fontStyle: FontStyle.italic,
+                color: isDark ? Colors.grey[400] : Colors.grey[700],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

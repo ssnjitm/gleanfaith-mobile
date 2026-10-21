@@ -12,8 +12,9 @@ import '../providers/bible_games_provider.dart';
 /// game. Cycles through every fact the offline DB can produce. Shown on the
 /// Home tab right after the quick actions.
 ///
-/// Renders in the device language; `bibleFunFactsProvider` already bakes the
-/// translation into each fact.
+/// The fact itself follows the **global content language**
+/// (`bibleFunFactsProvider` already bakes the translation into each fact),
+/// while the card's chrome stays English.
 class HomeFunFactsCard extends ConsumerStatefulWidget {
   const HomeFunFactsCard({super.key});
 

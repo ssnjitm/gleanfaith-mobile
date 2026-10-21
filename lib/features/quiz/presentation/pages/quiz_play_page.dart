@@ -6,7 +6,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/common/entities/content_language.dart';
 import '../../../../core/common/providers/audio_providers.dart';
+import '../../../../core/common/providers/content_language_provider.dart';
 import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../../../core/constants/asset_paths.dart';
@@ -17,6 +19,7 @@ import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/quiz_entities.dart';
 import '../../domain/entities/quiz_strings.dart';
 import '../providers/daily_quiz_provider.dart';
+import '../providers/quiz_language_provider.dart';
 import '../providers/quiz_provider.dart';
 import '../widgets/confetti_burst.dart';
 import '../widgets/quiz_language_toggle.dart';
@@ -43,10 +46,13 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   int _streak = 0;
   int _bestStreak = 0;
 
-  /// Live quiz language. Seeded from the route args (the language the session
-  /// was started with) but switchable per question via the EN | NP toggle, so a
-  /// user who changes their mind mid-quiz sees the translation immediately
-  /// instead of being stuck with the start-time language.
+  /// Live quiz content language.
+  ///
+  /// It is a **mirror of the global content language**, not a page-local
+  /// preference: the EN | NP control is one control for the whole app, so
+  /// flipping it here flips the verse card, the reader and the games too. The
+  /// local copy exists because the content is read from callbacks as well as
+  /// from the build, and `ref.watch` is not allowed outside a build.
   late QuizLanguage _language;
 
   /// Seconds left in the countdown (requirement: daily quiz is time boxed).
@@ -85,7 +91,10 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   void initState() {
     super.initState();
     _sfx = ref.read(audioServiceProvider);
-    _language = _args.language;
+    // The global content language wins over the route args: the args only
+    // record the language the session was *started* with, and the user is free
+    // to change their mind (in Settings, or on this page) at any time.
+    _language = ref.read(dailyQuizLanguageProvider);
     _stopwatch.start();
     _remainingSeconds = _resolveDurationSeconds();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
@@ -284,6 +293,13 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   Widget build(BuildContext context) {
     final quiz = _activeQuiz;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    // The global control can also be flipped from another surface (Settings),
+    // so the page follows it instead of keeping a stale local copy.
+    ref.listen<QuizLanguage>(dailyQuizLanguageProvider, (previous, next) {
+      if (next == _language) return;
+      setState(() => _language = next);
+    });
 
     if (quiz == null || quiz.questions.isEmpty) {
       return _buildUnavailable(isDark);
@@ -620,7 +636,16 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
               // `hasNepali` is surfaced as a hint instead.
               QuizLanguageToggle(
                 value: _language,
-                onChanged: (next) => setState(() => _language = next),
+                onChanged: (next) {
+                  setState(() => _language = next);
+                  // The control is global: the same switch drives the verse
+                  // card, the reader and the games.
+                  ref.read(contentLanguageProvider.notifier).setLanguage(
+                        next == QuizLanguage.nepali
+                            ? ContentLanguage.nepali
+                            : ContentLanguage.english,
+                      );
+                },
               ),
             ],
           ),

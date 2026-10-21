@@ -6,6 +6,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/common/widgets/app_empty_state.dart';
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
+import '../../../../core/common/widgets/content_language_toggle.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
@@ -16,7 +17,6 @@ import '../../domain/services/bible_game_session.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
 import '../providers/game_lives_provider.dart';
-import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
 import '../widgets/game_cooldown_overlay.dart';
 import '../widgets/game_lives_widgets.dart';
@@ -27,11 +27,12 @@ import 'game_lives_gate.dart';
 /// "book chapter"; every hit fires a fresh round instantly. Every open starts
 /// a fresh random session so the grid layout is never the same twice.
 ///
-/// Renders in the device language by default, overridable with the `EN | NP`
-/// toggle in the `AppBar`: tiles show the localized book name and Devanagari
-/// chapter numbers, while the tap comparison runs against the DB identity
+/// Renders in the **global content language** (see `bibleGameLanguageProvider`):
+/// tiles show the localized book name and the chapter numbers in that
+/// language's numerals, while the tap comparison runs against the DB identity
 /// labels. Switching language rebuilds the grid in place and keeps the clock
-/// running, so a mid-blitz switch neither costs nor grants time.
+/// running, so a mid-blitz switch neither costs nor grants time. The `EN | NP`
+/// control in the `AppBar` is only a mirror of the setting in Settings.
 class FindChapterPage extends ConsumerStatefulWidget {
   const FindChapterPage({super.key});
 
@@ -199,7 +200,6 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage>
     final session = _session;
     final strings = ref.watch(bibleGameStringsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final language = ref.watch(bibleGameLanguageProvider);
     final livesState = ref.watch(gameLivesProvider);
     watchBibleGameLanguage();
 
@@ -217,7 +217,7 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage>
     // back into a locked game.
     if (livesState.hasValue && isLocked) {
       return AppScaffold(
-        appBar: _buildAppBar(strings, language),
+        appBar: _buildAppBar(strings),
         body: GameCooldownOverlay(
           kind: gameKind,
           title: strings.findChapterTitle,
@@ -227,7 +227,7 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage>
 
     if (_finished) {
       return AppScaffold(
-        appBar: _buildAppBar(strings, language),
+        appBar: _buildAppBar(strings),
         body: GameResultCard(
           score: session?.score ?? 0,
           bestStreak: session?.bestStreak ?? 0,
@@ -241,7 +241,7 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage>
     }
 
     return AppScaffold(
-      appBar: _buildAppBar(strings, language),
+      appBar: _buildAppBar(strings),
       body: _loading || round == null || session == null || !livesLoaded
           ? Center(child: AppLoading(message: strings.findChapterLoading))
           : LifeLossShake(
@@ -296,18 +296,12 @@ class _FindChapterPageState extends ConsumerState<FindChapterPage>
 
   PreferredSizeWidget _buildAppBar(
     BibleGameStrings strings,
-    BibleGameLanguage language,
   ) {
     return AppBar(
       title: Text(strings.findChapterTitle),
-      actions: [
-        BibleGameLanguageToggle(
-          value: language,
-          compact: true,
-          onChanged: (value) =>
-              ref.read(bibleGameLanguageProvider.notifier).setLanguage(value),
-        ),
-        const SizedBox(width: 8),
+      actions: const [
+        ContentLanguageToggle(),
+        SizedBox(width: 8),
       ],
     );
   }

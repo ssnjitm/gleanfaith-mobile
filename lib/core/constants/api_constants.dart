@@ -154,4 +154,12 @@ class ApiConstants {
     required String usfmBook,
     required int chapter,
   }) => '/api/$translationId/$usfmBook/$chapter.json';
+
+  /// Path of the book list, e.g. `/api/npi_ulb/books.json`.
+  ///
+  /// Returns every book of the translation with its name **in the
+  /// translation's own script**, which is what the reader's book list needs to
+  /// show Nepali book names.
+  static String freeBibleBooks({required String translationId}) =>
+      '/api/$translationId/books.json';
 }

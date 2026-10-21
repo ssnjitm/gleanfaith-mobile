@@ -87,8 +87,16 @@ class DailyQuizNotifier extends StateNotifier<DailyQuizState> {
         message = failure.message;
       },
       (schedule) {
-        today = schedule;
-        if (schedule == null) nextStatus = DailyQuizStatus.empty;
+        // The endpoint can keep returning a previous day's schedule (already
+        // completed). Only a schedule dated today may be shown as today's quiz.
+        final isToday = schedule != null && schedule.isForDay(DateTime.now());
+        if (schedule != null && !isToday) {
+          LoggerService.warning(
+            'Daily quiz "${schedule.title}" is not scheduled for today — hidden',
+          );
+        }
+        today = isToday ? schedule : null;
+        if (today == null) nextStatus = DailyQuizStatus.empty;
       },
     );
 

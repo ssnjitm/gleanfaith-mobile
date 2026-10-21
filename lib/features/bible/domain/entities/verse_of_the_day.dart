@@ -1,38 +1,6 @@
 import 'package:equatable/equatable.dart';
 
-/// Languages the Home "Verse of the Day" card can be shown in.
-///
-/// Both languages resolve the *same* curated verse (see `DailyVersePlan`) and
-/// differ only in the text and the localised reference, so switching the toggle
-/// re-renders one verse instead of swapping in a different one.
-enum VerseLanguage {
-  english('en', 'EN'),
-  nepali('np', 'NP');
-
-  const VerseLanguage(this.code, this.shortLabel);
-
-  /// Persisted / wire code.
-  final String code;
-
-  /// Compact label rendered inside the `EN | NP` toggle.
-  final String shortLabel;
-
-  /// Tolerant parser for stored preferences. Accepts the aliases the
-  /// `QuizLanguage` parser accepts so a value written by either surface still
-  /// resolves, and falls back to English for anything unknown — a corrupt
-  /// preference must never be able to leave the card blank.
-  static VerseLanguage fromCode(String? code) {
-    switch (code?.trim().toLowerCase()) {
-      case 'np':
-      case 'ne':
-      case 'nep':
-      case 'nepali':
-        return VerseLanguage.nepali;
-      default:
-        return VerseLanguage.english;
-    }
-  }
-}
+import '../../../../core/common/entities/content_language.dart';
 
 /// One resolved verse for one day, already in the language to display.
 ///
@@ -55,7 +23,11 @@ class VerseOfTheDay extends Equatable {
   final int verse;
 
   /// The language the user selected — i.e. what the card is *trying* to show.
-  final VerseLanguage language;
+  ///
+  /// This is the **global** Bible-content language
+  /// (`contentLanguageProvider`), not a card-local preference: the verse of
+  /// the day, the reader, the fun facts and the quiz all follow it.
+  final ContentLanguage language;
 
   /// True when the body is not in [language] — the selected translation could
   /// not be reached and the *other* language was served for the same reference,
@@ -75,7 +47,7 @@ class VerseOfTheDay extends Equatable {
     this.isFallback = false,
   });
 
-  bool get isNepali => language == VerseLanguage.nepali;
+  bool get isNepali => language == ContentLanguage.nepali;
 
   @override
   List<Object?> get props => [

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
+import '../../../../common/widgets/content_language_toggle.dart';
 import '../../../../common/widgets/shimmer_widget.dart';
-import 'verse_language_toggle.dart';
 
 class VerseOfTheDayCard extends StatelessWidget {
   final String text;
@@ -158,7 +158,7 @@ class VerseOfTheDayCard extends StatelessWidget {
         if (!isLoading)
           const Padding(
             padding: EdgeInsets.only(left: AppDimensions.xs),
-            child: VerseLanguageToggle(),
+            child: ContentLanguageToggle(),
           ),
       ],
     );

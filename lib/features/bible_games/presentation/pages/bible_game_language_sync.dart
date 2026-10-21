@@ -7,7 +7,11 @@ import '../../domain/entities/bible_game_localization.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
 
-/// Keeps a game page in sync when the `EN | NP` toggle changes the language.
+/// Keeps a game page in sync when the app-wide content language changes.
+///
+/// The games follow the **global** content language (see
+/// `contentLanguageProvider`), so a change made in Settings — or on any mirror
+/// of the `EN | NP` control — has to reach the open game too.
 ///
 /// A page bakes the localized book names and round copy into its state when a
 /// round is built, so a language switch has to rebuild that round — watching
@@ -20,10 +24,10 @@ mixin BibleGameLanguageSync<T extends ConsumerStatefulWidget>
 
   /// Reloads the localized catalog and rebuilds the visible round in [language].
   ///
-  /// Called for both an explicit choice and a switch back to the device
-  /// language, so it must be safe to run while a round is in progress. It
-  /// deliberately keeps the [GameSession] — score and streak carry over, and
-  /// only the round is replaced.
+  /// Called for every change of the global content language, so it must be safe
+  /// to run while a round is in progress. It deliberately keeps the
+  /// [GameSession] — score and streak carry over, and only the round is
+  /// replaced.
   Future<void> applyBibleGameLanguage(BibleGameLanguage language);
 
   /// The books localized for [language], straight from the shared provider.

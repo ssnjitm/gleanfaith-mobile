@@ -2,6 +2,7 @@ import 'dart:typed_data';
 
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:glean_faith_app/core/common/entities/content_language.dart';
 import 'package:glean_faith_app/core/constants/api_constants.dart';
 import 'package:glean_faith_app/core/services/database_service.dart';
 import 'package:glean_faith_app/features/bible/data/datasources/remote_bible_datasource.dart';
@@ -310,32 +311,32 @@ void main() {
     });
   });
 
-  group('VerseLanguage', () {
+  group('ContentLanguage', () {
     test('defaults to English and parses the Nepali aliases', () {
-      expect(VerseLanguage.fromCode(null), VerseLanguage.english);
-      expect(VerseLanguage.fromCode(''), VerseLanguage.english);
-      expect(VerseLanguage.fromCode('en'), VerseLanguage.english);
+      expect(ContentLanguage.fromCode(null), ContentLanguage.english);
+      expect(ContentLanguage.fromCode(''), ContentLanguage.english);
+      expect(ContentLanguage.fromCode('en'), ContentLanguage.english);
       for (final alias in ['np', 'NP', 'ne', 'nep', 'Nepali', ' np ']) {
         expect(
-          VerseLanguage.fromCode(alias),
-          VerseLanguage.nepali,
+          ContentLanguage.fromCode(alias),
+          ContentLanguage.nepali,
           reason: alias,
         );
       }
     });
 
     test('an unknown stored value can never leave the card blank', () {
-      expect(VerseLanguage.fromCode('klingon'), VerseLanguage.english);
-      expect(VerseLanguage.fromCode('12'), VerseLanguage.english);
+      expect(ContentLanguage.fromCode('klingon'), ContentLanguage.english);
+      expect(ContentLanguage.fromCode('12'), ContentLanguage.english);
     });
 
     test('each language maps to its own translation', () {
       expect(
-        translationIdFor(VerseLanguage.english),
+        translationIdFor(ContentLanguage.english),
         ApiConstants.englishTranslationId,
       );
       expect(
-        translationIdFor(VerseLanguage.nepali),
+        translationIdFor(ContentLanguage.nepali),
         ApiConstants.nepaliTranslationId,
       );
       // The two must be genuinely different endpoints, or the toggle would
@@ -626,7 +627,7 @@ void main() {
     // cannot drift out of step with the curated list.
     Future<VerseOfTheDay> load({
       required DateTime date,
-      required VerseLanguage language,
+      required ContentLanguage language,
       _FakeAdapter? adapter,
       Set<String> failing = const {},
       Map<String, String>? bodies,
@@ -660,8 +661,8 @@ void main() {
       final date = DateTime(2026, 6, 1);
       final planned = DailyVersePlan.forDate(date);
 
-      final english = await load(date: date, language: VerseLanguage.english);
-      final nepali = await load(date: date, language: VerseLanguage.nepali);
+      final english = await load(date: date, language: ContentLanguage.english);
+      final nepali = await load(date: date, language: ContentLanguage.nepali);
 
       // The point of the feature: one verse per date, two renderings.
       expect(english.chapter, planned.chapter);
@@ -672,8 +673,8 @@ void main() {
       expect(nepali.book, kjvBookNameForCode(planned.book));
 
       // Only the language differs.
-      expect(english.language, VerseLanguage.english);
-      expect(nepali.language, VerseLanguage.nepali);
+      expect(english.language, ContentLanguage.english);
+      expect(nepali.language, ContentLanguage.nepali);
       expect(english.isFallback, isFalse);
       expect(nepali.isFallback, isFalse);
       expect(
@@ -699,11 +700,11 @@ void main() {
       // the year are different verses.
       final firstDay = await load(
         date: DateTime(2026, 1, 1),
-        language: VerseLanguage.english,
+        language: ContentLanguage.english,
       );
       final lastDay = await load(
         date: DateTime(2026, 12, 31),
-        language: VerseLanguage.english,
+        language: ContentLanguage.english,
       );
 
       for (final result in [firstDay, lastDay]) {
@@ -720,7 +721,7 @@ void main() {
     test('each language asks the endpoint for the day it is given', () async {
       for (final date in [DateTime(2026, 1, 1), DateTime(2026, 12, 25)]) {
         final planned = DailyVersePlan.forDate(date);
-        for (final language in VerseLanguage.values) {
+        for (final language in ContentLanguage.values) {
           final adapter = _adapterFor(planned);
           final result = await loadVerseOfTheDay(
             date: date,
@@ -742,12 +743,12 @@ void main() {
       final planned = DailyVersePlan.forDate(date);
       final result = await load(
         date: date,
-        language: VerseLanguage.nepali,
+        language: ContentLanguage.nepali,
         failing: {ApiConstants.nepaliTranslationId},
       );
 
       // The toggle keeps the user's choice so the notice can render…
-      expect(result.language, VerseLanguage.nepali);
+      expect(result.language, ContentLanguage.nepali);
       expect(result.isNepali, isTrue);
       expect(result.isFallback, isTrue);
       // …and the card shows the *same* verse in the other language. Serving a
@@ -767,11 +768,11 @@ void main() {
       final planned = DailyVersePlan.forDate(date);
       final result = await load(
         date: date,
-        language: VerseLanguage.english,
+        language: ContentLanguage.english,
         failing: {ApiConstants.englishTranslationId},
       );
 
-      expect(result.language, VerseLanguage.english);
+      expect(result.language, ContentLanguage.english);
       expect(result.isNepali, isFalse);
       expect(result.isFallback, isTrue);
       expect(result.chapter, planned.chapter);
@@ -785,7 +786,7 @@ void main() {
     test('a missing translation also degrades to the other language', () async {
       final result = await load(
         date: DateTime(2026, 6, 1),
-        language: VerseLanguage.nepali,
+        language: ContentLanguage.nepali,
         bodies: {
           ApiConstants.nepaliTranslationId:
               '{"book":{},"chapter":{"content":[]}}',
@@ -807,7 +808,7 @@ void main() {
       final planned = DailyVersePlan.forDate(date);
       final result = await load(
         date: date,
-        language: VerseLanguage.nepali,
+        language: ContentLanguage.nepali,
         bodies: {
           ApiConstants.nepaliTranslationId: _wrongChapter,
           ApiConstants.englishTranslationId: _payloadFor(
@@ -827,7 +828,7 @@ void main() {
     test('a total outage uses the hardcoded verse and says so', () async {
       // The hardcoded verse is not today's planned one, so it must never be
       // passed off as a successful translation.
-      for (final language in VerseLanguage.values) {
+      for (final language in ContentLanguage.values) {
         final result = await load(
           date: DateTime(2026, 6, 1),
           language: language,
@@ -850,7 +851,7 @@ void main() {
     test('the notification and the card agree for the same day', () async {
       // The Home page schedules tomorrow's verse; if the loader were not shared
       // the notification would drift out of sync with the card.
-      for (final language in VerseLanguage.values) {
+      for (final language in ContentLanguage.values) {
         final card = await load(date: DateTime(2026, 6, 1), language: language);
         final notification = await load(
           date: DateTime(2026, 6, 1),
@@ -869,7 +870,7 @@ void main() {
         day = day.add(const Duration(days: 1))
       ) {
         final planned = DailyVersePlan.forDate(day);
-        for (final language in VerseLanguage.values) {
+        for (final language in ContentLanguage.values) {
           final result = await load(date: day, language: language);
           expect(result.isFallback, isFalse, reason: '$day $language');
           expect(result.chapter, planned.chapter, reason: '$day $language');

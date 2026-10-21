@@ -95,6 +95,26 @@ class QuizSchedule {
   /// True when the schedule window has already closed.
   bool isEndedAt(DateTime now) => now.isAfter(endDateTime);
 
+  /// True when this schedule is dated to the local calendar day of [day].
+  ///
+  /// A valid server `dailyDate` (YYYY-MM-DD) wins. Otherwise the day is the
+  /// local date the window starts on. Used to stop a previous day's (possibly
+  /// already completed) daily quiz from being presented as today's quiz.
+  bool isForDay(DateTime day) {
+    final target =
+        '${day.year.toString().padLeft(4, '0')}-'
+        '${day.month.toString().padLeft(2, '0')}-'
+        '${day.day.toString().padLeft(2, '0')}';
+    final date = dailyDate;
+    if (date != null && RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(date)) {
+      return date == target;
+    }
+    final start = startDateTime.toLocal();
+    return start.year == day.year &&
+        start.month == day.month &&
+        start.day == day.day;
+  }
+
   String? _metadataString(String key) {
     final value = metadata?[key];
     if (value is String && value.isNotEmpty) return value;

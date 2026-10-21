@@ -82,8 +82,11 @@ class _DailyQuizHeroCardState extends ConsumerState<DailyQuizHeroCard> {
       );
     }
 
+    // Re-check the date on every build: the app can stay open past midnight and
+    // yesterday's schedule must not remain on the card until the next reload.
     final today = state.today;
-    if (state.status == DailyQuizStatus.empty || today == null) {
+    final isToday = today != null && today.isForDay(DateTime.now());
+    if (state.status == DailyQuizStatus.empty || today == null || !isToday) {
       return _buildSurface(
         child: _buildMessage(
           icon: Icons.calendar_today_rounded,

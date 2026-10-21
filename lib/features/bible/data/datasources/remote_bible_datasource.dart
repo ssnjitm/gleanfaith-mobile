@@ -1,9 +1,10 @@
 import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_constants.dart';
+import '../../domain/entities/remote_bible_chapter.dart';
 import '../../domain/entities/remote_bible_verse.dart';
 
-/// Fetches a single verse from the free, keyless Free Use Bible API.
+/// Fetches scripture from the free, keyless Free Use Bible API.
 ///
 /// Uses its own unauthenticated [Dio] rather than the app's `dioProvider`: the
 /// host is unrelated to `ApiConstants.baseUrl`, no token should ever be sent to
@@ -33,20 +34,11 @@ class RemoteBibleDataSource {
     required int chapter,
     required int verse,
   }) async {
-    final response = await _dio.get<Map<String, dynamic>>(
-      ApiConstants.freeBibleChapter(
-        translationId: translationId,
-        usfmBook: usfmBook,
-        chapter: chapter,
-      ),
+    final data = await _fetchChapter(
+      translationId: translationId,
+      usfmBook: usfmBook,
+      chapter: chapter,
     );
-
-    final data = response.data;
-    if (data == null) {
-      throw FormatException('Empty $translationId Bible response');
-    }
-
-    _assertMatchesRequest(data, usfmBook, chapter);
 
     final bookName = _readBookName(data, usfmBook);
     final text = _readVerseText(data, verse);
@@ -64,6 +56,114 @@ class RemoteBibleDataSource {
       verse: verse,
       text: text,
     );
+  }
+
+  /// Returns every verse of [chapter] in [usfmBook] from [translationId].
+  ///
+  /// This is what the Bible reader needs for a non-English chapter: the
+  /// bundled SQLite database only ships the English KJV, so the Nepali text
+  /// has to be fetched. The endpoint is chapter-grained, so one request covers
+  /// the whole chapter and the verses come back in order.
+  ///
+  /// Throws on any transport, status or parse problem.
+  Future<RemoteBibleChapter> getChapter({
+    required String translationId,
+    required String usfmBook,
+    required int chapter,
+  }) async {
+    final data = await _fetchChapter(
+      translationId: translationId,
+      usfmBook: usfmBook,
+      chapter: chapter,
+    );
+
+    final bookName = _readBookName(data, usfmBook);
+    final verses = _readVerses(
+      data,
+      translationId: translationId,
+      usfmBook: usfmBook,
+      chapter: chapter,
+    );
+    if (verses.isEmpty) {
+      throw FormatException(
+        'Chapter $usfmBook $chapter missing from $translationId response',
+      );
+    }
+
+    return RemoteBibleChapter(
+      translationId: translationId,
+      usfmBook: usfmBook,
+      bookName: bookName,
+      chapter: chapter,
+      verses: verses,
+    );
+  }
+
+  /// Returns the name of every book of [translationId], keyed by USFM id.
+  ///
+  /// The book list is the one place where the *names* of the books are needed
+  /// in the selected language, and the endpoint serves them in the
+  /// translation's own script (`यूहन्‍ना`). One request covers all 66 books, so
+  /// the reader can localise its whole book grid without a request per book.
+  ///
+  /// Throws on any transport, status or parse problem.
+  Future<Map<String, String>> getBookNames({required String translationId}) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      ApiConstants.freeBibleBooks(translationId: translationId),
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw FormatException('Empty $translationId Bible books response');
+    }
+
+    final books = data['books'];
+    if (books is! List) {
+      throw FormatException('$translationId Bible books response has no books');
+    }
+
+    final names = <String, String>{};
+    for (final entry in books) {
+      if (entry is! Map) continue;
+
+      final id = entry['id'];
+      if (id is! String || id.trim().isEmpty) continue;
+
+      final name = entry['commonName'] ?? entry['name'];
+      if (name is! String || name.trim().isEmpty) continue;
+
+      names[id.trim()] = name.trim();
+    }
+
+    if (names.isEmpty) {
+      throw FormatException('$translationId Bible books response has no names');
+    }
+
+    return names;
+  }
+
+  /// Performs the request and validates that the payload really is the chapter
+  /// that was asked for.
+  Future<Map<String, dynamic>> _fetchChapter({
+    required String translationId,
+    required String usfmBook,
+    required int chapter,
+  }) async {
+    final response = await _dio.get<Map<String, dynamic>>(
+      ApiConstants.freeBibleChapter(
+        translationId: translationId,
+        usfmBook: usfmBook,
+        chapter: chapter,
+      ),
+    );
+
+    final data = response.data;
+    if (data == null) {
+      throw FormatException('Empty $translationId Bible response');
+    }
+
+    _assertMatchesRequest(data, usfmBook, chapter);
+    return data;
   }
 
   /// Rejects a response that is not the chapter that was asked for.
@@ -136,6 +236,53 @@ class RemoteBibleDataSource {
       return _joinContent(node['content']);
     }
     return '';
+  }
+
+  /// Every verse of the chapter, in the order the endpoint returned them.
+  ///
+  /// Same walk as [_readVerseText] but it keeps every node instead of stopping
+  /// at the first match — the reader needs the whole chapter, not one verse.
+  List<RemoteBibleVerse> _readVerses(
+    Map<String, dynamic> data, {
+    required String translationId,
+    required String usfmBook,
+    required int chapter,
+  }) {
+    final block = data['chapter'];
+    if (block is! Map<String, dynamic>) return const [];
+
+    final nodes = block['content'];
+    if (nodes is! List) return const [];
+
+    final bookName = _readBookName(data, usfmBook);
+    final verses = <RemoteBibleVerse>[];
+
+    for (final node in nodes) {
+      if (node is! Map) continue;
+      if (node['type'] != 'verse') continue;
+
+      final number = node['number'];
+      final parsed = number is int
+          ? number
+          : (number is num ? number.toInt() : int.tryParse('$number'));
+      if (parsed == null) continue;
+
+      final text = _joinContent(node['content']);
+      if (text.isEmpty) continue;
+
+      verses.add(
+        RemoteBibleVerse(
+          translationId: translationId,
+          usfmBook: usfmBook,
+          bookName: bookName,
+          chapter: chapter,
+          verse: parsed,
+          text: text,
+        ),
+      );
+    }
+
+    return verses;
   }
 
   /// Flattens a verse's inline `content` into plain text.

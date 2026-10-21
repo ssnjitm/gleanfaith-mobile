@@ -8,6 +8,7 @@ import '../../../../core/services/database_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../providers/bible_providers.dart';
+import '../providers/remote_bible_providers.dart';
 
 class BibleChapterListPage extends ConsumerWidget {
   final String book;
@@ -18,10 +19,16 @@ class BibleChapterListPage extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final chaptersAsync = ref.watch(bibleChaptersProvider(book));
     final displayBook = normalizeBookName(book);
+    // The title follows the global content language; the chapters themselves
+    // are addressed by the English book name, which never changes.
+    final names = ref.watch(bibleBookNamesProvider).valueOrNull ?? const {};
+    final localized = names[kjvBookCodeForName(displayBook)];
 
     return AppScaffold(
       appBar: AppBar(
-        title: Text(displayBook),
+        title: Text(
+          localized == null || localized.isEmpty ? displayBook : localized,
+        ),
         centerTitle: true,
       ),
       body: chaptersAsync.when(

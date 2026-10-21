@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/route_names.dart';
+import '../../../../core/services/database_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_book.dart';
 import '../providers/bible_providers.dart';
+import '../providers/remote_bible_providers.dart';
 
 class BibleReaderPage extends ConsumerWidget {
   const BibleReaderPage({super.key});
@@ -15,6 +17,9 @@ class BibleReaderPage extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final booksAsync = ref.watch(bibleBooksProvider);
+    // The book **names** follow the global content language; the list itself
+    // always comes from the bundled offline database.
+    final namesAsync = ref.watch(bibleBookNamesProvider);
 
     return AppScaffold(
       appBar: AppBar(
@@ -36,7 +41,11 @@ class BibleReaderPage extends ConsumerWidget {
             ),
           ),
         ),
-        data: (books) => _BookList(books: books),
+        data: (books) => _BookList(
+          books: books,
+          // A missing (or still loading) translation keeps the English names.
+          localizedNames: namesAsync.valueOrNull ?? const {},
+        ),
       ),
     );
   }
@@ -45,7 +54,18 @@ class BibleReaderPage extends ConsumerWidget {
 class _BookList extends StatelessWidget {
   final List<BibleBook> books;
 
-  const _BookList({required this.books});
+  /// USFM id -> name in the selected language.
+  final Map<String, String> localizedNames;
+
+  const _BookList({required this.books, required this.localizedNames});
+
+  /// The name to show for [book]: the translated one when the endpoint knows
+  /// it, the canonical English one otherwise.
+  String _displayName(BibleBook book) {
+    final localized = localizedNames[kjvBookCodeForName(book.name)];
+    if (localized == null || localized.isEmpty) return book.name;
+    return localized;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -62,13 +82,13 @@ class _BookList extends StatelessWidget {
         if (oldTestament.isNotEmpty) ...[
           _SectionHeader(title: 'Old Testament', count: oldTestament.length),
           const SizedBox(height: AppDimensions.sm),
-          _BookGrid(books: oldTestament),
+          _BookGrid(books: oldTestament, displayNameOf: _displayName),
         ],
         const SizedBox(height: AppDimensions.lg),
         if (newTestament.isNotEmpty) ...[
           _SectionHeader(title: 'New Testament', count: newTestament.length),
           const SizedBox(height: AppDimensions.sm),
-          _BookGrid(books: newTestament),
+          _BookGrid(books: newTestament, displayNameOf: _displayName),
         ],
         const SizedBox(height: AppDimensions.lg),
       ],
@@ -121,8 +141,9 @@ class _SectionHeader extends StatelessWidget {
 
 class _BookGrid extends StatelessWidget {
   final List<BibleBook> books;
+  final String Function(BibleBook book) displayNameOf;
 
-  const _BookGrid({required this.books});
+  const _BookGrid({required this.books, required this.displayNameOf});
 
   @override
   Widget build(BuildContext context) {
@@ -140,10 +161,13 @@ class _BookGrid extends StatelessWidget {
         final book = books[index];
         return _BookTile(
           book: book,
-onTap: () => context.pushNamed(
+          displayName: displayNameOf(book),
+          onTap: () => context.pushNamed(
               RouteNames.bibleChapters,
               // GoRouter encodes path parameters itself; passing the raw name
               // here prevents the double-encoding that broke "1 Samuel" etc.
+              // The **English** name is always the key, because that is what
+              // the local database and every deep link are addressed by.
               pathParameters: {'book': book.name},
             ),
         );
@@ -154,9 +178,14 @@ onTap: () => context.pushNamed(
 
 class _BookTile extends StatelessWidget {
   final BibleBook book;
+  final String displayName;
   final VoidCallback onTap;
 
-  const _BookTile({required this.book, required this.onTap});
+  const _BookTile({
+    required this.book,
+    required this.displayName,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -178,7 +207,7 @@ class _BookTile extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Text(
-                book.name,
+                displayName,
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,

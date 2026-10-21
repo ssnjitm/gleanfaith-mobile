@@ -7,6 +7,7 @@ import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
+import '../../../../core/common/widgets/content_language_toggle.dart';
 import '../../domain/entities/user_settings.dart';
 import '../providers/settings_provider.dart';
 
@@ -54,6 +55,9 @@ class _SettingsContent extends ConsumerWidget {
           },
         ),
         const Divider(height: 32),
+        _buildSectionHeader(context, 'Content language'),
+        const _ContentLanguageTile(),
+        const Divider(height: 32),
         _buildSectionHeader(context, 'Appearance'),
         const SizedBox(height: 12),
         _ThemeSelector(settings: settings),
@@ -90,6 +94,53 @@ class _SettingsContent extends ConsumerWidget {
           color: AppColors.textLight,
           letterSpacing: 0.5,
         ),
+      ),
+    );
+  }
+}
+
+/// The app's **canonical** Bible-content language control.
+///
+/// Every other `EN | NP` control in the app (the verse of the day card, the
+/// Bible reader, the quiz pages, the games hub) is a mirror of this one, so
+/// changing it here switches all Bible content at once. It deliberately changes
+/// *content* only — the app's own labels stay English.
+class _ContentLanguageTile extends StatelessWidget {
+  const _ContentLanguageTile();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bible content',
+                  style: TextStyle(
+                    fontSize: 15,
+                    color: isDark ? Colors.white : AppColors.textPrimary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Language of the Bible text, book names and quiz questions',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          const ContentLanguageToggle(),
+        ],
       ),
     );
   }

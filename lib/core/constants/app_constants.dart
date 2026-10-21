@@ -22,7 +22,11 @@ class AppConstants {
   static const String userIdKey = 'user_id';
   static const String courseQuizAttemptsKey = 'course_quiz_attempts';
 
-  /// Bible games EN | NP override. Holds `en` or `ne`; absent means "follow the
-  /// device locale".
-  static const String bibleGameLanguageKey = 'bible_game_language';
+  /// The global Bible-content language (`en` or `np`).
+  ///
+  /// One key for the whole app: the verse of the day, the Bible reader, the
+  /// fun facts, the games and the quiz content all follow this value. The
+  /// legacy per-feature keys are read once for migration and then ignored
+  /// (see `ContentLanguageNotifier.legacyStorageKeys`).
+  static const String contentLanguageKey = 'app_content_language';
 }

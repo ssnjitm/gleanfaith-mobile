@@ -86,7 +86,6 @@ mixin GameLivesGate<T extends ConsumerStatefulWidget> on ConsumerState<T> {
     ref.read(gameLivesProvider.notifier).registerMistake(gameKind);
     if (!mounted) return;
     final strings = ref.read(bibleGameStringsProvider);
-    final language = ref.read(bibleGameLanguageProvider);
     setState(() {
       _lifeLossTrigger += 1;
       _lifeBannerPositive = false;
@@ -94,7 +93,9 @@ mixin GameLivesGate<T extends ConsumerStatefulWidget> on ConsumerState<T> {
           ? strings.lastLifeLost(
               GameLives.formatDuration(
                 GameLives.cooldownDuration,
-                language,
+                // Chrome, not Bible content: the countdown stays in ASCII digits
+                // even when the content language is Nepali.
+                BibleGameLanguage.english,
               ),
             )
           : strings.lifeLost;

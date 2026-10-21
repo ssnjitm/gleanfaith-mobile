@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/common/widgets/app_empty_state.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
+import '../../../../core/common/widgets/content_language_toggle.dart';
 import '../../../../core/common/widgets/shimmer_widget.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
@@ -15,7 +16,6 @@ import '../../domain/entities/game_lives.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
 import '../providers/game_lives_provider.dart';
-import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/game_cooldown_dial.dart';
 import '../widgets/game_lives_widgets.dart';
 
@@ -23,10 +23,8 @@ import '../widgets/game_lives_widgets.dart';
 /// DB (unavailable in fallback mode, e.g. on web) — otherwise shows an empty
 /// state.
 ///
-/// The language defaults to the device locale; the `EN | NP` toggle in the
-/// `AppBar` overrides it and the choice is remembered on the next launch. The
-/// same toggle is repeated on every game page, so the switch is reachable
-/// without coming back here.
+/// The games follow the **global** content language: the `EN | NP` control on
+/// this page is a mirror of the one in Settings, not a second preference.
 class GamesHubPage extends ConsumerStatefulWidget {
   const GamesHubPage({super.key});
 
@@ -51,7 +49,6 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
   Widget build(BuildContext context) {
     final data = ref.watch(localizedBibleGamesDataProvider);
     final strings = ref.watch(bibleGameStringsProvider);
-    final language = ref.watch(bibleGameLanguageProvider);
     // Watching the map is what flips a tile from locked to playable: the
     // provider-level clock refills the pool the moment a cooldown ends, whether
     // or not the game itself was ever opened. The countdowns inside the tiles
@@ -65,16 +62,10 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
           strings.hubTitle,
           style: const TextStyle(fontWeight: FontWeight.w700),
         ),
-        actions: [
-          BibleGameLanguageToggle(
-            value: language,
-            compact: true,
-            onChanged: (value) => ref
-                .read(bibleGameLanguageProvider.notifier)
-                .setLanguage(value),
-          ),
-          const ProfileTopBarButton(),
-          const SizedBox(width: 8),
+        actions: const [
+          ContentLanguageToggle(),
+          ProfileTopBarButton(),
+          SizedBox(width: 8),
         ],
       ),
       body: data.when(
@@ -100,13 +91,7 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
           return ListView(
             padding: const EdgeInsets.all(AppDimensions.paddingLg),
             children: [
-              _LanguageCard(
-                language: language,
-                strings: strings,
-                onChanged: (value) => ref
-                    .read(bibleGameLanguageProvider.notifier)
-                    .setLanguage(value),
-              ),
+              const _LanguageCard(),
               _GameTile(
                 icon: Icons.book_rounded,
                 title: strings.guessBookTitle,
@@ -114,7 +99,6 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
                 gradient: const [Color(0xFF2563EB), Color(0xFF3B82F6)],
                 lives: livesFor(BibleGameKind.guessBook),
                 strings: strings,
-                language: language,
                 onTap: () => context.pushNamed(RouteNames.guessTheBook),
               ),
               _GameTile(
@@ -124,7 +108,6 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
                 gradient: const [Color(0xFFD97706), Color(0xFFF59E0B)],
                 lives: livesFor(BibleGameKind.higherLower),
                 strings: strings,
-                language: language,
                 onTap: () => context.pushNamed(RouteNames.higherLower),
               ),
               _GameTile(
@@ -134,7 +117,6 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
                 gradient: const [Color(0xFF059669), Color(0xFF10B981)],
                 lives: livesFor(BibleGameKind.bookOrder),
                 strings: strings,
-                language: language,
                 onTap: () => context.pushNamed(RouteNames.bookOrderRace),
               ),
               _GameTile(
@@ -144,7 +126,6 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
                 gradient: const [Color(0xFF7C3AED), Color(0xFFA78BFA)],
                 lives: livesFor(BibleGameKind.findChapter),
                 strings: strings,
-                language: language,
                 onTap: () => context.pushNamed(RouteNames.findTheChapter),
               ),
             ],
@@ -156,21 +137,12 @@ class _GamesHubPageState extends ConsumerState<GamesHubPage> {
 }
 
 class _LanguageCard extends ConsumerWidget {
-  final BibleGameLanguage language;
-  final BibleGameStrings strings;
-  final ValueChanged<BibleGameLanguage> onChanged;
-
-  const _LanguageCard({
-    required this.language,
-    required this.strings,
-    required this.onChanged,
-  });
+  const _LanguageCard();
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final notifier = ref.read(bibleGameLanguageProvider.notifier);
-    final isOverridden = notifier.isOverridden;
+    final strings = ref.watch(bibleGameStringsProvider);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -182,80 +154,51 @@ class _LanguageCard extends ConsumerWidget {
           color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
         ),
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primaryBlue.withValues(alpha: 0.12),
-                ),
-                child: const Icon(
-                  Icons.translate_rounded,
-                  color: AppColors.primaryBlue,
-                  size: 22,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      strings.gameLanguage,
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      isOverridden
-                          ? strings.gameLanguageManual
-                          : strings.gameLanguageSystem,
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isDark
-                            ? const Color(0xFF94A3B8)
-                            : AppColors.textMuted,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 8),
-              BibleGameLanguageToggle(value: language, onChanged: onChanged),
-            ],
+          Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primaryBlue.withValues(alpha: 0.12),
+            ),
+            child: const Icon(
+              Icons.translate_rounded,
+              color: AppColors.primaryBlue,
+              size: 22,
+            ),
           ),
-          // Explicit, visible way back to "follow my phone". Tapping the active
-          // segment of the toggle is a no-op on purpose, so the reset needs its
-          // own control or the user has no visible way to undo the override.
-          if (isOverridden) ...[
-            const SizedBox(height: 8),
-            Align(
-              alignment: Alignment.centerRight,
-              child: TextButton(
-                onPressed: notifier.useDeviceLanguage,
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primaryBlue,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                child: Text(
-                  strings.gameLanguageUseDevice,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  strings.gameLanguage,
                   style: const TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.textPrimary,
                   ),
                 ),
-              ),
+                const SizedBox(height: 2),
+                Text(
+                  // The games follow the app-wide content language, so this is
+                  // a mirror of the control in Settings — not a second setting.
+                  strings.gameLanguageGlobal,
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : AppColors.textMuted,
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
+          const SizedBox(width: 8),
+          const ContentLanguageToggle(),
         ],
       ),
     );
@@ -271,7 +214,6 @@ class _GameTile extends StatelessWidget {
   /// This game's own lives. Shown as hearts, or as a lock + remaining time.
   final GameLives lives;
   final BibleGameStrings strings;
-  final BibleGameLanguage language;
   final VoidCallback onTap;
 
   const _GameTile({
@@ -281,7 +223,6 @@ class _GameTile extends StatelessWidget {
     required this.gradient,
     required this.lives,
     required this.strings,
-    required this.language,
     required this.onTap,
   });
 

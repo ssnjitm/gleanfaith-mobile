@@ -6,6 +6,7 @@ import '../../../../core/common/widgets/app_empty_state.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
+import '../../domain/entities/bible_game_localization.dart';
 import '../../domain/entities/game_lives.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/game_lives_provider.dart';
@@ -35,7 +36,6 @@ class GameCooldownOverlay extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final strings = ref.watch(bibleGameStringsProvider);
-    final language = ref.watch(bibleGameLanguageProvider);
     final lives = ref.watch(gameLivesProvider).value?[kind] ??
         const GameLives.full();
 
@@ -56,7 +56,7 @@ class GameCooldownOverlay extends ConsumerWidget {
               icon: Icons.lock_clock_rounded,
               title: strings.cooldownTitle,
               subtitle: '$title\n'
-                  '${strings.cooldownBody(lives.formatCooldownAt(DateTime.now(), language), GameLives.maxLives)}',
+                  '${strings.cooldownBody(lives.formatCooldownAt(DateTime.now(), BibleGameLanguage.english), GameLives.maxLives)}',
             ),
             const SizedBox(height: 8),
             GameCooldownDial(lives: lives, isDark: isDark),

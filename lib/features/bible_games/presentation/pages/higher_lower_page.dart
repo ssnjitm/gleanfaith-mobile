@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/common/widgets/app_empty_state.dart';
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
+import '../../../../core/common/widgets/content_language_toggle.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
@@ -14,7 +15,6 @@ import '../../domain/services/bible_game_session.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
 import '../providers/game_lives_provider.dart';
-import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
 import '../widgets/game_cooldown_overlay.dart';
 import '../widgets/game_lives_widgets.dart';
@@ -24,11 +24,12 @@ import 'game_lives_gate.dart';
 /// Higher / Lower — endless streak round: tap the book with MORE chapters.
 /// Each open starts a fresh random session so the pairs are never predictable.
 ///
-/// Renders in the device language by default, overridable with the `EN | NP`
-/// toggle in the `AppBar` (see `bibleGameLanguageProvider`): the book names, the
-/// chapter counts and every line of copy all come from the inline localization
-/// data. Identity comparisons still use the DB book names, so a Nepali round
-/// scores exactly like an English one.
+/// Renders in the **global content language** (see `bibleGameLanguageProvider`,
+/// which is derived from `contentLanguageProvider`): the book names and the
+/// chapter counts come from the inline localization data, while the app's own
+/// chrome stays English. The `EN | NP` control in the `AppBar` is only a
+/// mirror of the setting in Settings. Identity comparisons still use the DB
+/// book names, so a Nepali round scores exactly like an English one.
 class HigherLowerPage extends ConsumerStatefulWidget {
   const HigherLowerPage({super.key});
 
@@ -156,7 +157,6 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
     final round = _round;
     final session = _session;
     final strings = ref.watch(bibleGameStringsProvider);
-    final language = ref.watch(bibleGameLanguageProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
     // Subscribe to lives so a life lost in the overlay or the hub lands here.
     final livesState = ref.watch(gameLivesProvider);
@@ -175,7 +175,7 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
     // Cooldown outranks everything: a locked game never shows a playable board.
     if (livesState.hasValue && isLocked) {
       return AppScaffold(
-        appBar: _buildAppBar(strings, language),
+        appBar: _buildAppBar(strings),
         body: GameCooldownOverlay(
           kind: gameKind,
           title: strings.higherLowerTitle,
@@ -184,7 +184,7 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
     }
 
     return AppScaffold(
-      appBar: _buildAppBar(strings, language),
+      appBar: _buildAppBar(strings),
       body: _loading || round == null || session == null || !livesLoaded
           ? Center(child: AppLoading(message: strings.higherLowerLoading))
           : LifeLossShake(
@@ -268,17 +268,12 @@ class _HigherLowerPageState extends ConsumerState<HigherLowerPage>
     );
   }
 
-  PreferredSizeWidget _buildAppBar(BibleGameStrings strings, BibleGameLanguage language) {
+  PreferredSizeWidget _buildAppBar(BibleGameStrings strings) {
     return AppBar(
       title: Text(strings.higherLowerTitle),
-      actions: [
-        BibleGameLanguageToggle(
-          value: language,
-          compact: true,
-          onChanged: (value) =>
-              ref.read(bibleGameLanguageProvider.notifier).setLanguage(value),
-        ),
-        const SizedBox(width: 8),
+      actions: const [
+        ContentLanguageToggle(),
+        SizedBox(width: 8),
       ],
     );
   }

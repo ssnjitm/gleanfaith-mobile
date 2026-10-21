@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/common/widgets/app_empty_state.dart';
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
+import '../../../../core/common/widgets/content_language_toggle.dart';
 import '../../../../core/services/database_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
@@ -15,7 +16,6 @@ import '../../domain/services/bible_game_session.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
 import '../providers/game_lives_provider.dart';
-import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
 import '../widgets/game_cooldown_overlay.dart';
 import '../widgets/game_lives_widgets.dart';
@@ -28,11 +28,13 @@ import 'game_lives_gate.dart';
 /// order is never the same twice. The verse reference stays hidden until you
 /// answer so it can't give the book away.
 ///
-/// Renders in the device language by default, overridable with the `EN | NP`
-/// toggle in the `AppBar`. The offline DB supplies the KJV verse, but in Nepali
-/// mode the inline catalog's translation is used when it holds one for that
-/// exact book/chapter/verse; otherwise the KJV text is shown together with a
-/// visible "no translation" note rather than passing for Nepali.
+/// Renders in the **global content language** (see `bibleGameLanguageProvider`).
+/// The offline DB supplies the KJV verse, but in Nepali mode the inline
+/// catalog's translation is used when it holds one for that exact
+/// book/chapter/verse; otherwise the KJV text is shown together with a
+/// visible "no translation" note rather than passing for Nepali. The
+/// `EN | NP` control in the `AppBar` is only a mirror of the setting in
+/// Settings.
 class GuessBookPage extends ConsumerStatefulWidget {
   const GuessBookPage({super.key});
 
@@ -191,7 +193,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
 
     if (livesState.hasValue && isLocked) {
       return AppScaffold(
-        appBar: _buildAppBar(strings, language),
+        appBar: _buildAppBar(strings),
         body: GameCooldownOverlay(
           kind: gameKind,
           title: strings.guessBookTitle,
@@ -205,7 +207,7 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
         : round?.options ?? const <String>[];
 
     return AppScaffold(
-      appBar: _buildAppBar(strings, language),
+      appBar: _buildAppBar(strings),
       body: _loading || round == null || session == null || !livesLoaded
           ? Center(child: AppLoading(message: strings.guessBookLoading))
           : LifeLossShake(
@@ -353,18 +355,12 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
 
   PreferredSizeWidget _buildAppBar(
     BibleGameStrings strings,
-    BibleGameLanguage language,
   ) {
     return AppBar(
       title: Text(strings.guessBookTitle),
-      actions: [
-        BibleGameLanguageToggle(
-          value: language,
-          compact: true,
-          onChanged: (value) =>
-              ref.read(bibleGameLanguageProvider.notifier).setLanguage(value),
-        ),
-        const SizedBox(width: 8),
+      actions: const [
+        ContentLanguageToggle(),
+        SizedBox(width: 8),
       ],
     );
   }

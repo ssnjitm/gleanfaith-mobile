@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../../core/common/widgets/app_empty_state.dart';
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
+import '../../../../core/common/widgets/content_language_toggle.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../domain/entities/bible_game_entities.dart';
@@ -14,7 +15,6 @@ import '../../domain/services/bible_game_session.dart';
 import '../providers/bible_game_language_provider.dart';
 import '../providers/bible_games_provider.dart';
 import '../providers/game_lives_provider.dart';
-import '../widgets/bible_game_language_toggle.dart';
 import '../widgets/bible_game_widgets.dart';
 import '../widgets/game_cooldown_overlay.dart';
 import '../widgets/game_lives_widgets.dart';
@@ -25,9 +25,10 @@ import 'game_lives_gate.dart';
 /// Endless rounds; auto-advances when a round is completed. Every open starts
 /// a fresh random session so the book sets/order are never predictable.
 ///
-/// Renders in the device language by default, overridable with the `EN | NP`
-/// toggle in the `AppBar`. Tiles are compared by DB book name, so a Nepali
-/// round is scored exactly like an English one.
+/// Renders in the **global content language** (see `bibleGameLanguageProvider`).
+/// Tiles are compared by DB book name, so a Nepali round is scored exactly
+/// like an English one. The `EN | NP` control in the `AppBar` is only a mirror
+/// of the setting in Settings.
 class BookOrderPage extends ConsumerStatefulWidget {
   const BookOrderPage({super.key});
 
@@ -187,7 +188,6 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
     final session = _session;
     final strings = ref.watch(bibleGameStringsProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final language = ref.watch(bibleGameLanguageProvider);
     final livesState = ref.watch(gameLivesProvider);
     watchBibleGameLanguage();
 
@@ -203,7 +203,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
 
     if (livesState.hasValue && isLocked) {
       return AppScaffold(
-        appBar: _buildAppBar(strings, language),
+        appBar: _buildAppBar(strings),
         body: GameCooldownOverlay(
           kind: gameKind,
           title: strings.bookOrderTitle,
@@ -212,7 +212,7 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
     }
 
     return AppScaffold(
-      appBar: _buildAppBar(strings, language),
+      appBar: _buildAppBar(strings),
       body: _loading || round == null || session == null || !livesLoaded
           ? Center(child: AppLoading(message: strings.bookOrderLoading))
           : LifeLossShake(
@@ -292,18 +292,12 @@ class _BookOrderPageState extends ConsumerState<BookOrderPage>
 
   PreferredSizeWidget _buildAppBar(
     BibleGameStrings strings,
-    BibleGameLanguage language,
   ) {
     return AppBar(
       title: Text(strings.bookOrderTitle),
-      actions: [
-        BibleGameLanguageToggle(
-          value: language,
-          compact: true,
-          onChanged: (value) =>
-              ref.read(bibleGameLanguageProvider.notifier).setLanguage(value),
-        ),
-        const SizedBox(width: 8),
+      actions: const [
+        ContentLanguageToggle(),
+        SizedBox(width: 8),
       ],
     );
   }

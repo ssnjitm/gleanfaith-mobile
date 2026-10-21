@@ -1,34 +1,16 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+﻿import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../../../../core/common/providers/core_providers.dart';
+import '../../../../core/common/entities/content_language.dart';
+import '../../../../core/common/providers/content_language_provider.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../../../core/services/database_service.dart';
 import '../../../../core/services/logger_service.dart';
-import '../../data/datasources/remote_bible_datasource.dart';
-import '../../data/repositories/remote_bible_repository_impl.dart';
 import '../../domain/entities/remote_bible_verse.dart';
 import '../../domain/entities/verse_of_the_day.dart';
-import '../../domain/repositories/remote_bible_repository.dart';
 import '../../domain/services/daily_verse_plan.dart';
 import '../../domain/usecases/get_remote_verse.dart';
 import 'bible_providers.dart';
-import 'verse_language_provider.dart';
-
-// ── Remote Bible wiring ───────────────────────────────────────────────────
-//
-// The repository/use-case chain mirrors the rest of the app, but sits on its own
-// `freeBibleDioProvider` (a plain, unauthenticated Dio) so nothing about this
-// third-party host can touch the app's own auth flow.
-
-final remoteBibleRepositoryProvider = Provider<RemoteBibleRepository>((ref) {
-  return RemoteBibleRepositoryImpl(
-    RemoteBibleDataSource(ref.watch(freeBibleDioProvider)),
-  );
-});
-
-final getRemoteVerseUseCaseProvider = Provider<GetRemoteVerseUseCase>((ref) {
-  return GetRemoteVerseUseCase(ref.watch(remoteBibleRepositoryProvider));
-});
+import 'remote_bible_providers.dart';
 
 /// Shown only when the endpoint is unreachable for both languages.
 const String kVerseFallbackText =
@@ -43,7 +25,7 @@ const String kVerseFallbackReference = 'Jeremiah 29:11';
 /// It cannot be today's planned verse, so it always counts as a fallback: the
 /// card shows the "translation unavailable" notice rather than pretending the
 /// hardcoded verse is the curated one.
-VerseOfTheDay verseFallbackFor(VerseLanguage language) {
+VerseOfTheDay verseFallbackFor(ContentLanguage language) {
   return VerseOfTheDay(
     text: kVerseFallbackText,
     reference: kVerseFallbackReference,
@@ -56,8 +38,8 @@ VerseOfTheDay verseFallbackFor(VerseLanguage language) {
 }
 
 /// The Free Use Bible translation id backing [language].
-String translationIdFor(VerseLanguage language) {
-  return language == VerseLanguage.nepali
+String translationIdFor(ContentLanguage language) {
+  return language == ContentLanguage.nepali
       ? ApiConstants.nepaliTranslationId
       : ApiConstants.englishTranslationId;
 }
@@ -72,7 +54,7 @@ String translationIdFor(VerseLanguage language) {
 /// notification all stay in agreement.
 ///
 /// Deliberately a plain function rather than a `FutureProvider.family`: the Home
-/// card needs *today*, while the 7:00 AM notification needs the verse for
+/// card needs *today*, while the 7:00 AM notification needs the verse for the
 /// whichever day it will fire on (often tomorrow). Both call this, so the
 /// notification can never drift out of sync with the card it is meant to match.
 ///
@@ -84,7 +66,7 @@ String translationIdFor(VerseLanguage language) {
 /// [date] is the calendar day the verse belongs to, not "now".
 Future<VerseOfTheDay> loadVerseOfTheDay({
   required DateTime date,
-  required VerseLanguage language,
+  required ContentLanguage language,
   required GetRemoteVerseUseCase getRemoteVerse,
 }) async {
   final planned = DailyVersePlan.forDate(date);
@@ -105,9 +87,9 @@ Future<VerseOfTheDay> loadVerseOfTheDay({
   // The selected translation failed. Serve the same verse in the other language
   // rather than a different one: the reference is the whole point, so a fallback
   // that quietly changed the verse would be worse than the notice.
-  final otherLanguage = language == VerseLanguage.nepali
-      ? VerseLanguage.english
-      : VerseLanguage.nepali;
+  final otherLanguage = language == ContentLanguage.nepali
+      ? ContentLanguage.english
+      : ContentLanguage.nepali;
   LoggerService.warning(
     'Verse of the day ${planned.label} unavailable in '
     '${translationIdFor(language)} for $date; '
@@ -136,7 +118,7 @@ Future<VerseOfTheDay> loadVerseOfTheDay({
 /// without ever trying the other language.
 Future<RemoteBibleVerse?> _tryFetch({
   required GetRemoteVerseUseCase getRemoteVerse,
-  required VerseLanguage language,
+  required ContentLanguage language,
   required DailyVerseRef planned,
 }) async {
   try {
@@ -146,7 +128,7 @@ Future<RemoteBibleVerse?> _tryFetch({
       chapter: planned.chapter,
       verse: planned.verse,
     ).run();
-    return await result.fold((failure) => null, (verse) => verse);
+    return result.fold((failure) => null, (verse) => verse);
   } catch (error) {
     LoggerService.warning(
       'Verse of the day ${planned.label} '
@@ -165,7 +147,7 @@ Future<RemoteBibleVerse?> _tryFetch({
 /// fails silently, leaving the card looking perfectly fine.
 VerseOfTheDay _toVerseOfTheDay(
   RemoteBibleVerse verse,
-  VerseLanguage language, {
+  ContentLanguage language, {
   bool isFallback = false,
 }) {
   return VerseOfTheDay(
@@ -179,14 +161,14 @@ VerseOfTheDay _toVerseOfTheDay(
   );
 }
 
-/// The verse of the day for *today*, in the selected language.
+/// The verse of the day for *today*, in the global content language.
 ///
 /// Recomputes automatically at local midnight because it watches
-/// `currentDateProvider`, and refetches immediately when the `EN | NP` toggle
-/// changes.
+/// `currentDateProvider`, and refetches immediately when the global `EN | NP`
+/// toggle changes.
 final verseOfTheDayDisplayProvider = FutureProvider<VerseOfTheDay>((ref) async {
   final now = ref.watch(currentDateProvider);
-  final language = ref.watch(verseLanguageProvider);
+  final language = ref.watch(contentLanguageProvider);
   return loadVerseOfTheDay(
     date: DateTime(now.year, now.month, now.day),
     language: language,

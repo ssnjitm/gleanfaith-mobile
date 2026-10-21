@@ -1,11 +1,10 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../core/theme/colors.dart';
+import '../../domain/entities/bible_game_localization.dart';
 import '../../domain/entities/game_lives.dart';
-import '../providers/bible_game_language_provider.dart';
 
 /// A `h:mm:ss` (or `m:ss`) countdown for [lives], re-derived from the wall clock
 /// every second.
@@ -20,7 +19,9 @@ import '../providers/bible_game_language_provider.dart';
 ///   [AppLifecycleListener] forces an immediate repaint instead, which is what
 ///   makes a cooldown that ended in the background show as ended rather than
 ///   stuck.
-class GameCooldownCountdown extends ConsumerStatefulWidget {
+/// * **English numerals.** The countdown is app chrome, not Bible content, so
+///   it stays in ASCII digits even when the content language is Nepali.
+class GameCooldownCountdown extends StatefulWidget {
   final GameLives lives;
 
   final TextStyle? style;
@@ -32,11 +33,10 @@ class GameCooldownCountdown extends ConsumerStatefulWidget {
   });
 
   @override
-  ConsumerState<GameCooldownCountdown> createState() =>
-      _GameCooldownCountdownState();
+  State<GameCooldownCountdown> createState() => _GameCooldownCountdownState();
 }
 
-class _GameCooldownCountdownState extends ConsumerState<GameCooldownCountdown> {
+class _GameCooldownCountdownState extends State<GameCooldownCountdown> {
   Timer? _timer;
   late final AppLifecycleListener _lifecycle = AppLifecycleListener(
     onResume: () {
@@ -62,9 +62,8 @@ class _GameCooldownCountdownState extends ConsumerState<GameCooldownCountdown> {
 
   @override
   Widget build(BuildContext context) {
-    final language = ref.watch(bibleGameLanguageProvider);
     return Text(
-      widget.lives.formatCooldownAt(DateTime.now(), language),
+      widget.lives.formatCooldownAt(DateTime.now(), BibleGameLanguage.english),
       style: widget.style ??
           const TextStyle(
             fontSize: 30,

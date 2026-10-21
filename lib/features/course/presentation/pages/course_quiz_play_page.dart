@@ -3,7 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/common/entities/content_language.dart';
 import '../../../../core/common/providers/audio_providers.dart';
+import '../../../../core/common/providers/content_language_provider.dart';
 import '../../../../core/common/widgets/app_loading.dart';
 import '../../../../core/common/widgets/app_error_widget.dart';
 import '../../../../core/constants/asset_paths.dart';
@@ -12,6 +14,7 @@ import '../../../../core/services/audio_service.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
 import '../../../quiz/domain/entities/quiz_entities.dart';
+import '../../../quiz/presentation/providers/quiz_language_provider.dart';
 import '../../../quiz/presentation/widgets/quiz_language_toggle.dart';
 import '../../domain/entities/course_entities.dart';
 import '../../domain/entities/course_progress_entities.dart';
@@ -51,7 +54,10 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
 
   /// Live content language for this session. Only backend-supplied copy (question
   /// text, options, explanations) follows it; the app's own chrome stays English.
-  QuizLanguage _language = QuizLanguage.english;
+  ///
+  /// It mirrors the **global** content language, so the one EN | NP control
+  /// switches the course quiz and the rest of the app together.
+  late QuizLanguage _language;
 
   /// App-wide sound effects, owned by [audioServiceProvider] and intentionally
   /// not disposed with this page.
@@ -61,6 +67,7 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
   void initState() {
     super.initState();
     _sfx = ref.read(audioServiceProvider);
+    _language = ref.read(dailyQuizLanguageProvider);
     _load();
   }
 
@@ -256,6 +263,13 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
   Widget build(BuildContext context) {
     final args = widget.args;
 
+    // Follow the global content language, even when it is flipped elsewhere
+    // (Settings) while this page is open.
+    ref.listen<QuizLanguage>(dailyQuizLanguageProvider, (previous, next) {
+      if (next == _language) return;
+      setState(() => _language = next);
+    });
+
     return PopScope(
       canPop: true,
       onPopInvokedWithResult: (didPop, _) {
@@ -318,10 +332,18 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                     ),
                   ),
                   const Spacer(),
-                  // EN | NP switches the backend content only, live.
+                  // EN | NP switches the backend content only, live — and it is
+                  // the same global switch the rest of the app uses.
                   QuizLanguageToggle(
                     value: _language,
-                    onChanged: (next) => setState(() => _language = next),
+                    onChanged: (next) {
+                      setState(() => _language = next);
+                      ref.read(contentLanguageProvider.notifier).setLanguage(
+                            next == QuizLanguage.nepali
+                                ? ContentLanguage.nepali
+                                : ContentLanguage.english,
+                          );
+                    },
                   ),
                   const SizedBox(width: 10),
                   Text(

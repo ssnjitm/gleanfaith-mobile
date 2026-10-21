@@ -8,6 +8,60 @@ import 'package:glean_faith_app/features/quiz/presentation/providers/quiz_provid
 import 'package:glean_faith_app/features/quiz/presentation/providers/quiz_series_provider.dart';
 
 void main() {
+  group('QuizSchedule.isForDay', () {
+    // Regression: a completed daily quiz from a previous day was shown as
+    // today's quiz because nothing checked the schedule's date.
+    QuizSchedule schedule({
+      required DateTime start,
+      Map<String, dynamic>? metadata,
+    }) {
+      return QuizSchedule(
+        id: 'qs-1',
+        title: 'Daily Quiz',
+        startDateTime: start,
+        endDateTime: start.add(const Duration(hours: 24)),
+        durationMinutes: 5,
+        totalQuestions: 10,
+        allowRetry: false,
+        maxRetries: 1,
+        status: 'active',
+        metadata: metadata,
+      );
+    }
+
+    test('is true on the day the window starts', () {
+      final s = schedule(start: DateTime(2026, 9, 28, 7));
+
+      expect(s.isForDay(DateTime(2026, 9, 28, 20)), isTrue);
+    });
+
+    test('is false on the following day for a previous schedule', () {
+      final s = schedule(start: DateTime(2026, 9, 28, 7));
+
+      expect(s.isForDay(DateTime(2026, 9, 29, 9)), isFalse);
+    });
+
+    test('honours a valid dailyDate over the window start', () {
+      final s = schedule(
+        start: DateTime(2026, 9, 28, 23),
+        metadata: {'dailyDate': '2026-09-29'},
+      );
+
+      expect(s.isForDay(DateTime(2026, 9, 29, 0, 30)), isTrue);
+      expect(s.isForDay(DateTime(2026, 9, 28, 23, 30)), isFalse);
+    });
+
+    test('ignores a malformed dailyDate and uses the window start', () {
+      final s = schedule(
+        start: DateTime(2026, 9, 28, 7),
+        metadata: {'dailyDate': '28/09/2026'},
+      );
+
+      expect(s.isForDay(DateTime(2026, 9, 28, 12)), isTrue);
+      expect(s.isForDay(DateTime(2026, 9, 29, 12)), isFalse);
+    });
+  });
+
   group('QuizScheduleModel metadata', () {
     test('parses daily metadata and exposes getters on the entity', () {
       final model = QuizScheduleModel.fromJson({

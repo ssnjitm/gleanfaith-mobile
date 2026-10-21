@@ -8,11 +8,12 @@ import '../../../../router/route_names.dart';
 // import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../services/logger_service.dart';
 import '../../../../services/notification_service.dart';
+import '../../../../common/entities/content_language.dart';
+import '../../../../common/providers/content_language_provider.dart';
 import '../../../../../features/app_update/presentation/providers/app_update_provider.dart';
 import '../../../../../features/app_update/presentation/widgets/app_update_dialog.dart';
 import '../../../../../features/auth/presentation/providers/auth_provider.dart';
-import '../../../../../features/bible/domain/entities/verse_of_the_day.dart';
-import '../../../../../features/bible/presentation/providers/verse_language_provider.dart';
+import '../../../../../features/bible/presentation/providers/remote_bible_providers.dart';
 import '../../../../../features/bible/presentation/providers/verse_of_the_day_provider.dart';
 import '../../../../../features/bible_games/presentation/widgets/home_fun_facts_card.dart';
 import '../../../../../features/bible_study/presentation/widgets/continue_reading_card.dart';
@@ -109,7 +110,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
       // re-renders one verse rather than swapping in a different one.
       final verse = await loadVerseOfTheDay(
         date: targetDate,
-        language: ref.read(verseLanguageProvider),
+        language: ref.read(contentLanguageProvider),
         getRemoteVerse: ref.read(getRemoteVerseUseCaseProvider),
       );
 
@@ -129,8 +130,10 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
   Widget build(BuildContext context) {
     // The notification body is baked in at schedule time, so a language change
     // has to re-schedule it. Without this the 7:00 AM verse would keep the
-    // previous language until the app happened to be resumed.
-    ref.listen<VerseLanguage>(verseLanguageProvider, (previous, next) {
+    // previous language until the app happened to be resumed. The global
+    // content language governs it, because the notification carries Bible
+    // content — only the notification's own chrome stays English.
+    ref.listen<ContentLanguage>(contentLanguageProvider, (previous, next) {
       if (previous != next) {
         _scheduleDailyVerseNotification();
       }

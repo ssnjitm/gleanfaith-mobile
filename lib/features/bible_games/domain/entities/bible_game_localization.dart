@@ -1048,6 +1048,10 @@ const Map<String, Map<String, String>> bibleGameUiCopy = {
     'en': 'Follow phone language',
     'np': 'फोनको भाषा अनुसार',
   },
+  'gameLanguageGlobal': {
+    'en': 'Uses the app content language from Settings',
+    'np': 'सेटिङमा रहेको एप सामग्री भाषा प्रयोग गर्छ',
+  },
 
   // ---- Lives & cooldown ----------------------------------------------------
   'livesLabel': {
@@ -1412,6 +1416,10 @@ class BibleGameStrings {
       text('gameLanguageManual', fallback: 'Chosen by you');
   String get gameLanguageUseDevice =>
       text('gameLanguageUseDevice', fallback: 'Follow phone language');
+  String get gameLanguageGlobal => text(
+        'gameLanguageGlobal',
+        fallback: 'Uses the app content language from Settings',
+      );
 
   // ---- Lives & cooldown ----------------------------------------------------
   String get livesLabel => text('livesLabel', fallback: 'Lives');

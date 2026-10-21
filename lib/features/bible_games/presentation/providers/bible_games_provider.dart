@@ -38,9 +38,9 @@ final bibleGamesDataProvider = FutureProvider<BibleGamesData>((ref) async {
   return BibleGamesData(books: books, extremes: extremes);
 });
 
-/// The same bundle with every book relabelled for the device locale and its
-/// chapter/verse counts patched from the inline catalog when the database
-/// reported none (fallback mode, e.g. on web).
+/// The same bundle with every book relabelled for the **global content
+/// language** and its chapter/verse counts patched from the inline catalog when
+/// the database reported none (fallback mode, e.g. on web).
 ///
 /// This is what every game page should read — the engine and the widgets both
 /// consume the already-localized books, so nothing has to re-resolve a name at
@@ -51,8 +51,9 @@ final localizedBibleGamesDataProvider = FutureProvider<BibleGamesData>((ref) asy
   return data.localized(ref.watch(bibleGameLanguageProvider));
 });
 
-/// All the fun facts the offline DB can produce, in the device language, for
-/// the Home facts card. Empty when the DB is unavailable (fallback/web mode).
+/// All the fun facts the offline DB can produce, in the global content language,
+/// for the Home facts card. Empty when the DB is unavailable (fallback/web
+/// mode).
 final bibleFunFactsProvider = FutureProvider<List<FunFactRound>>((ref) async {
   final data = await ref.watch(localizedBibleGamesDataProvider.future);
   if (data.isEmpty || data.extremes == null) return const [];
