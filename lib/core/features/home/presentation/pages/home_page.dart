@@ -1,11 +1,12 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../theme/colors.dart';
 import '../../../../theme/dimensions.dart';
 import '../../../../router/route_names.dart';
-// import '../../../../common/widgets/shimmer_placeholders.dart';
+import '../../../../common/widgets/app_empty_state.dart';
+import '../../../../common/widgets/shimmer_placeholders.dart';
 import '../../../../services/logger_service.dart';
 import '../../../../services/notification_service.dart';
 import '../../../../common/entities/content_language.dart';
@@ -17,6 +18,8 @@ import '../../../../../features/bible/presentation/providers/remote_bible_provid
 import '../../../../../features/bible/presentation/providers/verse_of_the_day_provider.dart';
 import '../../../../../features/bible_games/presentation/widgets/home_fun_facts_card.dart';
 import '../../../../../features/bible_study/presentation/widgets/continue_reading_card.dart';
+import '../../../../../features/leaderboard/domain/entities/leaderboard_entities.dart';
+import '../../../../../features/leaderboard/presentation/providers/leaderboard_provider.dart';
 import '../../../profile/presentation/widgets/profile_top_bar_button.dart';
 import '../providers/main_tab_provider.dart';
 import '../widgets/promo_carousel.dart';
@@ -30,8 +33,6 @@ class HomePage extends ConsumerStatefulWidget {
 }
 
 class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver {
-  /// `versionCode` of the update dialog currently on screen, so re-entering the
-  /// check cannot stack a second dialog for the same release.
   int _shownUpdateVersionCode = 0;
 
   @override
@@ -54,19 +55,10 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _scheduleDailyVerseNotification();
-      // Re-checked on resume, not only on first build: an update published
-      // while the app sat in the background should still be offered, and this is
-      // also how a user returns after dismissing the installer.
       _checkForAppUpdate();
     }
   }
 
-  /// Offers a newer release, if one is published.
-  ///
-  /// Runs after the first frame so it never delays the Home render, and it
-  /// swallows its own failures: the update check is a convenience and must not
-  /// interfere with anything else on this page. The dismissal cache inside the
-  /// notifier is what stops an optional update reappearing on every launch.
   Future<void> _checkForAppUpdate() async {
     try {
       final notifier = ref.read(appUpdateProvider.notifier);
@@ -77,14 +69,12 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         ref,
         shownVersionCode: _shownUpdateVersionCode,
       );
-      // Remember what was on screen so a rebuild while the dialog is open
-      // cannot stack a second copy of it.
       final release = ref.read(appUpdateProvider).release;
       if (release != null) {
         _shownUpdateVersionCode = release.versionCode;
       }
     } catch (error) {
-      LoggerService.warning('Update prompt skipped: $error');
+      LoggerService.warning('Update prompt skipped: ');
     }
   }
 
@@ -93,9 +83,6 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
       final user = ref.read(authProvider).user;
       final firstName = (user?.fullName ?? '').split(' ').first.trim();
 
-      // Determine the date the next 7:00 AM notification fires on, and load
-      // the verse for THAT date so the notification matches the verse of the
-      // day shown on the home page that day.
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
       final nextFireAt7am = today.add(const Duration(hours: 7));
@@ -103,11 +90,6 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
           ? today
           : today.add(const Duration(days: 1));
 
-      // Same loader the Home card uses, so the two can never disagree — and it
-      // honours the EN | NP toggle, meaning the notification body is Nepali
-      // when the user has selected Nepali. The title stays English. Both
-      // languages resolve the *same* curated verse, so a language change
-      // re-renders one verse rather than swapping in a different one.
       final verse = await loadVerseOfTheDay(
         date: targetDate,
         language: ref.read(contentLanguageProvider),
@@ -122,17 +104,12 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         date: targetDate,
       );
     } catch (e) {
-      LoggerService.warning('Could not schedule daily verse notification: $e');
+      LoggerService.warning('Could not schedule daily verse notification: ');
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // The notification body is baked in at schedule time, so a language change
-    // has to re-schedule it. Without this the 7:00 AM verse would keep the
-    // previous language until the app happened to be resumed. The global
-    // content language governs it, because the notification carries Bible
-    // content — only the notification's own chrome stays English.
     ref.listen<ContentLanguage>(contentLanguageProvider, (previous, next) {
       if (previous != next) {
         _scheduleDailyVerseNotification();
@@ -146,9 +123,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     return Scaffold(
       body: SafeArea(
         child: RefreshIndicator(
-          onRefresh: () async {
-            // TODO: refresh home data
-          },
+          onRefresh: () async {},
           child: ListView(
             padding: const EdgeInsets.only(bottom: AppDimensions.paddingXl),
             children: [
@@ -162,6 +137,8 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               _buildSectionHeader(context, 'Quick Actions', isDark),
               const SizedBox(height: AppDimensions.paddingSm),
               _buildQuickActionGrid(context, isDark),
+              const SizedBox(height: AppDimensions.paddingMd),
+              _buildLeaderboardPreview(context, isDark),
               const SizedBox(height: AppDimensions.paddingMd),
               const HomeFunFactsCard(),
             ],
@@ -249,9 +226,6 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         icon: Icons.auto_stories_rounded,
         onTap: () => ref.read(mainTabIndexProvider.notifier).state = MainTab.library,
       ),
-      // Rankings live on the profile screen, which is reachable only from a
-      // top-bar icon, so the carousel points at the games tab instead of
-      // navigating behind the user's back.
       PromoSlide(
         title: 'Play Bible Games',
         subtitle: 'Test how well you know your Bible.',
@@ -292,7 +266,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  '$greeting,',
+                  ',',
                   style: TextStyle(
                     fontSize: 13,
                     color: isDark ? Colors.grey[400] : AppColors.textMuted,
@@ -309,8 +283,6 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               ],
             ),
           ),
-          // The profile is no longer a bottom-nav tab or a home quick action;
-          // the icon in this header is the single entry point to it.
           const ProfileTopBarButton(),
           const SizedBox(width: AppDimensions.paddingSm),
           Container(
@@ -348,6 +320,94 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
           fontWeight: FontWeight.w700,
           color: isDark ? Colors.white : AppColors.textPrimary,
         ),
+      ),
+    );
+  }
+
+  Widget _buildLeaderboardPreview(BuildContext context, bool isDark) {
+    final leaderboardState = ref.watch(leaderboardProvider);
+    final entries = leaderboardState.data?.entries ?? const [];
+
+    if (leaderboardState.status == LeaderboardStatus.initial &&
+        leaderboardState.data == null) {
+      Future.microtask(() {
+        if (!mounted) return;
+        ref.read(leaderboardProvider.notifier).load();
+      });
+    }
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Leaderboard',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: isDark ? Colors.white : AppColors.textPrimary,
+                ),
+              ),
+              TextButton(
+                onPressed: () => context.push(RouteNames.leaderboard),
+                child: const Text('View All'),
+              ),
+            ],
+          ),
+          const SizedBox(height: AppDimensions.sm),
+          Material(
+            color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+            borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+              onTap: () => context.push(RouteNames.leaderboard),
+              child: Container(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    if (leaderboardState.isLoading && entries.isEmpty)
+                      const Column(
+                        children: [
+                          LeaderboardEntryShimmer(),
+                          LeaderboardEntryShimmer(),
+                          LeaderboardEntryShimmer(),
+                        ],
+                      )
+                    else if (entries.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.all(AppDimensions.paddingLg),
+                        child: AppEmptyState(
+                          icon: Icons.leaderboard_outlined,
+                          title: 'No rankings yet',
+                          subtitle: 'Complete quizzes to see leaderboard',
+                          onAction: () => context.push(RouteNames.leaderboard),
+                          actionLabel: 'Go to Leaderboard',
+                        ),
+                      )
+                    else
+                      ...entries
+                          .take(3)
+                          .map(
+                            (entry) => _HomeLeaderboardTile(
+                              entry: entry,
+                              isDark: isDark,
+                            ),
+                          ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -405,6 +465,96 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         },
       ),
     ];
+  }
+}
+
+class _HomeLeaderboardTile extends StatelessWidget {
+  final LeaderboardEntry entry;
+  final bool isDark;
+
+  const _HomeLeaderboardTile({
+    required this.entry,
+    required this.isDark,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppDimensions.paddingMd,
+        vertical: AppDimensions.sm + 2,
+      ),
+      decoration: BoxDecoration(
+        border: Border(
+          bottom: BorderSide(
+            color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          SizedBox(
+            width: 24,
+            child: Text(
+              '#',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w800,
+                color: isDark ? Colors.grey[300] : AppColors.textSecondary,
+              ),
+            ),
+          ),
+          const SizedBox(width: AppDimensions.sm),
+          CircleAvatar(
+            radius: 16,
+            backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.12),
+            backgroundImage:
+                (entry.avatar?.isNotEmpty == true) ? NetworkImage(entry.avatar!) : null,
+            child: (entry.avatar?.isNotEmpty != true)
+                ? Text(
+                    entry.username.isNotEmpty
+                        ? entry.username[0].toUpperCase()
+                        : '?',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primaryBlue,
+                    ),
+                  )
+                : null,
+          ),
+          const SizedBox(width: AppDimensions.sm),
+          Expanded(
+            child: Text(
+              entry.username,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey[100] : AppColors.textPrimary,
+              ),
+            ),
+          ),
+          Text(
+            '',
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+              color: AppColors.primaryAmber,
+            ),
+          ),
+          const SizedBox(width: 2),
+          Text(
+            'pts',
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.grey[500] : AppColors.textLight,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 

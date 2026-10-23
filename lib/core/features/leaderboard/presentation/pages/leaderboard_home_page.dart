@@ -164,15 +164,18 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
       return ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.only(bottom: AppDimensions.paddingXl),
-        children: const [
-          SizedBox(height: AppDimensions.paddingSm),
-          _PeriodSelectorShimmer(),
-          SizedBox(height: AppDimensions.paddingSm),
-          _ResetCountdownShimmer(),
-          SizedBox(height: AppDimensions.paddingMd),
-          StatsCardShimmer(),
-          SizedBox(height: AppDimensions.lg),
-          Padding(
+        children: [
+          const SizedBox(height: AppDimensions.paddingSm),
+          const _PeriodSelectorShimmer(),
+          const SizedBox(height: AppDimensions.paddingSm),
+          const _ResetCountdownShimmer(),
+          if (state.selectedPeriod == LeaderboardPeriod.allTime) ...[
+            const SizedBox(height: AppDimensions.paddingMd),
+            const StatsCardShimmer(),
+            const SizedBox(height: AppDimensions.lg),
+          ] else
+            const SizedBox(height: AppDimensions.paddingMd),
+          const Padding(
             padding: EdgeInsets.symmetric(vertical: AppDimensions.paddingLg),
             child: Column(
               children: [
@@ -211,18 +214,21 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
         ),
         const SizedBox(height: AppDimensions.paddingSm),
         _buildResetCountdown(context, state),
-        const SizedBox(height: AppDimensions.paddingMd),
-        StatsCard(
-          level: state.myRanking.level,
-          totalPoints: state.myRanking.totalPoints,
-          currentLevelPoints: state.myRanking.currentLevelPoints,
-          nextLevelPoints: state.myRanking.nextLevelPoints,
-          pointsToNextLevel: state.myRanking.pointsToNextLevel,
-          badge: state.myRanking.badge.isEmpty ? 'bronze' : state.myRanking.badge,
-          weeklyRank: _rankForPeriod(state),
-          quizzesCompleted: state.myRanking.quizzesCompleted,
-        ),
-        const SizedBox(height: AppDimensions.lg),
+        if (state.selectedPeriod == LeaderboardPeriod.allTime) ...[
+          const SizedBox(height: AppDimensions.paddingMd),
+          StatsCard(
+            level: state.myRanking.level,
+            totalPoints: state.myRanking.totalPoints,
+            currentLevelPoints: state.myRanking.currentLevelPoints,
+            nextLevelPoints: state.myRanking.nextLevelPoints,
+            pointsToNextLevel: state.myRanking.pointsToNextLevel,
+            badge: state.myRanking.badge.isEmpty ? 'bronze' : state.myRanking.badge,
+            weeklyRank: _rankForPeriod(state),
+            quizzesCompleted: state.myRanking.quizzesCompleted,
+          ),
+          const SizedBox(height: AppDimensions.lg),
+        ] else
+          const SizedBox(height: AppDimensions.paddingMd),
         if (showInitialSpinner)
           const Padding(
             padding: EdgeInsets.symmetric(vertical: AppDimensions.paddingLg),
