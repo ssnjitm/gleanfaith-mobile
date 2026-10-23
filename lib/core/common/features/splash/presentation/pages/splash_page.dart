@@ -1,8 +1,11 @@
-import 'dart:math';
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../../../../../features/auth/presentation/providers/auth_provider.dart';
+import '../../../../../constants/asset_paths.dart';
+import '../../../../../theme/colors.dart';
 
 class SplashPage extends ConsumerStatefulWidget {
   const SplashPage({super.key});
@@ -13,53 +16,70 @@ class SplashPage extends ConsumerStatefulWidget {
 
 class _SplashPageState extends ConsumerState<SplashPage>
     with SingleTickerProviderStateMixin {
+  static const Color _navy = Color(0xFF1E3A5F);
+  static const Color _subtitleColor = Color(0xFF64748B);
+
   late AnimationController _controller;
   late Animation<double> _iconScale;
   late Animation<double> _iconFade;
-  late Animation<double> _iconGlow;
   late Animation<double> _titleSlide;
   late Animation<double> _titleFade;
   late Animation<double> _subtitleFade;
-  late Animation<double> _loaderFade;
+  late Animation<double> _footerFade;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3200),
+      duration: const Duration(milliseconds: 2600),
     );
 
-    _iconScale = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.5, curve: Curves.elasticOut)),
+    _iconScale = Tween<double>(begin: 0.7, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.5, curve: Curves.elasticOut),
+      ),
     );
     _iconFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.0, 0.3, curve: Curves.easeOut)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.0, 0.3, curve: Curves.easeOut),
+      ),
     );
-    _iconGlow = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.2, 0.7, curve: Curves.easeInOut)),
-    );
-    _titleSlide = Tween<double>(begin: 30.0, end: 0.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.4, 0.7, curve: Curves.easeOutCubic)),
+    _titleSlide = Tween<double>(begin: 24.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.35, 0.65, curve: Curves.easeOutCubic),
+      ),
     );
     _titleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.4, 0.7, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.35, 0.65, curve: Curves.easeIn),
+      ),
     );
     _subtitleFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.6, 0.85, curve: Curves.easeIn)),
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.55, 0.85, curve: Curves.easeIn),
+      ),
     );
-    _loaderFade = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: const Interval(0.8, 1.0, curve: Curves.easeIn)),
+    _footerFade = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _controller,
+        curve: const Interval(0.7, 1.0, curve: Curves.easeIn),
+      ),
     );
 
     _controller.forward();
-    _checkAuth();
+    unawaited(_checkAuth());
   }
 
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(milliseconds: 2800));
     if (!mounted) return;
-    ref.read(authProvider.notifier).checkAuth();
+    await ref.read(authProvider.notifier).checkAuth();
   }
 
   @override
@@ -71,6 +91,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       body: GestureDetector(
         onTap: () {
           if (!mounted) return;
@@ -79,177 +100,113 @@ class _SplashPageState extends ConsumerState<SplashPage>
         child: AnimatedBuilder(
           animation: _controller,
           builder: (context, _) {
-            return Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFF1E3A5F),
-                    Color(0xFF2563EB),
-                    Color(0xFF7C3AED),
-                    Color(0xFFD97706),
-                  ],
-                  stops: [0.0, 0.35, 0.7, 1.0],
-                ),
-              ),
-              child: Stack(
-                children: [
-                  ..._buildFloatingGlints(),
-                  Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Transform.scale(
-                          scale: _iconScale.value,
-                          child: Opacity(
-                            opacity: _iconFade.value,
-                            child: Stack(
-                              alignment: Alignment.center,
-                              children: [
-                                Container(
-                                  width: 110,
-                                  height: 110,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    color: Colors.white.withValues(alpha: 0.08 + _iconGlow.value * 0.07),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: Colors.white.withValues(alpha: 0.1 * _iconGlow.value),
-                                        blurRadius: 20 + _iconGlow.value * 20,
-                                        spreadRadius: 2 + _iconGlow.value * 8,
+            return ColoredBox(
+              color: Colors.white,
+              child: SafeArea(
+                child: Stack(
+                  children: [
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 28),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Transform.scale(
+                              scale: _iconScale.value,
+                              child: Opacity(
+                                opacity: _iconFade.value,
+                                child: Image.asset(
+                                  AssetPaths.appIcon,
+                                  width: 120,
+                                  height: 120,
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 28),
+                            Transform.translate(
+                              offset: Offset(0, _titleSlide.value),
+                              child: Opacity(
+                                opacity: _titleFade.value,
+                                child: RichText(
+                                  textAlign: TextAlign.center,
+                                  text: const TextSpan(
+                                    style: TextStyle(
+                                      fontSize: 38,
+                                      fontWeight: FontWeight.w800,
+                                      letterSpacing: 0.5,
+                                      height: 1.1,
+                                    ),
+                                    children: [
+                                      TextSpan(
+                                        text: 'Glean',
+                                        style: TextStyle(color: _navy),
+                                      ),
+                                      TextSpan(
+                                        text: 'Faith',
+                                        style: TextStyle(
+                                          color: AppColors.primaryBlue,
+                                        ),
                                       ),
                                     ],
                                   ),
                                 ),
-                                Container(
-                                  width: 80,
-                                  height: 80,
-                                  decoration: BoxDecoration(
-                                    color: Colors.white.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(22),
-                                    border: Border.all(
-                                      color: Colors.white.withValues(alpha: 0.2),
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.menu_book_rounded,
-                                    size: 42,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        Transform.translate(
-                          offset: Offset(0, _titleSlide.value),
-                          child: Opacity(
-                            opacity: _titleFade.value,
-                            child: const Text(
-                              'GLEAN FAITH',
-                              style: TextStyle(
-                                fontSize: 34,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                                letterSpacing: 5.5,
-                                height: 1.1,
                               ),
                             ),
-                          ),
-                        ),
-                        const SizedBox(height: 14),
-                        Opacity(
-                          opacity: _subtitleFade.value,
-                          child: Text(
-                            'Deepen Your Faith Through Scripture',
-                            style: TextStyle(
-                              fontSize: 15,
-                              color: Colors.white.withValues(alpha: 0.8),
-                              letterSpacing: 1.8,
-                              fontWeight: FontWeight.w300,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(height: 64),
-                        Opacity(
-                          opacity: _loaderFade.value,
-                          child: Column(
-                            children: [
-                              SizedBox(
-                                width: 26,
-                                height: 26,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.2,
-                                  valueColor: AlwaysStoppedAnimation<Color>(
-                                    Colors.white.withValues(alpha: 0.7),
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Text(
-                                'Preparing your journey...',
+                            const SizedBox(height: 14),
+                            Opacity(
+                              opacity: _subtitleFade.value,
+                              child: const Text(
+                                'DAILY DEVOTIONS • BIBLE QUIZZES • GROW TOGETHER',
+                                textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  color: Colors.white.withValues(alpha: 0.45),
-                                  fontSize: 12,
-                                  letterSpacing: 0.8,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: _subtitleColor,
+                                  letterSpacing: 1.4,
+                                  height: 1.6,
                                 ),
                               ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Positioned(
-                    bottom: 56,
-                    left: 0,
-                    right: 0,
-                    child: Opacity(
-                      opacity: _loaderFade.value * 0.5,
-                      child: const Text(
-                        'Tap to continue',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Colors.white38,
-                          fontSize: 12,
-                          letterSpacing: 1.2,
+                            ),
+                          ],
                         ),
                       ),
                     ),
-                  ),
-                ],
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      bottom: 32,
+                      child: Opacity(
+                        opacity: _footerFade.value,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Image.asset(
+                              AssetPaths.codermitraLogo,
+                              height: 18,
+                              fit: BoxFit.contain,
+                            ),
+                            const SizedBox(width: 8),
+                            const Text(
+                              'Developed by CoderMitra',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: _subtitleColor,
+                                letterSpacing: 0.3,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             );
           },
         ),
       ),
     );
-  }
-
-  List<Widget> _buildFloatingGlints() {
-    final val = _controller.value;
-    return List.generate(14, (i) {
-      final seed = i * 137.5;
-      final phase = (val * 0.6 + seed * 0.007) % 1.0;
-      final x = ((seed * 0.123) % 0.9) + 0.05;
-      final y = ((seed * 0.321) % 0.9) + 0.05;
-      final dx = sin(phase * pi * 2 + i * 0.7) * 18;
-      final dy = -phase * 50 + cos(phase * pi * 2 + i) * 10;
-      return Positioned(
-        left: (MediaQuery.of(context).size.width * x) + dx,
-        top: (MediaQuery.of(context).size.height * y) + dy,
-        child: Opacity(
-          opacity: (1 - phase) * 0.35,
-          child: Icon(
-            i.isEven ? Icons.star : Icons.lens,
-            size: 3.0 + (i % 4) * 1.8,
-            color: Colors.white.withValues(alpha: 0.6),
-          ),
-        ),
-      );
-    });
   }
 }

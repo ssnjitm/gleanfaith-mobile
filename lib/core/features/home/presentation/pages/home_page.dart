@@ -266,7 +266,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  ',',
+                  '$greeting,',
                   style: TextStyle(
                     fontSize: 13,
                     color: isDark ? Colors.grey[400] : AppColors.textMuted,

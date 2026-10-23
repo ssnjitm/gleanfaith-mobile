@@ -9,6 +9,8 @@ class AssetPaths {
   static const String logo = '$images/logo.png';
   static const String logoWhite = '$images/logo_white.png';
   static const String placeholder = '$images/placeholder.png';
+  static const String appIcon = '$images/app_icon.png';
+  static const String codermitraLogo = '$images/codermitra logo.png';
 
   static const String correctSound = '$audios/correct_sound.mp3';
   static const String incorrectSound = '$audios/incorrect_sound.mp3';
