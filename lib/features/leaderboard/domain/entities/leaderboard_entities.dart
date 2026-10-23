@@ -45,13 +45,65 @@ class LeaderboardData {
   final LeaderboardPeriod period;
   final int userRank;
   final int totalParticipants;
+  final DateTime? resetAt;
+  final DateTime? endsAt;
 
   const LeaderboardData({
     required this.entries,
     required this.period,
     required this.userRank,
     required this.totalParticipants,
+    this.resetAt,
+    this.endsAt,
   });
+
+  /// Reset timestamp for this period, in UTC.
+  ///
+  /// Server-provided timestamps always win, so every device agrees with the
+  /// backend that actually resets the rankings. Without one, the client falls
+  /// back to the documented schedule: Monday 00:00 UTC for weekly and the 1st
+  /// of the next month 00:00 UTC for monthly. All-time never resets.
+  DateTime? nextResetUtc({DateTime? now}) {
+    final explicit = endsAt ?? resetAt;
+    if (explicit != null) return explicit.toUtc();
+    return fallbackLeaderboardResetUtc(period, now: now);
+  }
+}
+
+/// Client-side fallback reset schedule for [period], in UTC.
+DateTime? fallbackLeaderboardResetUtc(
+  LeaderboardPeriod period, {
+  DateTime? now,
+}) {
+  final current = (now ?? DateTime.now()).toUtc();
+  switch (period) {
+    case LeaderboardPeriod.weekly:
+      final daysUntilMonday = (DateTime.monday - current.weekday) % 7;
+      final days = daysUntilMonday == 0 ? 7 : daysUntilMonday;
+      return DateTime.utc(current.year, current.month, current.day)
+          .add(Duration(days: days));
+    case LeaderboardPeriod.monthly:
+      return DateTime.utc(current.year, current.month + 1, 1);
+    case LeaderboardPeriod.allTime:
+      return null;
+  }
+}
+
+/// Human-readable countdown, e.g. `Ends in 2d 14h 32m`, `Ends in 4m 09s`,
+/// or `Resetting…` once the window has closed.
+String formatLeaderboardCountdown(Duration remaining) {
+  if (remaining.inSeconds <= 0) return 'Resetting…';
+  final days = remaining.inDays;
+  final hours = remaining.inHours % 24;
+  final minutes = remaining.inMinutes % 60;
+  final seconds = remaining.inSeconds % 60;
+  if (days > 0) return 'Ends in ${days}d ${hours}h ${minutes}m';
+  if (hours > 0) return 'Ends in ${hours}h ${minutes}m';
+  if (minutes > 0) {
+    final padded = seconds.toString().padLeft(2, '0');
+    return 'Ends in ${minutes}m ${padded}s';
+  }
+  return 'Ends in ${seconds}s';
 }
 
 class MyRanking {

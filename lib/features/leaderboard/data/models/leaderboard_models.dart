@@ -44,13 +44,42 @@ class LeaderboardDataModel {
   final LeaderboardPeriod period;
   final int userRank;
   final int totalParticipants;
+  final DateTime? resetAt;
+  final DateTime? endsAt;
 
   const LeaderboardDataModel({
     required this.entries,
     required this.period,
     required this.userRank,
     required this.totalParticipants,
+    this.resetAt,
+    this.endsAt,
   });
+
+  static DateTime? _parseDate(dynamic value) {
+    if (value == null) return null;
+    if (value is DateTime) return value.toUtc();
+    if (value is String && value.isNotEmpty) {
+      try {
+        return DateTime.parse(value).toUtc();
+      } catch (_) {
+        return null;
+      }
+    }
+    if (value is int) {
+      // Assume seconds if small, milliseconds if large
+      try {
+        if (value > 1000000000000) {
+          return DateTime.fromMillisecondsSinceEpoch(value, isUtc: true);
+        } else {
+          return DateTime.fromMillisecondsSinceEpoch(value * 1000, isUtc: true);
+        }
+      } catch (_) {
+        return null;
+      }
+    }
+    return null;
+  }
 
   factory LeaderboardDataModel.fromJson(
     Map<String, dynamic> json,
@@ -70,11 +99,35 @@ class LeaderboardDataModel {
             .map((e) => LeaderboardEntryModel.fromJson(e).toEntity())
             .toList()
         : <LeaderboardEntry>[];
+    final resetAt = _parseDate(
+      json['resetAt'] ??
+          json['reset_at'] ??
+          json['nextResetAt'] ??
+          json['next_reset_at'] ??
+          json['resetTime'] ??
+          json['reset_time'],
+    );
+    final endsAt = _parseDate(
+      json['endsAt'] ??
+          json['ends_at'] ??
+          json['endAt'] ??
+          json['end_at'] ??
+          json['endDate'] ??
+          json['end_date'] ??
+          json['endTime'] ??
+          json['end_time'] ??
+          json['expiresAt'] ??
+          json['expires_at'] ??
+          json['deadline'] ??
+          resetAt,
+    );
     return LeaderboardDataModel(
       entries: entries,
       period: period,
       userRank: (json['userRank'] as num?)?.toInt() ?? 0,
       totalParticipants: (json['totalParticipants'] as num?)?.toInt() ?? 0,
+      resetAt: resetAt,
+      endsAt: endsAt ?? resetAt,
     );
   }
 
@@ -84,6 +137,8 @@ class LeaderboardDataModel {
       period: period,
       userRank: userRank,
       totalParticipants: totalParticipants,
+      resetAt: resetAt,
+      endsAt: endsAt ?? resetAt,
     );
   }
 }

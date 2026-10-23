@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -19,6 +21,11 @@ class LeaderboardHomePage extends ConsumerStatefulWidget {
 }
 
 class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
+  Timer? _countdownTimer;
+  DateTime _nowUtc = DateTime.now().toUtc();
+  bool _resetReloading = false;
+  DateTime? _handledResetAt;
+
   @override
   void initState() {
     super.initState();
@@ -29,6 +36,44 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
         ref.read(leaderboardProvider.notifier).load();
       }
     });
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      final now = DateTime.now().toUtc();
+      setState(() => _nowUtc = now);
+      _reloadIfResetPassed(now);
+    });
+  }
+
+  Future<void> _reloadIfResetPassed(DateTime now) async {
+    if (_resetReloading) return;
+    final state = ref.read(leaderboardProvider);
+    final resetAt = _resetTimeFor(state, now: now);
+    if (resetAt == null || resetAt.isAfter(now)) return;
+    if (_handledResetAt == resetAt) return;
+    _handledResetAt = resetAt;
+    _resetReloading = true;
+    try {
+      await ref.read(leaderboardProvider.notifier).load();
+    } finally {
+      _resetReloading = false;
+    }
+  }
+
+  DateTime? _resetTimeFor(LeaderboardState state, {DateTime? now}) {
+    final data = state.data;
+    final period = state.selectedPeriod;
+    if (period == LeaderboardPeriod.allTime) return null;
+    final serverReset = data != null && data.period == period
+        ? (data.endsAt ?? data.resetAt)
+        : null;
+    if (serverReset != null) return serverReset.toUtc();
+    return fallbackLeaderboardResetUtc(period, now: now ?? _nowUtc);
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _refresh() async {
@@ -36,6 +81,7 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
   }
 
   void _changePeriod(LeaderboardPeriod period) {
+    _handledResetAt = null;
     ref.read(leaderboardProvider.notifier).changePeriod(period);
   }
 
@@ -64,6 +110,53 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
     );
   }
 
+  Widget _buildResetCountdown(BuildContext context, LeaderboardState state) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final resetAt = _resetTimeFor(state);
+    if (resetAt == null) return const SizedBox.shrink();
+    final remaining = resetAt.difference(_nowUtc);
+    final label = formatLeaderboardCountdown(remaining);
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
+      child: Container(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppDimensions.paddingMd,
+          vertical: AppDimensions.sm,
+        ),
+        decoration: BoxDecoration(
+          color: isDark
+              ? const Color(0xFF1E293B)
+              : AppColors.primaryBlue.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          border: Border.all(
+            color: isDark
+                ? const Color(0xFF334155)
+                : AppColors.primaryBlue.withValues(alpha: 0.25),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.timer_outlined,
+              size: 16,
+              color: isDark ? Colors.grey[300] : AppColors.primaryBlue,
+            ),
+            const SizedBox(width: AppDimensions.xs),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: isDark ? Colors.grey[200] : AppColors.primaryBlue,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildBody(BuildContext context, LeaderboardState state) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
@@ -74,6 +167,8 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
         children: const [
           SizedBox(height: AppDimensions.paddingSm),
           _PeriodSelectorShimmer(),
+          SizedBox(height: AppDimensions.paddingSm),
+          _ResetCountdownShimmer(),
           SizedBox(height: AppDimensions.paddingMd),
           StatsCardShimmer(),
           SizedBox(height: AppDimensions.lg),
@@ -114,6 +209,8 @@ class _LeaderboardHomePageState extends ConsumerState<LeaderboardHomePage> {
           selected: state.selectedPeriod,
           onChanged: _changePeriod,
         ),
+        const SizedBox(height: AppDimensions.paddingSm),
+        _buildResetCountdown(context, state),
         const SizedBox(height: AppDimensions.paddingMd),
         StatsCard(
           level: state.myRanking.level,
@@ -276,6 +373,26 @@ class _PeriodSelectorShimmer extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _ResetCountdownShimmer extends StatelessWidget {
+  const _ResetCountdownShimmer();
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
+      child: ShimmerWidget(
+        width: double.infinity,
+        height: 36,
+        borderRadius: AppDimensions.radiusLg,
+        baseColor: isDark ? const Color(0xFF334155) : null,
+        highlightColor: isDark ? const Color(0xFF475569) : null,
       ),
     );
   }
