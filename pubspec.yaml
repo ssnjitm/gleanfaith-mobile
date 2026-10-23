@@ -84,9 +84,14 @@ flutter:
     # Sound effects (correct / incorrect / timer / ending)
     - assets/audios/
 
-    # Other assets (uncomment as you add them)
-    # - assets/images/
-    # - assets/icons/
-    # - assets/fonts/
-    # - assets/lottie/
-    # - assets/videos/
+# ============================================================
+# Flutter Launcher Icons Configuration
+# (Place this at the root/very bottom of pubspec.yaml, NOT indented under flutter:)
+# ============================================================
+flutter_launcher_icons:
+  image_path: "assets/images/app_icon.png"
+  android: true
+  ios: true
+  # Optional: if you want to remove the adaptive icon background color on Android
+  # remove_alpha_ios: true
+  # flutter pub run flutter_launcher_icons
