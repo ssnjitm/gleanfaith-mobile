@@ -212,6 +212,11 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
   /// then changed nothing, which is exactly the reported bug. The other
   /// language is fetched for the **same session id**: starting a second session
   /// would burn the single daily attempt.
+  ///
+  /// Two sources are tried, in order:
+  /// 1. the session itself, re-read with `?language=xx`;
+  /// 2. the question set behind the session, which keeps every language
+  ///    variant the backend stores.
   Future<void> _loadSessionLanguage(QuizLanguage language) async {
     if (!mounted) return;
     final session = _session;
@@ -234,47 +239,148 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     // The user flipped the control again while this request was running.
     if (_language != language) return;
 
-    if (reloaded == null) {
-      // The request itself failed (offline, 404, timeout). The wording the
-      // quiz was started with stays on screen.
-      setState(() => _languageNotice = _unavailableMessage(language));
-      return;
-    }
-    if (reloaded.questions.isEmpty) {
-      setState(() => _languageNotice = _missingLanguageMessage(language));
-      return;
-    }
-    if (reloaded.questions.length != session.questions.length) {
-      // The answer key is per question index, so a different question count
-      // cannot be swapped in without misaligning the scores.
-      LoggerService.warning(
-        'Quiz session ${session.sessionId} returned '
-        '${reloaded.questions.length} questions in ${language.code}, '
-        'expected ${session.questions.length}',
-      );
-      setState(() => _languageNotice = _unavailableMessage(language));
-      return;
-    }
-    if (!_sessionHasLanguage(reloaded, language)) {
-      setState(() => _languageNotice = _missingLanguageMessage(language));
-      return;
+    // The re-read can fail (offline, 404, timeout) or come back in the language
+    // the session was started with. Either way the question set is still worth
+    // trying: it is the only document that keeps both languages, so the toggle
+    // must not give up just because the session route is unavailable.
+    var reloadNotice = _unavailableMessage(language);
+    if (reloaded != null && reloaded.questions.isNotEmpty) {
+      if (reloaded.questions.length != session.questions.length) {
+        // The answer key is per question index, so a different question count
+        // cannot be swapped in without misaligning the scores.
+        LoggerService.warning(
+          'Quiz session ${session.sessionId} returned '
+          '${reloaded.questions.length} questions in ${language.code}, '
+          'expected ${session.questions.length}',
+        );
+      } else if (_sessionHasLanguage(reloaded, language)) {
+        setState(() {
+          _session = ActiveQuiz(
+            sessionId: reloaded.sessionId.isEmpty
+                ? session.sessionId
+                : reloaded.sessionId,
+            durationSeconds: reloaded.durationSeconds,
+            questions: reloaded.questions,
+            scheduleId:
+                reloaded.scheduleId ?? session.scheduleId ?? _args.scheduleId,
+            quizSetId: reloaded.quizSetId ?? session.quizSetId,
+            title: reloaded.title ?? session.title,
+            isDaily: reloaded.isDaily || session.isDaily,
+            isSeries: reloaded.isSeries || session.isSeries,
+            language: language,
+          );
+          _languageNotice = null;
+        });
+        return;
+      } else {
+        // The backend materialised the session in its start language and has
+        // no other wording to give.
+        reloadNotice = _missingLanguageMessage(language);
+      }
+    } else if (reloaded != null) {
+      reloadNotice = _missingLanguageMessage(language);
     }
 
+    setState(() => _translating = true);
+    final fromSet = await _applyQuizSetWording(session, language);
+    if (!mounted) return;
+    setState(() => _translating = false);
+    if (_language != language) return;
+    if (fromSet == null) {
+      setState(() => _languageNotice = reloadNotice);
+      return;
+    }
     setState(() {
-      _session = ActiveQuiz(
-        sessionId: reloaded.sessionId.isEmpty
-            ? session.sessionId
-            : reloaded.sessionId,
-        durationSeconds: reloaded.durationSeconds,
-        questions: reloaded.questions,
-        scheduleId: reloaded.scheduleId ?? session.scheduleId,
-        title: reloaded.title ?? session.title,
-        isDaily: reloaded.isDaily || session.isDaily,
-        isSeries: reloaded.isSeries || session.isSeries,
-        language: language,
-      );
+      _session = fromSet;
       _languageNotice = null;
     });
+  }
+
+  /// Takes the wording of [language] from the question set behind the session.
+  ///
+  /// The set keeps every language variant, while a running session is
+  /// materialised in the language it was started with. This is what makes the
+  /// EN | NP toggle work in **both** directions: a session started in Nepali
+  /// has no English of its own, but the set it came from does.
+  ///
+  /// Returns `null` when the set could not be read or does not carry the
+  /// language; the caller then keeps the wording the session has.
+  Future<ActiveQuiz?> _applyQuizSetWording(
+    ActiveQuiz session,
+    QuizLanguage language,
+  ) async {
+    final notifier = ref.read(quizProvider.notifier);
+    final scheduleId = session.scheduleId ?? _args.scheduleId;
+
+    // The schedule detail **embeds** the full set (questions and every language
+    // variant), and unlike `GET /quiz-sets/{id}` it is readable by a normal
+    // user. Use that copy first; fall back to the quiz-sets route only when the
+    // schedule carries an id but no questions.
+    QuizQuestionSet? set;
+    if (scheduleId != null && scheduleId.isNotEmpty) {
+      set = await notifier.loadScheduleQuizSet(scheduleId);
+      if (!mounted) return null;
+    }
+
+    // The start response does not echo the schedule back, so the route args are
+    // the only place the schedule id is guaranteed to be. Without this fallback
+    // the set could not be resolved for a freshly started session and the
+    // toggle would stay dead in the NP → EN direction.
+    final setId = await notifier.resolveQuizSetId(
+      quizSetId: session.quizSetId ?? _args.quizSetId ?? set?.id,
+      scheduleId: scheduleId,
+    );
+    if (!mounted) return null;
+
+    if (set == null || set.questions.isEmpty) {
+      if (setId == null || setId.isEmpty) {
+        LoggerService.warning(
+          'No quiz set id for session ${session.sessionId}, '
+          'the ${language.code} wording cannot be loaded',
+        );
+        return null;
+      }
+      set = await notifier.loadQuizSet(setId);
+      if (!mounted) return null;
+    }
+    if (set == null || set.questions.isEmpty) return null;
+
+    final rebuilt = set.applyTo(session.questions, session.language);
+    final swapped = _countWithLanguage(rebuilt, language);
+    if (swapped == 0) {
+      LoggerService.warning(
+        'Quiz set $setId carries no ${language.code} wording for '
+        'session ${session.sessionId}',
+      );
+      return null;
+    }
+
+    LoggerService.info(
+      'Quiz session ${session.sessionId}: $swapped of ${rebuilt.length} '
+      'questions now use the $setId $language wording',
+    );
+    return ActiveQuiz(
+      sessionId: session.sessionId,
+      durationSeconds: session.durationSeconds,
+      questions: rebuilt,
+      scheduleId: session.scheduleId ?? _args.scheduleId,
+      quizSetId: session.quizSetId ?? setId,
+      title: session.title,
+      isDaily: session.isDaily,
+      isSeries: session.isSeries,
+      language: language,
+    );
+  }
+
+  /// How many questions carry wording in [language].
+  int _countWithLanguage(List<QuizQuestion> questions, QuizLanguage language) {
+    return questions
+        .where(
+          (question) => language == QuizLanguage.nepali
+              ? question.hasNepali
+              : question.hasEnglish,
+        )
+        .length;
   }
 
   /// True when the session already carries wording in [language].

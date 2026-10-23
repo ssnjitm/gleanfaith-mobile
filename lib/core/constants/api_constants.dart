@@ -24,6 +24,10 @@ class ApiConstants {
   // Quiz Sets (admin only — not used for user-facing quiz list)
   static const String quizSetsAll = '/quiz-sets/all-quizes';
 
+  /// `GET /quiz-sets/{id}` — the question set behind a scheduled quiz.
+  ///
+  /// It is the only document that keeps every language variant, so it is
+  /// where the wording a running session lacks comes from.
   static String quizSetById(String id) => '/quiz-sets/$id';
 
   // Quiz Schedule & Sessions
@@ -31,6 +35,10 @@ class ApiConstants {
   static const String quizScheduleHistory = '/quiz-schedule/history';
   static const String quizScheduleSeries = '/quiz-schedule/series';
   static const String quizScheduleStart = '/quiz-schedule/';
+
+  /// `GET /quiz-schedule/{id}` — the schedule detail, used to resolve the
+  /// quiz set a session belongs to.
+  static const String quizScheduleDetail = '/quiz-schedule/';
   static const String quizSessionAnswer = '/quiz-schedule/session/';
   static const String quizSessionComplete = '/quiz-schedule/session/';
 

@@ -76,6 +76,7 @@ class QuizScheduleModel {
   final int maxRetries;
   final String status;
   final Map<String, dynamic>? metadata;
+  final String? quizSetId;
 
   const QuizScheduleModel({
     required this.id,
@@ -88,6 +89,7 @@ class QuizScheduleModel {
     required this.maxRetries,
     required this.status,
     this.metadata,
+    this.quizSetId,
   });
 
   factory QuizScheduleModel.fromJson(Map<String, dynamic> json) {
@@ -103,7 +105,11 @@ class QuizScheduleModel {
     // Nested values are defaults only: whatever the top level carries wins.
     final merged = <String, dynamic>{...schedule, ...daily, ...json};
 
-    final quizSet = _asMap(merged['quizSet']);
+    final quizSet =
+        _asMap(merged['quizSet']) ??
+        _asMap(merged['quiz_set']) ??
+        // The schedule detail populates `quizSetId` into the whole set object.
+        _asMap(merged['quizSetId']);
     final nestedQuestions = _asList(quizSet?['questions']);
     final rawTotal =
         _asInt(merged['totalQuestions']) ?? _asInt(merged['totalQuestion']);
@@ -124,6 +130,12 @@ class QuizScheduleModel {
       maxRetries: _asInt(merged['maxRetries']) ?? 1,
       status: _asString(merged['status']) ?? '',
       metadata: _asMetadata(merged['metadata']),
+      quizSetId:
+          _asString(merged['quizSetId']) ??
+          _asString(merged['quizSet_id']) ??
+          _asString(merged['setId']) ??
+          _asString(quizSet?['_id']) ??
+          _asString(quizSet?['id']),
     );
   }
 
@@ -157,6 +169,7 @@ class QuizScheduleModel {
     int? maxRetries,
     String? status,
     Map<String, dynamic>? metadata,
+    String? quizSetId,
   }) {
     return QuizScheduleModel(
       id: id ?? this.id,
@@ -169,6 +182,7 @@ class QuizScheduleModel {
       maxRetries: maxRetries ?? this.maxRetries,
       status: status ?? this.status,
       metadata: metadata ?? this.metadata,
+      quizSetId: quizSetId ?? this.quizSetId,
     );
   }
 
@@ -194,6 +208,7 @@ class QuizScheduleModel {
       maxRetries: maxRetries,
       status: status,
       metadata: metadata,
+      quizSetId: quizSetId,
     );
   }
 }
@@ -264,11 +279,34 @@ class QuizQuestionModel {
     // script decides which slot it belongs to. Assuming English made a Nepali
     // session render Nepali under the EN toggle, and the toggle looked inert.
     final delivered = _deliveredText(json, language: language);
-    final text = _englishText(json);
-    final textNp = _nepaliText(json, english: text);
+    // (f) `GET /quiz-sets/{id}` and the set embedded in `GET /quiz-schedule/{id}`
+    // keep the translations under `meta.textI18n` / `meta.optionsI18n`, with the
+    // English wording also duplicated at the top level.
+    final meta = _asMap(json['meta']) ?? _asMap(json['metadata']);
+    final textI18n =
+        _asMap(meta?['textI18n']) ?? _asMap(meta?['text_i18n']);
+    var text = _englishText(json);
+    if (text.isEmpty) {
+      final localized = _asString(textI18n?['en']);
+      if (localized != null && !_looksNepali(localized)) text = localized;
+    }
+    var textNp = _nepaliText(json, english: text);
+    if (textNp == null || textNp.isEmpty) {
+      final localized = _asString(textI18n?['np']) ??
+          _asString(textI18n?['ne']);
+      if (localized != null && localized.isNotEmpty) textNp = localized;
+    }
 
+    final optionsI18n =
+        meta?['optionsI18n'] ?? meta?['options_i18n'];
     var options = _optionLabels(json['options'], mode: _OptionMode.english);
     var optionsNp = _optionLabels(json['options'], mode: _OptionMode.nepali);
+    // The top-level `options` of a set are English; the Nepali list lives in
+    // `meta.optionsI18n` as `[{id, text: {en, np}}]`.
+    if (!_usable(optionsNp)) {
+      final localized = _optionLabels(optionsI18n, mode: _OptionMode.nepali);
+      if (_usable(localized)) optionsNp = localized;
+    }
     var primaryOptions = _optionLabels(
       json['options'],
       mode: _OptionMode.delivered,
@@ -281,6 +319,10 @@ class QuizQuestionModel {
         _node(json, 'en')?['options'],
         mode: _OptionMode.english,
       );
+    }
+    if (options.isEmpty) {
+      final localized = _optionLabels(optionsI18n, mode: _OptionMode.english);
+      if (localized.isNotEmpty) options = localized;
     }
     if (!_usable(optionsNp)) {
       optionsNp = _optionLabels(
@@ -338,7 +380,9 @@ class QuizQuestionModel {
           _asString(json['scriptureReference']) ??
           _asString(json['reference']) ??
           _asString(json['scripture']) ??
-          _asString(json['verse_reference']),
+          _asString(json['verse_reference']) ??
+          _asString(meta?['scriptureReference']) ??
+          _asString(meta?['scripture_reference']),
     );
   }
 
@@ -630,6 +674,7 @@ class ActiveQuizModel {
   final int durationSeconds;
   final List<QuizQuestion> questions;
   final String? scheduleId;
+  final String? quizSetId;
   final String? title;
   final bool isDaily;
   final bool isSeries;
@@ -640,6 +685,7 @@ class ActiveQuizModel {
     required this.durationSeconds,
     required this.questions,
     this.scheduleId,
+    this.quizSetId,
     this.title,
     this.isDaily = false,
     this.isSeries = false,
@@ -653,7 +699,12 @@ class ActiveQuizModel {
     final session = _asMap(json['session']) ?? const <String, dynamic>{};
     final quiz = _asMap(json['quiz']) ?? const <String, dynamic>{};
     final schedule = _asMap(json['schedule']) ?? const <String, dynamic>{};
-    final quizSet = _asMap(json['quizSet']) ?? const <String, dynamic>{};
+    final quizSet =
+        _asMap(json['quizSet']) ??
+        _asMap(json['quiz_set']) ??
+        // A populated reference (`quizSetId: {_id, questions...}`).
+        _asMap(json['quizSetId']) ??
+        const <String, dynamic>{};
 
     final rawQuestions = _asList(
       json['questions'] ??
@@ -699,6 +750,16 @@ class ActiveQuizModel {
           _asString(json['scheduleId']) ??
           _asString(schedule['_id']) ??
           _asString(schedule['id']),
+      quizSetId:
+          _asString(json['quizSetId']) ??
+          _asString(json['quizSet_id']) ??
+          _asString(json['setId']) ??
+          _asString(quizSet['_id']) ??
+          _asString(quizSet['id']) ??
+          _asString(schedule['quizSetId']) ??
+          _asString(schedule['quizSet_id']) ??
+          _asString(_asMap(schedule['quizSetId'])?['_id']) ??
+          _asString(_asMap(schedule['quizSetId'])?['id']),
       title:
           _asString(json['title']) ??
           _asString(quiz['title']) ??
@@ -716,6 +777,7 @@ class ActiveQuizModel {
     durationSeconds: durationSeconds,
     questions: questions,
     scheduleId: scheduleId,
+    quizSetId: quizSetId,
     title: title,
     isDaily: isDaily,
     isSeries: isSeries,
@@ -982,5 +1044,73 @@ class QuizSeriesModel {
     durationUnit: durationUnit,
     status: status,
     deployments: deployments,
+  );
+}
+
+/// A quiz set: the question documents the backend stores, with every
+/// language variant it holds.
+///
+/// A running session is materialised in the language it was started with, so
+/// the set is the only place the other wording can come from.
+class QuizSetModel {
+  final String id;
+  final String title;
+  final List<QuizQuestion> questions;
+
+  const QuizSetModel({
+    required this.id,
+    required this.title,
+    required this.questions,
+  });
+
+  factory QuizSetModel.fromJson(Map<String, dynamic> json) {
+    final data = _asMap(json['data']);
+    final root = data ?? json;
+    // Accept a bare set, `{data: {...}}` and `{data: {quizSet: {...}}}`.
+    final set =
+        _asMap(json['quizSet']) ??
+        _asMap(json['quiz_set']) ??
+        _asMap(json['set']) ??
+        _asMap(root['quizSet']) ??
+        _asMap(root['quiz_set']) ??
+        _asMap(root['set']) ??
+        root;
+    final rawQuestions = _asList(
+      set['questions'] ?? root['questions'] ?? json['questions'],
+    );
+
+    final questions = <QuizQuestion>[];
+    for (var index = 0; index < rawQuestions.length; index++) {
+      final raw = _asMap(rawQuestions[index]);
+      if (raw == null) continue;
+      questions.add(
+        QuizQuestionModel.fromJson(
+          raw,
+          fallbackIndex: index,
+          // The set is bilingual; the English slot is the primary one and the
+          // Nepali slot is read from the same document.
+          language: QuizLanguage.english,
+        ).toEntity(),
+      );
+    }
+
+    return QuizSetModel(
+      id:
+          _asString(set['_id']) ??
+          _asString(set['id']) ??
+          _asString(root['_id']) ??
+          _asString(root['id']) ??
+          _asString(json['_id']) ??
+          _asString(json['id']) ??
+          '',
+      title: _asString(set['title']) ?? _asString(root['title']) ?? '',
+      questions: questions,
+    );
+  }
+
+  QuizQuestionSet toEntity() => QuizQuestionSet(
+    id: id,
+    title: title,
+    questions: questions,
   );
 }

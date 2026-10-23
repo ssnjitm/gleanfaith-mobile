@@ -10,6 +10,7 @@ import '../../domain/repositories/quiz_repository.dart';
 import '../../domain/usecases/complete_quiz.dart';
 import '../../domain/usecases/get_quiz_history.dart';
 import '../../domain/usecases/get_quiz_session.dart';
+import '../../domain/usecases/get_quiz_set.dart';
 import '../../domain/usecases/get_upcoming_quizzes.dart';
 import '../../domain/usecases/start_quiz.dart';
 import '../../domain/usecases/submit_answer.dart';
@@ -42,6 +43,20 @@ final getQuizSessionUseCaseProvider = Provider<GetQuizSessionUseCase>((ref) {
   return GetQuizSessionUseCase(ref.watch(quizRepositoryProvider));
 });
 
+final getQuizSetUseCaseProvider = Provider<GetQuizSetUseCase>((ref) {
+  return GetQuizSetUseCase(ref.watch(quizRepositoryProvider));
+});
+
+final getScheduleQuizSetIdUseCaseProvider =
+    Provider<GetScheduleQuizSetIdUseCase>((ref) {
+  return GetScheduleQuizSetIdUseCase(ref.watch(quizRepositoryProvider));
+});
+
+final getScheduleQuizSetUseCaseProvider =
+    Provider<GetScheduleQuizSetUseCase>((ref) {
+  return GetScheduleQuizSetUseCase(ref.watch(quizRepositoryProvider));
+});
+
 final submitAnswerUseCaseProvider = Provider<SubmitAnswerUseCase>((ref) {
   return SubmitAnswerUseCase(ref.watch(quizRepositoryProvider));
 });
@@ -58,6 +73,7 @@ final completeQuizUseCaseProvider = Provider<CompleteQuizUseCase>((ref) {
 class QuizPlayArgs {
   final ActiveQuiz? activeQuiz;
   final String? scheduleId;
+  final String? quizSetId;
   final String? title;
   final bool isDaily;
   final bool isSeries;
@@ -67,6 +83,7 @@ class QuizPlayArgs {
   const QuizPlayArgs({
     this.activeQuiz,
     this.scheduleId,
+    this.quizSetId,
     this.title,
     this.isDaily = false,
     this.isSeries = false,
@@ -86,6 +103,7 @@ class QuizPlayArgs {
     return QuizPlayArgs(
       activeQuiz: activeQuiz,
       scheduleId: activeQuiz.scheduleId ?? schedule?.id,
+      quizSetId: activeQuiz.quizSetId ?? schedule?.quizSetId,
       title: activeQuiz.title ?? schedule?.title,
       isDaily: activeQuiz.isDaily || (schedule?.isDaily ?? false),
       isSeries: activeQuiz.isSeries || (schedule?.isSeries ?? false),
@@ -283,6 +301,70 @@ class QuizNotifier extends StateNotifier<QuizState> {
         return null;
       },
       (quiz) => quiz,
+    );
+  }
+
+  /// Fetches the question set behind a running session.
+  ///
+  /// The set keeps every language variant, while a session is materialised in
+  /// the language it was started with. It is the fallback source for the
+  /// wording a session does not carry.
+  Future<QuizQuestionSet?> loadQuizSet(String? quizSetId) async {
+    if (quizSetId == null || quizSetId.isEmpty) return null;
+    final result = await _ref.read(getQuizSetUseCaseProvider)(quizSetId).run();
+    return result.fold(
+      (failure) {
+        LoggerService.warning(
+          'Quiz set $quizSetId could not be loaded: ${failure.message}',
+        );
+        return null;
+      },
+      (set) => set,
+    );
+  }
+
+  /// Fetches the set embedded in the schedule detail.
+  ///
+  /// This is the reliable source for the other language: the schedule detail is
+  /// readable by a normal user, unlike `GET /quiz-sets/{id}`. The returned set
+  /// may carry only an id (no questions), in which case the caller should fall
+  /// back to [loadQuizSet].
+  Future<QuizQuestionSet?> loadScheduleQuizSet(String? scheduleId) async {
+    if (scheduleId == null || scheduleId.isEmpty) return null;
+    final result = await _ref
+        .read(getScheduleQuizSetUseCaseProvider)(scheduleId)
+        .run();
+    return result.fold(
+      (failure) {
+        LoggerService.warning(
+          'Quiz set embedded in schedule $scheduleId could not be loaded: '
+          '${failure.message}',
+        );
+        return null;
+      },
+      (set) => set,
+    );
+  }
+
+  /// Resolves the quiz set id of a schedule.
+  Future<String?> resolveQuizSetId({
+    String? quizSetId,
+    String? scheduleId,
+  }) async {
+    if (quizSetId != null && quizSetId.isNotEmpty) return quizSetId;
+    if (scheduleId == null || scheduleId.isEmpty) return null;
+    final result = await _ref
+        .read(getScheduleQuizSetIdUseCaseProvider)(scheduleId)
+        .run();
+    return result.fold(
+      (failure) {
+        LoggerService.warning(
+          'Quiz set id of schedule $scheduleId could not be resolved: '
+          '${failure.message}',
+        );
+        return null;
+      },
+      (id) => id,
     );
   }
 

@@ -43,6 +43,14 @@ class QuizSchedule {
   final String status;
   final Map<String, dynamic>? metadata;
 
+  /// The question set this schedule is built from.
+  ///
+  /// The daily-quiz payload often nests the set, and the set is the only
+  /// document that keeps every language variant of a question. Carrying the id
+  /// here lets the EN | NP toggle reach the other wording without depending on
+  /// the session or schedule-detail endpoints echoing it back.
+  final String? quizSetId;
+
   const QuizSchedule({
     required this.id,
     required this.title,
@@ -54,6 +62,7 @@ class QuizSchedule {
     required this.maxRetries,
     required this.status,
     this.metadata,
+    this.quizSetId,
   });
 
   /// True when the backend marks this schedule as a daily quiz.
@@ -233,6 +242,119 @@ class QuizQuestion {
   static bool _usable(List<String> labels) {
     return labels.isNotEmpty && labels.every((label) => label.isNotEmpty);
   }
+
+  /// The same question, but with the wording variants of [other].
+  ///
+  /// [other] is the question-set entry that carries every language the
+  /// backend stores, while this question is the one the running session
+  /// actually asked. The question index is kept, because the server scores
+  /// by index: swapping the wording must never move a question.
+  QuizQuestion withWordingFrom(QuizQuestion other) => QuizQuestion(
+        text: other.text,
+        options: other.options,
+        questionIndex: questionIndex,
+        textNp: other.textNp,
+        optionsNp: other.optionsNp,
+        primaryText: primaryText.isNotEmpty ? primaryText : other.primaryText,
+        primaryOptions: primaryOptions.isNotEmpty
+            ? primaryOptions
+            : other.primaryOptions,
+        scriptureReference: scriptureReference ?? other.scriptureReference,
+      );
+}
+
+/// The quiz set a scheduled quiz is built from.
+///
+/// It is the only source that keeps **every** language variant: a running
+/// session is materialised in the language it was started with, so the other
+/// wording has to come from the set.
+class QuizQuestionSet {
+  final String id;
+  final String title;
+  final List<QuizQuestion> questions;
+
+  const QuizQuestionSet({
+    required this.id,
+    required this.title,
+    required this.questions,
+  });
+
+  /// The question whose wording in [language] matches [text].
+  ///
+  /// The match is on the wording itself, not on a position: a session may
+  /// hold a subset of the set's questions, so the set is indexed by the text
+  /// it stores for that language.
+  QuizQuestion? questionByText(String text, QuizLanguage language) {
+    final key = _matchKey(text);
+    if (key.isEmpty) return null;
+    for (final question in questions) {
+      final candidate = language == QuizLanguage.nepali
+          ? (question.textNp ?? '')
+          : question.text;
+      if (_matchKey(candidate) == key) return question;
+    }
+    return null;
+  }
+
+  /// A comparison key for a wording: trimmed, whitespace collapsed and case
+  /// folded, so a session and its set still match when the backend formats
+  /// them slightly differently.
+  static String _matchKey(String text) {
+    return text.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
+  }
+
+  /// Rebuilds [sessionQuestions] with the wording this set stores.
+  ///
+  /// A session is materialised in the language it was started with, so it
+  /// carries only that one wording. The set keeps every variant, so the
+  /// missing one is taken from here.
+  ///
+  /// The questions are matched on the wording they were **delivered** in, not
+  /// on their position: the server scores by question index, so a question
+  /// must never move. A question without a unique match keeps the wording it
+  /// already has — guessing would be worse than showing the old language.
+  List<QuizQuestion> applyTo(
+    List<QuizQuestion> sessionQuestions,
+    QuizLanguage sessionLanguage,
+  ) {
+    if (questions.isEmpty || sessionQuestions.isEmpty) return sessionQuestions;
+
+    // The set may store a question in either slot (the admin may have written
+    // it in Nepali), so a set question is indexed by every wording it holds.
+    final byText = <String, QuizQuestion>{};
+    final ambiguous = <String>{};
+    for (final question in questions) {
+      final keys = <String>{
+        _matchKey(question.text),
+        _matchKey(question.textNp ?? ''),
+        _matchKey(question.primaryText),
+      }..removeWhere((key) => key.isEmpty);
+      for (final key in keys) {
+        final existing = byText[key];
+        if (existing == null) {
+          if (!ambiguous.contains(key)) byText[key] = question;
+          continue;
+        }
+        if (identical(existing, question)) continue;
+        // Two different questions share a wording: the match is not unique, so
+        // neither of them may be matched.
+        ambiguous.add(key);
+        byText.remove(key);
+      }
+    }
+
+    return sessionQuestions.map((sessionQuestion) {
+      final delivered = sessionQuestion.primaryText.isNotEmpty
+          ? sessionQuestion.primaryText
+          : (sessionLanguage == QuizLanguage.nepali
+              ? (sessionQuestion.textNp ?? '')
+              : sessionQuestion.text);
+      final key = _matchKey(delivered);
+      final match = key.isEmpty ? null : byText[key];
+      if (match == null) return sessionQuestion;
+      return sessionQuestion.withWordingFrom(match);
+    }).toList();
+  }
 }
 
 class ActiveQuiz {
@@ -243,6 +365,11 @@ class ActiveQuiz {
   /// Schedule this session belongs to — used for display and for the
   /// leaderboard/attempt bookkeeping.
   final String? scheduleId;
+
+  /// The quiz set the schedule is built from. It is the only source that
+  /// keeps every language variant, so it is where the other wording is
+  /// fetched from when the session itself carries only one language.
+  final String? quizSetId;
   final String? title;
   final bool isDaily;
   final bool isSeries;
@@ -253,6 +380,7 @@ class ActiveQuiz {
     required this.durationSeconds,
     required this.questions,
     this.scheduleId,
+    this.quizSetId,
     this.title,
     this.isDaily = false,
     this.isSeries = false,

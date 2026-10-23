@@ -284,4 +284,297 @@ void main() {
       );
     });
   });
+
+  group('The quiz set carries the wording a session does not have', () {
+    /// A session started in Nepali: flat, Nepali only.
+    final npSession = ActiveQuizModel.fromJson(
+      _sessionPayload([
+        _flatPayload(text: _npQuestion, options: [_npOptionA, _npOptionB]),
+      ]),
+      language: QuizLanguage.nepali,
+    ).toEntity();
+
+    /// The set the session was built from: both languages.
+    final set = QuizSetModel.fromJson({
+      'data': {
+        '_id': 'set-1',
+        'title': 'Song of Songs',
+        'questions': [
+          {
+            'index': 0,
+            'text': _enQuestion,
+            'textNp': _npQuestion,
+            'options': [_enOptionA, _enOptionB],
+            'optionsNp': [_npOptionA, _npOptionB],
+          },
+        ],
+      },
+    }).toEntity();
+
+    test('a session started in Nepali has no English', () {
+      expect(npSession.questions.first.hasEnglish, isFalse);
+      expect(npSession.questions.first.hasNepali, isTrue);
+    });
+
+    test('the set has both languages', () {
+      expect(set.questions.first.hasEnglish, isTrue);
+      expect(set.questions.first.hasNepali, isTrue);
+    });
+
+    test('the set gives the Nepali session its English wording', () {
+      final rebuilt = set.applyTo(
+        npSession.questions,
+        QuizLanguage.nepali,
+      );
+
+      expect(rebuilt.length, npSession.questions.length);
+      expect(rebuilt.first.textFor(QuizLanguage.english), _enQuestion);
+      expect(rebuilt.first.optionsFor(QuizLanguage.english), [
+        _enOptionA,
+        _enOptionB,
+      ]);
+      // The Nepali wording is untouched.
+      expect(rebuilt.first.textFor(QuizLanguage.nepali), _npQuestion);
+    });
+
+    test('the question keeps its index, so the answer key stays aligned', () {
+      final rebuilt = set.applyTo(
+        npSession.questions,
+        QuizLanguage.nepali,
+      );
+
+      expect(rebuilt.first.questionIndex, npSession.questions.first.questionIndex);
+    });
+
+    test('a question without a match keeps the wording it has', () {
+      final other = QuizSetModel.fromJson({
+        '_id': 'set-2',
+        'questions': [
+          {
+            'index': 0,
+            'text': 'A completely different question',
+            'options': ['Yes', 'No'],
+          },
+        ],
+      }).toEntity();
+
+      final rebuilt = other.applyTo(
+        npSession.questions,
+        QuizLanguage.nepali,
+      );
+
+      expect(rebuilt.first.textFor(QuizLanguage.english), _npQuestion);
+      expect(rebuilt.first.hasEnglish, isFalse);
+    });
+
+    test('an ambiguous wording is not matched', () {
+      final ambiguous = QuizSetModel.fromJson({
+        '_id': 'set-3',
+        'questions': [
+          {
+            'index': 0,
+            'text': _enQuestion,
+            'options': [_enOptionA, _enOptionB],
+          },
+          {
+            'index': 1,
+            'text': _enQuestion,
+            'options': [_enOptionA, _enOptionB],
+          },
+        ],
+      }).toEntity();
+
+      final rebuilt = ambiguous.applyTo(
+        npSession.questions,
+        QuizLanguage.nepali,
+      );
+
+      expect(rebuilt.first.textFor(QuizLanguage.english), _npQuestion);
+    });
+
+    test('the wording is matched regardless of spacing and case', () {
+      final spaced = QuizSetModel.fromJson({
+        '_id': 'set-4',
+        'questions': [
+          {
+            'index': 0,
+            'text': _enQuestion,
+            'textNp': _npQuestion.replaceAll(' ', '   '),
+            'options': [_enOptionA, _enOptionB],
+            'optionsNp': [_npOptionA, _npOptionB],
+          },
+        ],
+      }).toEntity();
+
+      final rebuilt = spaced.applyTo(
+        npSession.questions,
+        QuizLanguage.nepali,
+      );
+
+      expect(rebuilt.first.text, _enQuestion);
+      expect(rebuilt.first.textFor(QuizLanguage.english), _enQuestion);
+    });
+
+    test('a set written in Nepali still matches the Nepali session', () {
+      final npSet = QuizSetModel.fromJson({
+        '_id': 'set-5',
+        'questions': [
+          {
+            'index': 0,
+            'text': _npQuestion,
+            'options': [_npOptionA, _npOptionB],
+          },
+        ],
+      }).toEntity();
+
+      final rebuilt = npSet.applyTo(
+        npSession.questions,
+        QuizLanguage.nepali,
+      );
+
+      // The set has no English either, so the session keeps its own wording.
+      expect(rebuilt.first.textFor(QuizLanguage.nepali), _npQuestion);
+      expect(rebuilt.first.hasEnglish, isFalse);
+    });
+
+    test('the set id is read from the session payload', () {
+      final session = ActiveQuizModel.fromJson({
+        'sessionId': 'session-1',
+        'quizSetId': 'set-1',
+        'questions': [
+          _flatPayload(text: _npQuestion, options: [_npOptionA, _npOptionB]),
+        ],
+      }).toEntity();
+
+      expect(session.quizSetId, 'set-1');
+    });
+
+    test('the set id is read from a nested quiz set', () {
+      final session = ActiveQuizModel.fromJson({
+        'sessionId': 'session-1',
+        'quizSet': {'_id': 'set-9'},
+        'questions': [
+          _flatPayload(text: _npQuestion, options: [_npOptionA, _npOptionB]),
+        ],
+      }).toEntity();
+
+      expect(session.quizSetId, 'set-9');
+    });
+
+    test('the schedule carries the set id, so the fallback has a source', () {
+      final schedule = QuizScheduleModel.fromJson({
+        '_id': 'schedule-1',
+        'title': 'Daily',
+        'quizSet': {'_id': 'set-7'},
+      }).toEntity();
+
+      expect(schedule.quizSetId, 'set-7');
+    });
+
+    test('a nested {data: {quizSet}} set is parsed', () {
+      final nested = QuizSetModel.fromJson({
+        'data': {
+          'quizSet': {
+            '_id': 'set-8',
+            'title': 'Nested',
+            'questions': [
+              {
+                'text': _enQuestion,
+                'textNp': _npQuestion,
+                'options': [_enOptionA, _enOptionB],
+                'optionsNp': [_npOptionA, _npOptionB],
+              },
+            ],
+          },
+        },
+      }).toEntity();
+
+      expect(nested.id, 'set-8');
+      expect(nested.questions, hasLength(1));
+      expect(nested.questions.first.hasEnglish, isTrue);
+      expect(nested.questions.first.hasNepali, isTrue);
+    });
+
+    test('the schedule detail populates quizSetId into the whole set', () {
+      final schedule = QuizScheduleModel.fromJson({
+        'schedule': {
+          '_id': 'schedule-1',
+          'title': 'Daily',
+          'quizSetId': {
+            '_id': 'set-9',
+            'title': '__DAILY__',
+            'questions': [
+              {
+                'text': _enQuestion,
+                'options': [_enOptionA, _enOptionB],
+              },
+            ],
+          },
+        },
+      }).toEntity();
+
+      expect(schedule.id, 'schedule-1');
+      expect(schedule.quizSetId, 'set-9');
+    });
+
+    test('the session reads the set id from a populated reference', () {
+      final session = ActiveQuizModel.fromJson({
+        'sessionId': 'session-1',
+        'quizSetId': {'_id': 'set-4', 'title': 'Daily'},
+        'questions': [
+          _flatPayload(text: _npQuestion, options: [_npOptionA, _npOptionB]),
+        ],
+      }).toEntity();
+
+      expect(session.quizSetId, 'set-4');
+    });
+
+    test('the meta.textI18n / meta.optionsI18n set keeps both languages', () {
+      // Exact shape of `GET /quiz-schedule/{id}` -> `schedule.quizSetId`:
+      // English is duplicated at the top level and the translations live under
+      // `meta`. This is the copy a normal user can read, so it is the one that
+      // has to power the EN | NP toggle.
+      final set = QuizSetModel.fromJson({
+        '_id': 'set-3',
+        'title': '__DAILY_2026-10-23__',
+        'questions': [
+          {
+            'index': 0,
+            'type': 'mcq',
+            'text': _enQuestion,
+            'options': [_enOptionA, _enOptionB],
+            'correctAnswerIndex': 0,
+            'meta': {
+              'textI18n': {'en': _enQuestion, 'np': _npQuestion},
+              'optionsI18n': [
+                {
+                  'id': 'a',
+                  'text': {'en': _enOptionA, 'np': _npOptionA},
+                },
+                {
+                  'id': 'b',
+                  'text': {'en': _enOptionB, 'np': _npOptionB},
+                },
+              ],
+              'scriptureReference': 'Acts 27:26-27',
+            },
+          },
+        ],
+      }).toEntity();
+
+      final question = set.questions.single;
+      expect(question.textFor(QuizLanguage.english), _enQuestion);
+      expect(question.textFor(QuizLanguage.nepali), _npQuestion);
+      expect(question.optionsFor(QuizLanguage.english), [
+        _enOptionA,
+        _enOptionB,
+      ]);
+      expect(question.optionsFor(QuizLanguage.nepali), [
+        _npOptionA,
+        _npOptionB,
+      ]);
+      expect(question.scriptureReference, 'Acts 27:26-27');
+      expect(question.hasNepali, isTrue);
+    });
+  });
 }

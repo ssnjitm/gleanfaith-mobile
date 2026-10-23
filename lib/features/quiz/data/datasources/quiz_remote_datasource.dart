@@ -91,6 +91,104 @@ class QuizRemoteDataSource {
     return ActiveQuizModel.fromJson(session, language: language);
   }
 
+  /// The question set behind a scheduled quiz.
+  ///
+  /// The set is the source of truth for the questions and keeps every
+  /// language variant the backend stores, while a running session is
+  /// materialised in the language it was started with. It is therefore where
+  /// the missing wording comes from.
+  Future<QuizSetModel> getQuizSet(String quizSetId) async {
+    final response = await _dio.get(ApiConstants.quizSetById(quizSetId));
+    return QuizSetModel.fromJson(_asMap(response.data) ?? const {});
+  }
+
+  /// The quiz set a schedule points at, preferring the copy embedded in the
+  /// schedule detail.
+  ///
+  /// `GET /quiz-schedule/{id}` is readable by a normal user and its
+  /// `schedule.quizSetId` is the *whole set* (id, title and questions with every
+  /// language variant), whereas `GET /quiz-sets/{id}` is admin-facing. Returning
+  /// the embedded set avoids the second request entirely. When the field is only
+  /// an id, the returned model carries the id so the caller can still fall back
+  /// to the quiz-sets route.
+  Future<QuizSetModel> getScheduleQuizSet(String scheduleId) async {
+    final response = await _dio.get(
+      '${ApiConstants.quizScheduleDetail}$scheduleId',
+    );
+    final data = _asMap(response.data) ?? const <String, dynamic>{};
+    final body = _asMap(data['data']) ?? data;
+    final schedule =
+        _asMap(body['schedule']) ??
+        _asMap(body['quizSchedule']) ??
+        _asMap(body['quiz']) ??
+        body;
+
+    for (final key in const [
+      'quizSetId',
+      'quizsetId',
+      'quizSet',
+      'quiz_set',
+      'quizSet_id',
+      'quiz_set_id',
+    ]) {
+      final value = schedule[key] ?? body[key];
+      final map = _asMap(value);
+      if (map != null) {
+        final set = QuizSetModel.fromJson(map);
+        if (set.id.isNotEmpty || set.questions.isNotEmpty) return set;
+      }
+      final id = _asString(value);
+      if (id != null && id.isNotEmpty) {
+        return QuizSetModel(id: id, title: '', questions: const []);
+      }
+    }
+    return const QuizSetModel(id: '', title: '', questions: []);
+  }
+
+  /// The quiz set id a schedule points at.
+  ///
+  /// Used when the session payload does not carry the set id itself.
+  Future<String?> getScheduleQuizSetId(String scheduleId) async {
+    final response = await _dio.get(
+      '${ApiConstants.quizScheduleDetail}$scheduleId',
+    );
+    final data = _asMap(response.data) ?? const <String, dynamic>{};
+    final body = _asMap(data['data']) ?? data;
+    // The schedule may be the body itself or nested under a few common keys.
+    for (final node in [
+      body,
+      _asMap(body['schedule']),
+      _asMap(body['quizSchedule']),
+      _asMap(body['quiz']),
+      _asMap(data['schedule']),
+    ]) {
+      if (node == null) continue;
+      for (final key in const [
+        'quizSetId',
+        'quizsetId',
+        'quizSet_id',
+        'quiz_set_id',
+        'setId',
+      ]) {
+        final value = node[key];
+        final plain = _asString(value);
+        if (plain != null && plain.isNotEmpty) return plain;
+        // The schedule detail **populates** the field: `quizSetId` is an object
+        // `{_id, title, questions...}`, not a string. Treating it as a string
+        // returned null and the EN | NP toggle reported "no quiz set id".
+        final map = _asMap(value);
+        final id = _asString(map?['_id']) ?? _asString(map?['id']);
+        if (id != null && id.isNotEmpty) return id;
+      }
+      final set = _asMap(node['quizSet']) ?? _asMap(node['quiz_set']);
+      if (set != null) {
+        final id = _asString(set['_id']) ?? _asString(set['id']);
+        if (id != null && id.isNotEmpty) return id;
+      }
+    }
+    return null;
+  }
+
   /// Re-reads a running session in another language.
   ///
   /// The backend answers a session in the language it was started with, so a
@@ -239,6 +337,12 @@ class QuizRemoteDataSource {
     return null;
   }
 
+  String? _asString(dynamic value) {
+    if (value is String) return value;
+    if (value is num || value is bool) return value.toString();
+    return null;
+  }
+
   List<dynamic> _extractList(dynamic response) {
     final map = _asMap(response);
     if (map != null) {
@@ -313,7 +417,9 @@ class QuizRemoteDataSource {
     }
 
     final questions =
-        data['questions'] ?? _asMap(data['quizSet'])?['questions'];
+        data['questions'] ??
+        _asMap(data['quizSet'])?['questions'] ??
+        _asMap(data['quiz_set'])?['questions'];
     if (questions is List) return data;
 
     return {...data, 'questions': const <dynamic>[]};

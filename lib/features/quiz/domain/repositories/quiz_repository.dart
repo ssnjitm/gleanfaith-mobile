@@ -25,6 +25,20 @@ abstract class QuizRepository {
     String sessionId, {
     QuizLanguage language,
   });
+
+  /// The question set behind a scheduled quiz, with every language variant.
+  ///
+  /// A running session is materialised in the language it was started with,
+  /// so the set is where the other wording comes from when the session
+  /// itself carries only one language.
+  TaskEither<Failure, QuizQuestionSet> getQuizSet(String quizSetId);
+
+  /// The set embedded in the schedule detail, when it carries one.
+  TaskEither<Failure, QuizQuestionSet?> getScheduleQuizSet(String scheduleId);
+
+  /// The schedule behind a session, used to resolve the quiz set id.
+  TaskEither<Failure, String?> getScheduleQuizSetId(String scheduleId);
+
   TaskEither<Failure, AnswerResult> submitAnswer({
     required String sessionId,
     required int questionIndex,

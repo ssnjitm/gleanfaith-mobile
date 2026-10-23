@@ -84,6 +84,31 @@ class QuizRepositoryImpl implements QuizRepository {
   }
 
   @override
+  TaskEither<Failure, QuizQuestionSet> getQuizSet(String quizSetId) {
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.getQuizSet(quizSetId);
+      return result.toEntity();
+    }, (error, stackTrace) => handleError(error));
+  }
+
+  @override
+  TaskEither<Failure, QuizQuestionSet?> getScheduleQuizSet(String scheduleId) {
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.getScheduleQuizSet(scheduleId);
+      if (result.id.isEmpty && result.questions.isEmpty) return null;
+      return result.toEntity();
+    }, (error, stackTrace) => handleError(error));
+  }
+
+  @override
+  TaskEither<Failure, String?> getScheduleQuizSetId(String scheduleId) {
+    return TaskEither.tryCatch(() async {
+      final result = await _remoteDataSource.getScheduleQuizSetId(scheduleId);
+      return result;
+    }, (error, stackTrace) => handleError(error));
+  }
+
+  @override
   TaskEither<Failure, AnswerResult> submitAnswer({
     required String sessionId,
     required int questionIndex,
