@@ -3,7 +3,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glean_faith_app/core/common/extensions/context_extensions.dart';
+import 'package:glean_faith_app/core/common/widgets/alert_widget.dart';
 import 'package:glean_faith_app/core/router/route_names.dart';
+import 'package:glean_faith_app/core/services/content_action_service.dart';
 import 'package:glean_faith_app/core/services/database_service.dart';
 import 'package:glean_faith_app/features/bible_study/presentation/providers/bible_study_provider.dart';
 import '../../../../core/theme/colors.dart';
@@ -56,14 +58,23 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
     final notifier = ref.read(chapterBookmarksProvider(arg).notifier);
     await notifier.toggle(verse: widget.verse);
     if (!mounted) return;
-    final nowBookmarked = ref
-        .read(chapterBookmarksProvider(arg))
-        .isBookmarked(widget.verse);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(nowBookmarked ? 'Verse bookmarked' : 'Bookmark removed'),
-        duration: const Duration(seconds: 1),
-      ),
+
+    final bookmarkState = ref.read(chapterBookmarksProvider(arg));
+    final failure = bookmarkState.message;
+    if (failure != null) {
+      AlertWidget.showError(context, failure);
+      return;
+    }
+
+    // Keep the global Bookmarks list in sync with the inline toggle, otherwise
+    // a saved bookmark can still be missing when the user opens that page.
+    unawaited(ref.read(bookmarksProvider.notifier).load());
+
+    final nowBookmarked = bookmarkState.isBookmarked(widget.verse);
+    AlertWidget.showSnackBar(
+      context,
+      message: nowBookmarked ? 'Verse bookmarked' : 'Bookmark removed',
+      type: nowBookmarked ? AlertType.success : AlertType.info,
     );
   }
 
@@ -110,14 +121,17 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
         centerTitle: true,
         actions: [
           IconButton(
+            tooltip: 'Copy verse',
             icon: const Icon(Icons.copy),
             onPressed: target != null
-                ? () {
-                    // TODO: Implement copy
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Copied to clipboard!')),
-                    );
-                  }
+                ? () => ContentActionService.copy(
+                      context,
+                      text: formatVerseForSharing(
+                        text: target.text,
+                        reference:
+                            '${target.book} ${target.chapter}:${target.verse}',
+                      ),
+                    )
                 : null,
           ),
           IconButton(
@@ -131,11 +145,19 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
             onPressed: () => _toggleBookmark(arg),
           ),
           IconButton(
+            tooltip: 'Share verse',
             icon: const Icon(Icons.share),
             onPressed: target != null
-                ? () {
-                    // TODO: Implement share
-                  }
+                ? () => ContentActionService.share(
+                      context,
+                      text: formatVerseForSharing(
+                        text: target.text,
+                        reference:
+                            '${target.book} ${target.chapter}:${target.verse}',
+                      ),
+                      subject:
+                          '${target.book} ${target.chapter}:${target.verse}',
+                    )
                 : null,
           ),
         ],

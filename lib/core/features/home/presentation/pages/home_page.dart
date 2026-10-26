@@ -311,27 +311,27 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               ],
             ),
           ),
-          Container(
-            width: 40,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
-              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-              border: Border.all(
-                color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
-              ),
-            ),
-            child: IconButton(
-              icon: Icon(
-                Icons.settings_outlined,
-                color: isDark ? Colors.grey[400] : AppColors.textMuted,
-                size: 20,
-              ),
-              tooltip: 'Settings',
-              onPressed: () => context.push(RouteNames.settings),
-              padding: EdgeInsets.zero,
-            ),
-          ),
+          // Container(
+          //   width: 40,
+          //   height: 40,
+          //   decoration: BoxDecoration(
+          //     color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+          //     borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+          //     border: Border.all(
+          //       color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+          //     ),
+          //   ),
+          //   child: IconButton(
+          //     icon: Icon(
+          //       Icons.settings_outlined,
+          //       color: isDark ? Colors.grey[400] : AppColors.textMuted,
+          //       size: 20,
+          //     ),
+          //     tooltip: 'Settings',
+          //     onPressed: () => context.push(RouteNames.settings),
+          //     padding: EdgeInsets.zero,
+          //   ),
+          // ),
           const SizedBox(width: AppDimensions.paddingSm),
           const ProfileTopBarButton(),
           const SizedBox(width: AppDimensions.paddingSm),

@@ -19,6 +19,15 @@
             <action android:name="android.intent.action.VIEW"/>
             <data android:mimeType="application/vnd.android.package-archive"/>
         </intent>
+        <!-- Required for sharing content via the system share sheet -->
+        <intent>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
+        </intent>
+        <intent>
+            <action android:name="android.intent.action.SEND_MULTIPLE" />
+            <data android:mimeType="text/plain" />
+        </intent>
     </queries>
     <application
         android:label="Glean Faith"

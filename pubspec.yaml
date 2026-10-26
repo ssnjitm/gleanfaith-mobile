@@ -55,6 +55,9 @@ dependencies:
   flutter_timezone: ^5.1.0
   package_info_plus: ^10.2.1
   ota_update: ^7.1.0
+  # System share sheet for verse/topic sharing. Already present transitively via
+  # ota_update, but declared directly so the import cannot disappear silently.
+  share_plus: ^13.2.0
 
 dev_dependencies:
   flutter_test:

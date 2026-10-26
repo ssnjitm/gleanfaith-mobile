@@ -23,6 +23,13 @@ class VerseOfTheDayCard extends StatelessWidget {
   /// itself is unchanged either way — only the language is.
   final bool showTranslationNotice;
 
+  /// Actions on the verse itself. Hidden while loading and when a callback is
+  /// absent, so the card degrades to a plain verse rather than a dead button.
+  final VoidCallback? onCopy;
+  final VoidCallback? onShare;
+  final VoidCallback? onBookmark;
+  final bool isBookmarked;
+
   const VerseOfTheDayCard({
     super.key,
     required this.text,
@@ -31,6 +38,10 @@ class VerseOfTheDayCard extends StatelessWidget {
     this.isLoading = false,
     this.isNepali = false,
     this.showTranslationNotice = false,
+    this.onCopy,
+    this.onShare,
+    this.onBookmark,
+    this.isBookmarked = false,
   });
 
   @override
@@ -130,12 +141,57 @@ class VerseOfTheDayCard extends StatelessWidget {
                         ),
                       ),
                     ],
+                    _actions(isDark),
                   ],
                 ],
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _actions(bool isDark) {
+    if (isLoading ||
+        (onCopy == null && onShare == null && onBookmark == null)) {
+      return const SizedBox.shrink();
+    }
+
+    final color = isDark ? Colors.grey[400] : AppColors.textMuted;
+    return Align(
+      alignment: Alignment.centerRight,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (onCopy != null)
+            IconButton(
+              tooltip: 'Copy verse',
+              icon: Icon(Icons.copy_rounded, size: 18, color: color),
+              onPressed: onCopy,
+              visualDensity: VisualDensity.compact,
+            ),
+          if (onBookmark != null)
+            IconButton(
+              tooltip: isBookmarked ? 'Remove bookmark' : 'Bookmark verse',
+              icon: Icon(
+                isBookmarked
+                    ? Icons.bookmark_rounded
+                    : Icons.bookmark_border_rounded,
+                size: 18,
+                color: isBookmarked ? AppColors.primaryAmber : color,
+              ),
+              onPressed: onBookmark,
+              visualDensity: VisualDensity.compact,
+            ),
+          if (onShare != null)
+            IconButton(
+              tooltip: 'Share verse',
+              icon: Icon(Icons.share_rounded, size: 18, color: color),
+              onPressed: onShare,
+              visualDensity: VisualDensity.compact,
+            ),
+        ],
       ),
     );
   }

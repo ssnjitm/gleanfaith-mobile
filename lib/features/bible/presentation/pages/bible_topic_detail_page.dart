@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glean_faith_app/core/router/route_names.dart';
+import 'package:glean_faith_app/core/services/content_action_service.dart';
 import 'package:go_router/go_router.dart';
 import '../../../../core/theme/colors.dart';
 import '../../../../core/theme/dimensions.dart';
@@ -46,6 +47,22 @@ class _BibleTopicDetailPageState extends ConsumerState<BibleTopicDetailPage> {
     );
   }
 
+  String _shareText(String topicName) {
+    final verses = ref.read(bibleSearchProvider).topicVerses;
+    final buffer = StringBuffer('Verses about $topicName');
+    for (final verse in verses) {
+      buffer
+        ..write('\n\n')
+        ..write(
+          formatVerseForSharing(
+            text: verse.verseText,
+            reference: '${verse.book} ${verse.chapter}:${verse.verse}',
+          ),
+        );
+    }
+    return buffer.toString();
+  }
+
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(bibleSearchProvider);
@@ -57,10 +74,13 @@ class _BibleTopicDetailPageState extends ConsumerState<BibleTopicDetailPage> {
         centerTitle: true,
         actions: [
           IconButton(
+            tooltip: 'Share topic',
             icon: const Icon(Icons.share),
-            onPressed: () {
-              // TODO: Implement share functionality
-            },
+            onPressed: () => ContentActionService.share(
+              context,
+              text: _shareText(topicName),
+              subject: 'Verses about $topicName',
+            ),
           ),
         ],
       ),

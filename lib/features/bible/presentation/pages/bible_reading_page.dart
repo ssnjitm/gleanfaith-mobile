@@ -112,7 +112,18 @@ class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
     final notifier = ref.read(chapterBookmarksProvider(arg).notifier);
     await notifier.toggle(verse: null);
     if (!mounted) return;
-    final nowBookmarked = ref.read(chapterBookmarksProvider(arg)).isBookmarked(null);
+
+    final bookmarkState = ref.read(chapterBookmarksProvider(arg));
+    final failure = bookmarkState.message;
+    if (failure != null) {
+      AlertWidget.showError(context, failure);
+      return;
+    }
+
+    // Keep the global Bookmarks list in sync with the inline toggle.
+    unawaited(ref.read(bookmarksProvider.notifier).load());
+
+    final nowBookmarked = bookmarkState.isBookmarked(null);
     AlertWidget.showSnackBar(
       context,
       message: nowBookmarked ? 'Chapter bookmarked' : 'Bookmark removed',
