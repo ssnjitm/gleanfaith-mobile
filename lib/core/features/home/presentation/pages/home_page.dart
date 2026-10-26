@@ -20,6 +20,7 @@ import '../../../../../features/bible_games/presentation/widgets/home_fun_facts_
 import '../../../../../features/bible_study/presentation/widgets/continue_reading_card.dart';
 import '../../../../../features/leaderboard/domain/entities/leaderboard_entities.dart';
 import '../../../../../features/leaderboard/presentation/providers/leaderboard_provider.dart';
+import '../../../profile/presentation/widgets/profile_drawer.dart';
 import '../../../profile/presentation/widgets/profile_top_bar_button.dart';
 import '../providers/main_tab_provider.dart';
 import '../widgets/promo_carousel.dart';
@@ -121,6 +122,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
+      drawer: const ProfileDrawer(),
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: () async {},
@@ -248,6 +250,32 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
       ),
       child: Row(
         children: [
+          Builder(
+            builder: (context) {
+              return Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+                  borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+                  ),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    Icons.menu_rounded,
+                    color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                    size: 20,
+                  ),
+                  tooltip: 'Open menu',
+                  onPressed: () => Scaffold.of(context).openDrawer(),
+                  padding: EdgeInsets.zero,
+                ),
+              );
+            },
+          ),
+          const SizedBox(width: AppDimensions.paddingSm),
           CircleAvatar(
             radius: 22,
             backgroundColor: AppColors.primaryBlue,
@@ -283,6 +311,28 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               ],
             ),
           ),
+          Container(
+            width: 40,
+            height: 40,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
+              borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
+              border: Border.all(
+                color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+              ),
+            ),
+            child: IconButton(
+              icon: Icon(
+                Icons.settings_outlined,
+                color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                size: 20,
+              ),
+              tooltip: 'Settings',
+              onPressed: () => context.push(RouteNames.settings),
+              padding: EdgeInsets.zero,
+            ),
+          ),
+          const SizedBox(width: AppDimensions.paddingSm),
           const ProfileTopBarButton(),
           const SizedBox(width: AppDimensions.paddingSm),
           Container(
