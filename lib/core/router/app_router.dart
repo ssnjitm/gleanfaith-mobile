@@ -5,7 +5,7 @@ import 'package:glean_faith_app/features/bible/presentation/pages/bible_reading_
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_search_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_topic_detail_page.dart';
 import 'package:glean_faith_app/features/bible/presentation/pages/bible_verse_detail_page.dart';
-import 'package:glean_faith_app/features/bible_study/presentation/pages/bookmarks_page.dart';
+
 import 'package:glean_faith_app/features/bible_study/presentation/pages/notes_page.dart';
 import 'package:glean_faith_app/features/bible_study/presentation/pages/chapter_notes_page.dart';
 import 'package:go_router/go_router.dart';
@@ -283,11 +283,7 @@ class AppRouter {
       );
     },
   ),
-  GoRoute(
-    path: RouteNames.bibleBookmarks,
-    name: RouteNames.bibleBookmarks,
-    builder: (context, state) => const BookmarksPage(),
-  ),
+
   GoRoute(
     path: RouteNames.bibleNotes,
     name: RouteNames.bibleNotes,

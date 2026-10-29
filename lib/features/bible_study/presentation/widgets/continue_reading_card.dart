@@ -55,29 +55,13 @@ class _ContinueReadingCardState extends ConsumerState<ContinueReadingCard> {
       children: [
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: AppDimensions.paddingMd),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                'Continue Reading',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: isDark ? Colors.white : AppColors.textPrimary,
-                ),
-              ),
-              TextButton.icon(
-                onPressed: () => context.pushNamed(RouteNames.bibleBookmarks),
-                style: TextButton.styleFrom(
-                  foregroundColor: AppColors.primaryBlue,
-                  padding: const EdgeInsets.symmetric(horizontal: 8),
-                  minimumSize: Size.zero,
-                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                ),
-                icon: const Icon(Icons.bookmarks_outlined, size: 16),
-                label: const Text('Bookmarks', style: TextStyle(fontSize: 13)),
-              ),
-            ],
+          child: Text(
+            'Continue Reading',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: isDark ? Colors.white : AppColors.textPrimary,
+            ),
           ),
         ),
         const SizedBox(height: AppDimensions.sm),

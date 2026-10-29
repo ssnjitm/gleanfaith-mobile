@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:glean_faith_app/core/common/extensions/context_extensions.dart';
-import 'package:glean_faith_app/core/common/widgets/alert_widget.dart';
 import 'package:glean_faith_app/core/router/route_names.dart';
 import 'package:glean_faith_app/core/services/content_action_service.dart';
 import 'package:glean_faith_app/core/services/database_service.dart';
@@ -35,7 +34,6 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _initBookmark();
       unawaited(
         ref.read(recentReadingProvider.notifier).savePosition(
               bookName: widget.book,
@@ -44,38 +42,6 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
             ),
       );
     });
-  }
-
-  void _initBookmark() {
-    final arg = (book: widget.book, chapter: widget.chapter);
-    if (ref.read(chapterBookmarksProvider(arg)).status ==
-        BibleStudyStatus.initial) {
-      ref.read(chapterBookmarksProvider(arg).notifier).load();
-    }
-  }
-
-  Future<void> _toggleBookmark(({String book, int chapter}) arg) async {
-    final notifier = ref.read(chapterBookmarksProvider(arg).notifier);
-    await notifier.toggle(verse: widget.verse);
-    if (!mounted) return;
-
-    final bookmarkState = ref.read(chapterBookmarksProvider(arg));
-    final failure = bookmarkState.message;
-    if (failure != null) {
-      AlertWidget.showError(context, failure);
-      return;
-    }
-
-    // Keep the global Bookmarks list in sync with the inline toggle, otherwise
-    // a saved bookmark can still be missing when the user opens that page.
-    unawaited(ref.read(bookmarksProvider.notifier).load());
-
-    final nowBookmarked = bookmarkState.isBookmarked(widget.verse);
-    AlertWidget.showSnackBar(
-      context,
-      message: nowBookmarked ? 'Verse bookmarked' : 'Bookmark removed',
-      type: nowBookmarked ? AlertType.success : AlertType.info,
-    );
   }
 
   /// The verses around the target one, two before and two after.
@@ -99,9 +65,6 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final arg = (book: widget.book, chapter: widget.chapter);
-    final bookmarkState = ref.watch(chapterBookmarksProvider(arg));
-    final isVerseBookmarked = bookmarkState.isBookmarked(widget.verse);
 
     // The chapter is loaded through the shared provider, so the verse follows
     // the global content language: a Nepali reader gets the Nepali text and
@@ -133,16 +96,6 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                       ),
                     )
                 : null,
-          ),
-          IconButton(
-            tooltip: isVerseBookmarked ? 'Remove book mark' : 'Bookmark verse',
-            icon: Icon(
-              isVerseBookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              color: isVerseBookmarked ? AppColors.primaryAmber : null,
-            ),
-            onPressed: () => _toggleBookmark(arg),
           ),
           IconButton(
             tooltip: 'Share verse',
@@ -235,12 +188,12 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                     ),
                     decoration: BoxDecoration(
                       color: isTargetVerse
-                          ? AppColors.primaryBlue.withOpacity(0.1)
+                          ? AppColors.primaryBlue.withValues(alpha: 0.1)
                           : null,
                       borderRadius: BorderRadius.circular(8),
                       border: isTargetVerse
                           ? Border.all(
-                              color: AppColors.primaryBlue.withOpacity(0.3),
+                              color: AppColors.primaryBlue.withValues(alpha: 0.3),
                             )
                           : null,
                     ),
@@ -294,13 +247,13 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       colors: [
-                        AppColors.primaryBlue.withOpacity(0.15),
-                        AppColors.primaryAmber.withOpacity(0.15),
+                        AppColors.primaryBlue.withValues(alpha: 0.15),
+                        AppColors.primaryAmber.withValues(alpha: 0.15),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: AppColors.primaryBlue.withOpacity(0.2),
+                      color: AppColors.primaryBlue.withValues(alpha: 0.2),
                     ),
                   ),
                   child: Column(
@@ -370,12 +323,13 @@ class _BibleVerseDetailPageState extends ConsumerState<BibleVerseDetailPage> {
                     // Navigate to topic detail
                     context.pushNamed(
                       RouteNames.bibleTopicDetail,
+                      // GoRouter encodes path parameters itself.
                       pathParameters: {
-                        'topic': Uri.encodeComponent(topic['topic_name'] as String),
+                        'topic': topic['topic_name'] as String,
                       },
                     );
                   },
-                  backgroundColor: AppColors.primaryBlue.withOpacity(0.1),
+                  backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.1),
                   labelStyle: const TextStyle(
                     color: AppColors.primaryBlue,
                     fontSize: 12,
@@ -405,9 +359,9 @@ class _TranslationFallbackNotice extends StatelessWidget {
         vertical: 8,
       ),
       decoration: BoxDecoration(
-        color: AppColors.primaryAmber.withOpacity(0.12),
+        color: AppColors.primaryAmber.withValues(alpha: 0.12),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.primaryAmber.withOpacity(0.35)),
+        border: Border.all(color: AppColors.primaryAmber.withValues(alpha: 0.35)),
       ),
       child: Row(
         children: [

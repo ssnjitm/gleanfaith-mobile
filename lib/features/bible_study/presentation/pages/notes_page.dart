@@ -24,6 +24,8 @@ class NotesPage extends ConsumerStatefulWidget {
 }
 
 class _NotesPageState extends ConsumerState<NotesPage> with RouteAware {
+  bool _subscribed = false;
+
   @override
   void initState() {
     super.initState();
@@ -37,9 +39,11 @@ class _NotesPageState extends ConsumerState<NotesPage> with RouteAware {
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    if (_subscribed) return;
     final route = ModalRoute.of(context);
     if (route != null) {
       AppRouter.routeObserver.subscribe(this, route);
+      _subscribed = true;
     }
   }
 

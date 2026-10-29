@@ -40,7 +40,7 @@ class VerseCard extends StatelessWidget {
                 children: [
                   Text(
                     topicVerse.verseReference,
-                    style: TextStyle(
+                    style: const TextStyle(
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
                       color: AppColors.primaryBlue,
@@ -53,7 +53,7 @@ class VerseCard extends StatelessWidget {
                         vertical: AppDimensions.xs / 2,
                       ),
                       decoration: BoxDecoration(
-                        color: AppColors.primaryAmber.withOpacity(0.1),
+                        color: AppColors.primaryAmber.withValues(alpha: 0.1),
                         borderRadius: BorderRadius.circular(AppDimensions.radiusSm),
                       ),
                       child: Row(

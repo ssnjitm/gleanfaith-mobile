@@ -3,8 +3,8 @@ import 'package:fpdart/fpdart.dart';
 import '../../../../core/error/failures.dart';
 import '../entities/bible_study_entities.dart';
 
-/// Repository for the three user-scoped Bible study features:
-/// continue-reading history, bookmarks and chapter notes (all remote).
+/// Repository for the user-scoped Bible study features:
+/// continue-reading history and chapter notes (both remote).
 abstract class BibleStudyRepository {
   // ── Continue reading ─────────────────────────────────────────────────────
   TaskEither<Failure, ReadingPosition> saveReadingPosition({
@@ -17,21 +17,6 @@ abstract class BibleStudyRepository {
     int? limit,
     String? bookId,
   });
-
-  // ── Bookmarks ───────────────────────────────────────────────────────────
-  TaskEither<Failure, List<Bookmark>> getBookmarks({
-    String? bookId,
-    int? chapter,
-  });
-
-  TaskEither<Failure, Bookmark> createBookmark({
-    required String bookName,
-    required int chapter,
-    int? verse,
-    String note,
-  });
-
-  TaskEither<Failure, Unit> deleteBookmark(String bookmarkId);
 
   // ── Chapter notes ───────────────────────────────────────────────────────
   TaskEither<Failure, List<ChapterNote>> getNotes({

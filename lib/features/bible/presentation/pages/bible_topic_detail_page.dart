@@ -66,7 +66,7 @@ class _BibleTopicDetailPageState extends ConsumerState<BibleTopicDetailPage> {
   @override
   Widget build(BuildContext context) {
     final state = ref.watch(bibleSearchProvider);
-    final topicName = Uri.decodeComponent(widget.topicName);
+    final topicName = widget.topicName;
 
     return AppScaffold(
       appBar: AppBar(
@@ -93,7 +93,7 @@ class _BibleTopicDetailPageState extends ConsumerState<BibleTopicDetailPage> {
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Icon(
+                        const Icon(
                           Icons.error_outline,
                           size: 64,
                           color: AppColors.error,

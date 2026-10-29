@@ -54,7 +54,9 @@ class _BibleSearchPageState extends ConsumerState<BibleSearchPage> {
   void _onTopicSelected(String topicName) {
     context.pushNamed(
       RouteNames.bibleTopicDetail,
-      pathParameters: {'topic': Uri.encodeComponent(topicName)},
+      // GoRouter encodes path parameters itself; encoding here would
+      // double-encode topics such as "God's Love".
+      pathParameters: {'topic': topicName},
     );
   }
 

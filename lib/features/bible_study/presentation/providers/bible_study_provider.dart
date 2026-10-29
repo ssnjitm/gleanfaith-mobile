@@ -25,18 +25,6 @@ final getRecentReadingUseCaseProvider = Provider<GetRecentReadingUseCase>((ref) 
   return GetRecentReadingUseCase(ref.watch(bibleStudyRepositoryProvider));
 });
 
-final getBookmarksUseCaseProvider = Provider<GetBookmarksUseCase>((ref) {
-  return GetBookmarksUseCase(ref.watch(bibleStudyRepositoryProvider));
-});
-
-final createBookmarkUseCaseProvider = Provider<CreateBookmarkUseCase>((ref) {
-  return CreateBookmarkUseCase(ref.watch(bibleStudyRepositoryProvider));
-});
-
-final deleteBookmarkUseCaseProvider = Provider<DeleteBookmarkUseCase>((ref) {
-  return DeleteBookmarkUseCase(ref.watch(bibleStudyRepositoryProvider));
-});
-
 final getNotesUseCaseProvider = Provider<GetNotesUseCase>((ref) {
   return GetNotesUseCase(ref.watch(bibleStudyRepositoryProvider));
 });
@@ -127,180 +115,9 @@ class RecentReadingNotifier extends StateNotifier<RecentReadingState> {
   }
 }
 
-// ── Bookmarks (global list) ───────────────────────────────────────────────
-
-class BookmarksState {
-  final BibleStudyStatus status;
-  final List<Bookmark> bookmarks;
-  final String? message;
-
-  const BookmarksState({
-    this.status = BibleStudyStatus.initial,
-    this.bookmarks = const [],
-    this.message,
-  });
-
-  BookmarksState copyWith({
-    BibleStudyStatus? status,
-    List<Bookmark>? bookmarks,
-    String? message,
-  }) {
-    return BookmarksState(
-      status: status ?? this.status,
-      bookmarks: bookmarks ?? this.bookmarks,
-      message: message,
-    );
-  }
-}
-
-/// All bookmarks across every book — used by the Bookmarks page.
-final bookmarksProvider = StateNotifierProvider<BookmarksNotifier, BookmarksState>((ref) {
-  return BookmarksNotifier(ref);
-});
-
-class BookmarksNotifier extends StateNotifier<BookmarksState> {
-  final Ref _ref;
-
-  BookmarksNotifier(this._ref) : super(const BookmarksState());
-
-  Future<void> load() async {
-    state = state.copyWith(status: BibleStudyStatus.loading, message: null);
-    final result = await _ref.read(getBookmarksUseCaseProvider)().run();
-    result.fold(
-      (failure) => state = state.copyWith(
-        status: BibleStudyStatus.error,
-        message: failure.message,
-      ),
-      (bookmarks) => state = state.copyWith(
-        status: BibleStudyStatus.success,
-        bookmarks: bookmarks,
-      ),
-    );
-  }
-
-  Future<void> remove(String bookmarkId) async {
-    final result = await _ref.read(deleteBookmarkUseCaseProvider)(bookmarkId).run();
-    result.fold(
-      (failure) => state = state.copyWith(message: failure.message),
-      (_) => state = state.copyWith(
-        bookmarks: state.bookmarks.where((b) => b.id != bookmarkId).toList(),
-        message: null,
-      ),
-    );
-  }
-}
-
-// ── Bookmarks (per chapter, for inline toggles) ───────────────────────────
-
-typedef ChapterBookmarksArg = ({String book, int chapter});
-
-class ChapterBookmarksState {
-  final BibleStudyStatus status;
-  final List<Bookmark> bookmarks;
-  final bool isMutating;
-  final String? message;
-
-  const ChapterBookmarksState({
-    this.status = BibleStudyStatus.initial,
-    this.bookmarks = const [],
-    this.isMutating = false,
-    this.message,
-  });
-
-  ChapterBookmarksState copyWith({
-    BibleStudyStatus? status,
-    List<Bookmark>? bookmarks,
-    bool? isMutating,
-    String? message,
-  }) {
-    return ChapterBookmarksState(
-      status: status ?? this.status,
-      bookmarks: bookmarks ?? this.bookmarks,
-      isMutating: isMutating ?? this.isMutating,
-      message: message,
-    );
-  }
-
-  bool isBookmarked(int? verse) {
-    return bookmarks.any((b) => _verseMatches(b.verse, verse));
-  }
-
-  bool _verseMatches(int? existing, int? target) {
-    if (existing == null && target == null) return true;
-    if (existing == null || target == null) return false;
-    return existing == target;
-  }
-}
-
-final chapterBookmarksProvider =
-    StateNotifierProvider.family<ChapterBookmarksNotifier, ChapterBookmarksState, ChapterBookmarksArg>(
-  (ref, arg) => ChapterBookmarksNotifier(ref, arg),
-);
-
-class ChapterBookmarksNotifier extends StateNotifier<ChapterBookmarksState> {
-  final Ref _ref;
-  final ChapterBookmarksArg _arg;
-
-  ChapterBookmarksNotifier(this._ref, this._arg) : super(const ChapterBookmarksState());
-
-  int get _chapter => _arg.chapter;
-
-  Future<void> load() async {
-    state = state.copyWith(status: BibleStudyStatus.loading, message: null);
-    final result = await _ref
-        .read(getBookmarksUseCaseProvider)(
-          bookId: bookCodeForName(_arg.book),
-          chapter: _chapter,
-        )
-        .run();
-    result.fold(
-      (failure) => state = state.copyWith(
-        status: BibleStudyStatus.error,
-        message: failure.message,
-      ),
-      (bookmarks) => state = state.copyWith(
-        status: BibleStudyStatus.success,
-        bookmarks: bookmarks,
-      ),
-    );
-  }
-
-  /// Bookmark/unbookmark a verse (or the whole chapter when [verse] is null).
-  Future<void> toggle({int? verse}) async {
-    if (state.isMutating) return;
-    state = state.copyWith(isMutating: true, message: null);
-
-    final existing = state.bookmarks
-        .where(
-          (b) => (b.verse == null && verse == null) ||
-              (b.verse != null && verse != null && b.verse == verse),
-        )
-        .toList();
-
-    final result = existing.isNotEmpty
-        ? await _ref.read(deleteBookmarkUseCaseProvider)(existing.first.id).run()
-        : await _ref
-            .read(createBookmarkUseCaseProvider)(
-              bookName: _arg.book,
-              chapter: _chapter,
-              verse: verse,
-            )
-            .run();
-
-    await result.fold(
-      (failure) async {
-        await load();
-        state = state.copyWith(isMutating: false, message: failure.message);
-      },
-      (_) async {
-        await load();
-        state = state.copyWith(isMutating: false);
-      },
-    );
-  }
-}
-
 // ── Chapter notes (per chapter) ────────────────────────────────────────────
+
+typedef ChapterArg = ({String book, int chapter});
 
 class ChapterNotesState {
   final BibleStudyStatus status;
@@ -331,13 +148,13 @@ class ChapterNotesState {
 }
 
 final chapterNotesProvider =
-    StateNotifierProvider.family<ChapterNotesNotifier, ChapterNotesState, ChapterBookmarksArg>(
+    StateNotifierProvider.family<ChapterNotesNotifier, ChapterNotesState, ChapterArg>(
   (ref, arg) => ChapterNotesNotifier(ref, arg),
 );
 
 class ChapterNotesNotifier extends StateNotifier<ChapterNotesState> {
   final Ref _ref;
-  final ChapterBookmarksArg _arg;
+  final ChapterArg _arg;
 
   ChapterNotesNotifier(this._ref, this._arg) : super(const ChapterNotesState());
 

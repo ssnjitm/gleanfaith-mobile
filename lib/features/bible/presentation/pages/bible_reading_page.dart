@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/common/widgets/app_scaffold.dart';
 import '../../../../core/common/widgets/shimmer_placeholders.dart';
 import '../../../../core/router/route_names.dart';
@@ -30,26 +29,11 @@ class BibleReadingPage extends ConsumerStatefulWidget {
 
 class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
   @override
-  void initState() {
-    super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final arg = (book: widget.book, chapter: widget.chapter);
-      if (ref.read(chapterBookmarksProvider(arg)).status ==
-          BibleStudyStatus.initial) {
-        ref.read(chapterBookmarksProvider(arg).notifier).load();
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     final chapterAsync = ref.watch(
       bibleChapterProvider((book: widget.book, chapter: widget.chapter)),
     );
     final chaptersAsync = ref.watch(bibleChaptersProvider(widget.book));
-    final arg = (book: widget.book, chapter: widget.chapter);
-    final bookmarksState = ref.watch(chapterBookmarksProvider(arg));
-    final isBookmarked = bookmarksState.isBookmarked(null);
     final chapter = chapterAsync.value;
     final title = chapter?.title ??
         '${normalizeBookName(widget.book)} ${widget.chapter}';
@@ -59,16 +43,6 @@ class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
         title: Text(title),
         centerTitle: true,
         actions: [
-          IconButton(
-            tooltip: isBookmarked ? 'Remove book mark' : 'Bookmark chapter',
-            icon: Icon(
-              isBookmarked
-                  ? Icons.bookmark_rounded
-                  : Icons.bookmark_border_rounded,
-              color: isBookmarked ? AppColors.primaryAmber : null,
-            ),
-            onPressed: () => _toggleChapterBookmark(arg),
-          ),
           IconButton(
             tooltip: 'Chapter notes',
             icon: const Icon(Icons.sticky_note_2_outlined),
@@ -108,28 +82,7 @@ class _BibleReadingPageState extends ConsumerState<BibleReadingPage> {
     );
   }
 
-  Future<void> _toggleChapterBookmark(({String book, int chapter}) arg) async {
-    final notifier = ref.read(chapterBookmarksProvider(arg).notifier);
-    await notifier.toggle(verse: null);
-    if (!mounted) return;
 
-    final bookmarkState = ref.read(chapterBookmarksProvider(arg));
-    final failure = bookmarkState.message;
-    if (failure != null) {
-      AlertWidget.showError(context, failure);
-      return;
-    }
-
-    // Keep the global Bookmarks list in sync with the inline toggle.
-    unawaited(ref.read(bookmarksProvider.notifier).load());
-
-    final nowBookmarked = bookmarkState.isBookmarked(null);
-    AlertWidget.showSnackBar(
-      context,
-      message: nowBookmarked ? 'Chapter bookmarked' : 'Bookmark removed',
-      type: nowBookmarked ? AlertType.success : AlertType.info,
-    );
-  }
 }
 
 class _ChapterBody extends ConsumerStatefulWidget {

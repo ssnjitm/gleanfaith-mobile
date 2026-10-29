@@ -3,9 +3,9 @@ import 'package:dio/dio.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../models/bible_study_models.dart';
 
-/// Remote data source for continue-reading history, bookmarks and chapter
-/// notes. All endpoints are JWT-protected; the Dio auth interceptor adds the
-/// bearer token automatically.
+/// Remote data source for continue-reading history and chapter notes.
+/// All endpoints are JWT-protected; the Dio auth interceptor adds the bearer
+/// token automatically.
 class BibleStudyRemoteDataSource {
   final Dio _dio;
 
@@ -40,40 +40,6 @@ class BibleStudyRemoteDataSource {
       },
     );
     return _extractList(response.data).map(ReadingPositionModel.fromJson).toList();
-  }
-
-  // ── Bookmarks ───────────────────────────────────────────────────────────
-  Future<List<BookmarkModel>> getBookmarks({String? bookId, int? chapter}) async {
-    final response = await _dio.get(
-      ApiConstants.bookmarks,
-      queryParameters: {
-        'bookId': ?bookId,
-        'chapter': ?chapter,
-      },
-    );
-    return _extractList(response.data).map(BookmarkModel.fromJson).toList();
-  }
-
-  Future<BookmarkModel> createBookmark({
-    required String bookId,
-    required int chapter,
-    int? verse,
-    String note = '',
-  }) async {
-    final response = await _dio.post(
-      ApiConstants.bookmarks,
-      data: {
-        'bookId': bookId,
-        'chapter': chapter,
-        'verse': ?verse,
-        if (note.isNotEmpty) 'note': note,
-      },
-    );
-    return BookmarkModel.fromJson(_extractMap(response.data));
-  }
-
-  Future<void> deleteBookmark(String bookmarkId) async {
-    await _dio.delete(ApiConstants.bookmarkById(bookmarkId));
   }
 
   // ── Chapter notes ───────────────────────────────────────────────────────
@@ -143,7 +109,7 @@ class BibleStudyRemoteDataSource {
   }
 
   /// Pull a list of maps out of wrapped/flat responses that may key the list
-  /// under `data`, `items`, `results`, `bookmarks`, `notes`, `history` etc.
+  /// under `data`, `items`, `results`, `notes`, `history` etc.
   List<Map<String, dynamic>> _extractList(dynamic response) {
     if (response is! Map<String, dynamic>) {
       return <Map<String, dynamic>>[];
@@ -166,7 +132,6 @@ class BibleStudyRemoteDataSource {
       'items',
       'results',
       'data',
-      'bookmarks',
       'notes',
       'history',
       'readingHistory',

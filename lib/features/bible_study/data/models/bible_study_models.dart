@@ -42,47 +42,6 @@ class ReadingPositionModel {
   }
 }
 
-class BookmarkModel {
-  const BookmarkModel({
-    this.id = '',
-    this.bookId = '',
-    this.chapter = 0,
-    this.verse,
-    this.note = '',
-    this.createdAt,
-  });
-
-  final String id;
-  final String bookId;
-  final int chapter;
-  final int? verse;
-  final String note;
-  final DateTime? createdAt;
-
-  factory BookmarkModel.fromJson(Map<String, dynamic> json) {
-    return BookmarkModel(
-      id: json['_id'] as String? ?? json['id'] as String? ?? '',
-      bookId: json['bookId'] as String? ?? '',
-      chapter: _toInt(json['chapter']),
-      verse: json['verse'] == null ? null : _toInt(json['verse']),
-      note: json['note'] as String? ?? '',
-      createdAt: _parseDate(json['createdAt']),
-    );
-  }
-
-  Bookmark toEntity() {
-    return Bookmark(
-      id: id,
-      bookId: bookId,
-      bookName: bookNameForCode(bookId),
-      chapter: chapter,
-      verse: verse,
-      note: note,
-      createdAt: createdAt,
-    );
-  }
-}
-
 class ChapterNoteModel {
   const ChapterNoteModel({
     this.id = '',

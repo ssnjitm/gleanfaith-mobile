@@ -30,43 +30,6 @@ class GetRecentReadingUseCase {
   }
 }
 
-class GetBookmarksUseCase {
-  final BibleStudyRepository _repository;
-  GetBookmarksUseCase(this._repository);
-
-  TaskEither<Failure, List<Bookmark>> call({String? bookId, int? chapter}) {
-    return _repository.getBookmarks(bookId: bookId, chapter: chapter);
-  }
-}
-
-class CreateBookmarkUseCase {
-  final BibleStudyRepository _repository;
-  CreateBookmarkUseCase(this._repository);
-
-  TaskEither<Failure, Bookmark> call({
-    required String bookName,
-    required int chapter,
-    int? verse,
-    String note = '',
-  }) {
-    return _repository.createBookmark(
-      bookName: bookName,
-      chapter: chapter,
-      verse: verse,
-      note: note,
-    );
-  }
-}
-
-class DeleteBookmarkUseCase {
-  final BibleStudyRepository _repository;
-  DeleteBookmarkUseCase(this._repository);
-
-  TaskEither<Failure, Unit> call(String bookmarkId) {
-    return _repository.deleteBookmark(bookmarkId);
-  }
-}
-
 class GetNotesUseCase {
   final BibleStudyRepository _repository;
   GetNotesUseCase(this._repository);

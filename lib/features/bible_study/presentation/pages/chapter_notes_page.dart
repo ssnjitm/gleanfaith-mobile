@@ -240,6 +240,7 @@ class _NoteEditorSheetState extends State<_NoteEditorSheet> {
               autofocus: true,
               maxLines: 8,
               maxLength: _maxChars,
+              onChanged: (_) => setState(() {}),
               decoration: InputDecoration(
                 hintText: 'Write your thoughts about this chapter…',
                 fillColor: isDark ? const Color(0xFF0F172A) : AppColors.bgGray,

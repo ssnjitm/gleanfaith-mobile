@@ -1,15 +1,11 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-import '../../../../common/widgets/alert_widget.dart';
 import '../../../../router/route_names.dart';
 import '../../../../services/content_action_service.dart';
 import '../../../../../features/bible/domain/entities/verse_of_the_day.dart';
 import '../../../../../features/bible/presentation/providers/verse_of_the_day_provider.dart';
-import '../../../../../features/bible_study/presentation/providers/bible_study_provider.dart';
 import 'verse_of_the_day_card.dart';
 
 class HomeVerseOfTheDay extends ConsumerWidget {
@@ -37,19 +33,6 @@ class HomeVerseOfTheDay extends ConsumerWidget {
     WidgetRef ref,
     VerseOfTheDay verse,
   ) {
-    final arg = (book: verse.book, chapter: verse.chapter);
-    final bookmarkState = ref.watch(chapterBookmarksProvider(arg));
-
-    // Load the chapter's bookmarks once so the inline toggle reflects what is
-    // already saved. The provider is not auto-disposed, so a single in-flight
-    // load is enough and this branch only runs on the initial state.
-    if (bookmarkState.status == BibleStudyStatus.initial) {
-      Future.microtask(() {
-        if (!context.mounted) return;
-        ref.read(chapterBookmarksProvider(arg).notifier).load();
-      });
-    }
-
     final shareText = formatVerseForSharing(
       text: verse.text,
       reference: verse.reference,
@@ -70,37 +53,6 @@ class HomeVerseOfTheDay extends ConsumerWidget {
         text: shareText,
         subject: verse.reference,
       ),
-      isBookmarked: bookmarkState.isBookmarked(verse.verse),
-      onBookmark: () => _toggleBookmark(context, ref, verse),
-    );
-  }
-
-  Future<void> _toggleBookmark(
-    BuildContext context,
-    WidgetRef ref,
-    VerseOfTheDay verse,
-  ) async {
-    final arg = (book: verse.book, chapter: verse.chapter);
-    await ref.read(chapterBookmarksProvider(arg).notifier).toggle(
-          verse: verse.verse,
-        );
-    if (!context.mounted) return;
-
-    final bookmarkState = ref.read(chapterBookmarksProvider(arg));
-    final failure = bookmarkState.message;
-    if (failure != null) {
-      AlertWidget.showError(context, failure);
-      return;
-    }
-
-    // Keep the global Bookmarks list in sync with the inline toggle.
-    unawaited(ref.read(bookmarksProvider.notifier).load());
-
-    final nowBookmarked = bookmarkState.isBookmarked(verse.verse);
-    AlertWidget.showSnackBar(
-      context,
-      message: nowBookmarked ? 'Verse bookmarked' : 'Bookmark removed',
-      type: nowBookmarked ? AlertType.success : AlertType.info,
     );
   }
 

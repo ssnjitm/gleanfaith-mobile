@@ -38,7 +38,7 @@ class TopicCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withOpacity(0.1),
+                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                 ),
                 child: const Icon(

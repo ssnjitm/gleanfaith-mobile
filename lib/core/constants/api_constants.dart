@@ -76,13 +76,11 @@ class ApiConstants {
   static const String leaderboard = '/leaderboard';
   static const String leaderboardMe = '/leaderboard/me';
 
-  // Bible Study — Continue Reading / Bookmarks / Chapter Notes
+  // Bible Study — Continue Reading / Chapter Notes
   static const String readingHistory = '/reading-history';
   static const String readingHistoryRecent = '/reading-history/recent';
-  static const String bookmarks = '/bookmarks';
   static const String notes = '/notes';
 
-  static String bookmarkById(String id) => '/bookmarks/$id';
   static String noteById(String id) => '/notes/$id';
 
   // CrossPuzzle

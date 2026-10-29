@@ -45,51 +45,6 @@ class BibleStudyRepositoryImpl implements BibleStudyRepository {
   }
 
   @override
-  TaskEither<Failure, List<Bookmark>> getBookmarks({
-    String? bookId,
-    int? chapter,
-  }) {
-    return TaskEither.tryCatch(
-      () async =>
-          (await _remoteDataSource.getBookmarks(bookId: bookId, chapter: chapter))
-              .map((model) => model.toEntity())
-              .toList(),
-      (error, stackTrace) => handleError(error),
-    );
-  }
-
-  @override
-  TaskEither<Failure, Bookmark> createBookmark({
-    required String bookName,
-    required int chapter,
-    int? verse,
-    String note = '',
-  }) {
-    return TaskEither.tryCatch(
-      () async =>
-          (await _remoteDataSource.createBookmark(
-            bookId: bookCodeForName(bookName),
-            chapter: chapter,
-            verse: verse,
-            note: note,
-          ))
-              .toEntity(),
-      (error, stackTrace) => handleError(error),
-    );
-  }
-
-  @override
-  TaskEither<Failure, Unit> deleteBookmark(String bookmarkId) {
-    return TaskEither.tryCatch(
-      () async {
-        await _remoteDataSource.deleteBookmark(bookmarkId);
-        return unit;
-      },
-      (error, stackTrace) => handleError(error),
-    );
-  }
-
-  @override
   TaskEither<Failure, List<ChapterNote>> getNotes({
     String? bookId,
     int? chapter,
