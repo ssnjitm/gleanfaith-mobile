@@ -342,24 +342,28 @@ class AuthErrorBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (message == null) return const SizedBox.shrink();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? AppColors.errorLight : AppColors.error;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: AppColors.errorBg,
-        border: Border.all(color: AppColors.errorBorder),
+        color: AppColors.errorSurface(context),
+        border: Border.all(
+          color: isDark ? AppColors.errorLight : AppColors.errorBorder,
+        ),
         borderRadius: BorderRadius.circular(8),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline, size: 16, color: AppColors.error),
+          Icon(Icons.error_outline, size: 16, color: accent),
           const SizedBox(width: 8),
           Expanded(
             child: Text(
               message!,
-              style: const TextStyle(fontSize: 13, color: AppColors.error),
+              style: TextStyle(fontSize: 13, color: accent),
             ),
           ),
         ],
@@ -375,21 +379,24 @@ class AuthSuccessBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final accent = isDark ? AppColors.successLight : AppColors.success;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: AppColors.successBg,
-        border: Border.all(color: AppColors.success),
+        color: AppColors.successSurface(context),
+        border: Border.all(color: accent),
         borderRadius: BorderRadius.circular(12),
       ),
       child: Row(
         children: [
-          const Icon(Icons.check_circle, color: AppColors.success, size: 24),
+          Icon(Icons.check_circle, color: accent, size: 24),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               message,
-              style: const TextStyle(color: AppColors.success, fontWeight: FontWeight.w500),
+              style: TextStyle(color: accent, fontWeight: FontWeight.w500),
             ),
           ),
         ],

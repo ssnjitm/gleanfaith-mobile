@@ -288,10 +288,12 @@ class _GameTile extends StatelessWidget {
                     children: [
                       Text(
                         title,
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.textPrimary,
+                          color: isDark
+                              ? AppColors.darkTextPrimary
+                              : AppColors.textPrimary,
                         ),
                       ),
                       const SizedBox(height: 2),
@@ -300,7 +302,7 @@ class _GameTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 13,
                           color: isDark
-                              ? const Color(0xFF94A3B8)
+                              ? AppColors.darkTextMuted
                               : AppColors.textMuted,
                         ),
                       ),

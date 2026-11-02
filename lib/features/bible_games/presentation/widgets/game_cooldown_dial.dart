@@ -62,14 +62,15 @@ class _GameCooldownCountdownState extends State<GameCooldownCountdown> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Text(
       widget.lives.formatCooldownAt(DateTime.now(), BibleGameLanguage.english),
       style: widget.style ??
-          const TextStyle(
+          TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.w800,
             letterSpacing: 0.5,
-            color: AppColors.textPrimary,
+            color: isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
     );
   }

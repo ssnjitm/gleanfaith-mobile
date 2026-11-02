@@ -299,17 +299,17 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
             children: [
               Text(
                 _format(_audioPosition),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
               Text(
                 _format(_audioDuration),
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: AppColors.textMuted,
+                  color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -428,9 +428,11 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
                     builder: (context, loadingState, page, pagesCount) {
                       return Text(
                         '$page / ${pagesCount ?? '-'}',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 12,
-                          color: AppColors.textMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.textMuted,
                           fontWeight: FontWeight.w600,
                         ),
                       );
@@ -558,7 +560,11 @@ class _LibraryContentPlayerState extends State<LibraryContentPlayer>
       ),
       child: Column(
         children: [
-          Icon(icon, size: 48, color: AppColors.textLight),
+          Icon(
+            icon,
+            size: 48,
+            color: isDark ? AppColors.darkTextMuted : AppColors.textLight,
+          ),
           const SizedBox(height: AppDimensions.paddingMd),
           Text(
             message,
@@ -641,6 +647,7 @@ class _FullScreenPdfPageState extends State<FullScreenPdfPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // theme-guard: allowed (full-screen document viewer stays black)
       backgroundColor: Colors.black,
       body: Stack(
         children: [

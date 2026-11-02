@@ -90,8 +90,15 @@ class _SplashPageState extends ConsumerState<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final background =
+        isDark ? AppColors.darkBg : Theme.of(context).scaffoldBackgroundColor;
+    final titleColor = isDark ? AppColors.darkTextPrimary : _navy;
+    final subtitleColor =
+        isDark ? AppColors.darkTextMuted : _subtitleColor;
+
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: background,
       body: GestureDetector(
         onTap: () {
           if (!mounted) return;
@@ -101,7 +108,7 @@ class _SplashPageState extends ConsumerState<SplashPage>
           animation: _controller,
           builder: (context, _) {
             return ColoredBox(
-              color: Colors.white,
+              color: background,
               child: SafeArea(
                 child: Stack(
                   children: [
@@ -130,8 +137,8 @@ class _SplashPageState extends ConsumerState<SplashPage>
                                 opacity: _titleFade.value,
                                 child: RichText(
                                   textAlign: TextAlign.center,
-                                  text: const TextSpan(
-                                    style: TextStyle(
+                                  text: TextSpan(
+                                    style: const TextStyle(
                                       fontSize: 38,
                                       fontWeight: FontWeight.w800,
                                       letterSpacing: 0.5,
@@ -140,9 +147,9 @@ class _SplashPageState extends ConsumerState<SplashPage>
                                     children: [
                                       TextSpan(
                                         text: 'Glean',
-                                        style: TextStyle(color: _navy),
+                                        style: TextStyle(color: titleColor),
                                       ),
-                                      TextSpan(
+                                      const TextSpan(
                                         text: 'Faith',
                                         style: TextStyle(
                                           color: AppColors.primaryBlue,
@@ -156,13 +163,13 @@ class _SplashPageState extends ConsumerState<SplashPage>
                             const SizedBox(height: 14),
                             Opacity(
                               opacity: _subtitleFade.value,
-                              child: const Text(
+                              child: Text(
                                 'DAILY DEVOTIONS • BIBLE QUIZZES • GROW TOGETHER',
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w600,
-                                  color: _subtitleColor,
+                                  color: subtitleColor,
                                   letterSpacing: 1.4,
                                   height: 1.6,
                                 ),
@@ -187,12 +194,12 @@ class _SplashPageState extends ConsumerState<SplashPage>
                               fit: BoxFit.contain,
                             ),
                             const SizedBox(width: 8),
-                            const Text(
+                            Text(
                               'Developed by CoderMitra',
                               style: TextStyle(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
-                                color: _subtitleColor,
+                                color: subtitleColor,
                                 letterSpacing: 0.3,
                               ),
                             ),

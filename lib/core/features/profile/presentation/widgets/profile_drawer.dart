@@ -42,9 +42,9 @@ class _ProfileDrawerState extends ConsumerState<ProfileDrawer> {
         child: Column(
           children: [
             _buildHeader(context, user?.fullName, user?.email, isDark),
-            const Divider(
+            Divider(
               height: 1,
-              color: AppColors.borderLight,
+              color: isDark ? AppColors.darkBorder : AppColors.borderLight,
             ),
             Expanded(
               child: ListView(

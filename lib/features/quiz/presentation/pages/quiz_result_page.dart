@@ -504,9 +504,9 @@ class _BuildStat extends StatelessWidget {
           ),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
-              color: AppColors.textMuted,
+              color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
               fontWeight: FontWeight.w600,
             ),
           ),

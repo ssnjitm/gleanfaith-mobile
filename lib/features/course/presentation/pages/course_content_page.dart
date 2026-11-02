@@ -90,7 +90,7 @@ class _CourseContentPageState extends ConsumerState<CourseContentPage> {
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
-      backgroundColor: AppColors.bgGray,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(_typeLabel),
         actions: [

@@ -633,18 +633,19 @@ class _StatusBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final String label;
     final Color color;
     final Color background;
 
     if (isActive) {
       label = 'Active';
-      color = AppColors.success;
-      background = AppColors.successBg;
+      color = isDark ? AppColors.successLight : AppColors.success;
+      background = AppColors.successSurface(context);
     } else if (isEnded) {
       label = 'Ended';
-      color = AppColors.textMuted;
-      background = AppColors.bgGray;
+      color = isDark ? AppColors.darkTextMuted : AppColors.textMuted;
+      background = isDark ? AppColors.darkSurfaceAlt : AppColors.bgGray;
     } else if (badge != null) {
       label = badge!;
       color = AppColors.primaryBlue;

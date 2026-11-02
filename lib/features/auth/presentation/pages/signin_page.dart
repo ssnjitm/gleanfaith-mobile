@@ -39,6 +39,8 @@ class _SignInPageState extends ConsumerState<SignInPage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final authText = AuthTextStyles.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     ref.listen(authProvider, (prev, next) {
       if (next.status == AuthStatus.authenticated) {
@@ -57,7 +59,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             AuthErrorBanner(
               message: authState.status == AuthStatus.error ? authState.message : null,
             ),
-            Text('Email Address', style: AuthTextStyles.label),
+            Text('Email Address', style: authText.label),
             const SizedBox(height: 8),
             TextFormField(
               controller: _emailController,
@@ -73,7 +75,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
               },
             ),
             const SizedBox(height: 20),
-            Text('Password', style: AuthTextStyles.label),
+            Text('Password', style: authText.label),
             const SizedBox(height: 8),
             TextFormField(
               controller: _passwordController,
@@ -84,7 +86,7 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: AppColors.inputIcon,
+                    color: isDark ? AppColors.darkInputIcon : AppColors.inputIcon,
                   ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
@@ -106,11 +108,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                const Text('Remember me', style: AuthTextStyles.caption),
+                Text('Remember me', style: authText.caption),
                 const Spacer(),
                 GestureDetector(
                   onTap: () => context.push(RouteNames.forgotPassword),
-                  child: const Text('Forgot password?', style: AuthTextStyles.link),
+                  child: Text('Forgot password?', style: authText.link),
                 ),
               ],
             ),
@@ -125,11 +127,11 @@ class _SignInPageState extends ConsumerState<SignInPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text("Don't have an account?", style: AuthTextStyles.caption),
+                Text("Don't have an account?", style: authText.caption),
                 const SizedBox(width: 4),
                 GestureDetector(
                   onTap: () => context.push(RouteNames.signup),
-                  child: const Text('Create Account', style: AuthTextStyles.link),
+                  child: Text('Create Account', style: authText.link),
                 ),
               ],
             ),

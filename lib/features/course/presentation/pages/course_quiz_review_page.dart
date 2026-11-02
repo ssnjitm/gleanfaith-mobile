@@ -97,7 +97,7 @@ class _CourseQuizReviewPageState extends ConsumerState<CourseQuizReviewPage> {
   Widget build(BuildContext context) {
     final a = widget.args;
     return Scaffold(
-      backgroundColor: AppColors.bgGray,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           a?.title ?? 'Review',

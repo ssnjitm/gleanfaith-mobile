@@ -92,6 +92,13 @@ class _VerifyOtpPageState extends ConsumerState<VerifyOtpPage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authText = AuthTextStyles.of(context);
+    final mutedColor = isDark ? AppColors.darkTextMuted : AppColors.textMuted;
+    final otpFill = isDark ? AppColors.darkBorder : AppColors.bgWhite;
+    final otpBorder = isDark ? AppColors.darkBorderLight : AppColors.otpBorder;
+    final otpFocus =
+        isDark ? AppColors.primaryLight : AppColors.otpFocusBorder;
 
     return AuthCard(
       title: 'Verify Your Email',
@@ -137,16 +144,14 @@ class _VerifyOtpPageState extends ConsumerState<VerifyOtpPage> {
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 14),
                             filled: true,
-                            fillColor: Theme.of(context).brightness == Brightness.dark
-                                ? const Color(0xFF334155)
-                                : AppColors.bgWhite,
+                            fillColor: otpFill,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                              borderSide: const BorderSide(color: AppColors.otpBorder),
+                              borderSide: BorderSide(color: otpBorder),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                              borderSide: const BorderSide(color: AppColors.otpFocusBorder, width: 2),
+                              borderSide: BorderSide(color: otpFocus, width: 2),
                             ),
                           ),
                           onChanged: (v) => _onOtpChange(i, v),
@@ -173,16 +178,16 @@ class _VerifyOtpPageState extends ConsumerState<VerifyOtpPage> {
             child: _canResend
                 ? GestureDetector(
                     onTap: _handleResend,
-                    child: const Text('Resend verification code', style: AuthTextStyles.link),
+                    child: Text('Resend verification code', style: authText.link),
                   )
                 : Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.timer_outlined, size: 16, color: AppColors.textMuted),
+                      Icon(Icons.timer_outlined, size: 16, color: mutedColor),
                       const SizedBox(width: 6),
                       Text(
                         'Code expires in $_formattedTime',
-                        style: const TextStyle(fontSize: 13, color: AppColors.textMuted),
+                        style: TextStyle(fontSize: 13, color: mutedColor),
                       ),
                     ],
                   ),
@@ -199,21 +204,21 @@ class _VerifyOtpPageState extends ConsumerState<VerifyOtpPage> {
           Center(
             child: GestureDetector(
               onTap: () => context.pushReplacement(RouteNames.signup),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.arrow_back, size: 16, color: AppColors.textMuted),
-                  SizedBox(width: 4),
-                  Text('Back to Sign Up', style: AuthTextStyles.caption),
+                  Icon(Icons.arrow_back, size: 16, color: mutedColor),
+                  const SizedBox(width: 4),
+                  Text('Back to Sign Up', style: authText.caption),
                 ],
               ),
             ),
           ),
           const SizedBox(height: 12),
-          const Center(
+          Center(
             child: Text(
               "Didn't receive the code? Check your spam folder",
-              style: TextStyle(fontSize: 11, color: AppColors.textLight),
+              style: TextStyle(fontSize: 11, color: mutedColor),
             ),
           ),
         ],

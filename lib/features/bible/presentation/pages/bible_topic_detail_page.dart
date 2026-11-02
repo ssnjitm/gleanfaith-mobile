@@ -124,14 +124,20 @@ class _BibleTopicDetailPageState extends ConsumerState<BibleTopicDetailPage> {
                           Icon(
                             Icons.search_off,
                             size: 64,
-                            color: Colors.grey[400],
+                            color: Theme.of(context).brightness ==
+                                    Brightness.dark
+                                ? AppColors.darkTextMuted
+                                : Colors.grey[400],
                           ),
                           const SizedBox(height: AppDimensions.md),
                           Text(
                             'No verses found for "$topicName"',
                             style: TextStyle(
                               fontSize: 16,
-                              color: Colors.grey[600],
+                              color: Theme.of(context).brightness ==
+                                      Brightness.dark
+                                  ? AppColors.darkTextSecondary
+                                  : Colors.grey[600],
                             ),
                           ),
                         ],

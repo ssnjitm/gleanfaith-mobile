@@ -43,7 +43,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage> {
       length: 2,
       initialIndex: 0,
       child: Scaffold(
-        backgroundColor: AppColors.bgGray,
+        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
         appBar: AppBar(
           title: const Text('Bible Learning'),
           actions: const [ProfileTopBarButton(), SizedBox(width: 8)],

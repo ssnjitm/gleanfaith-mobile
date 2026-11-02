@@ -117,14 +117,16 @@ class _NotificationTile extends StatelessWidget {
     required this.onTap,
   });
 
-  Color get _priorityColor {
+  Color _priorityColor(BuildContext context) {
     switch (notification.priority.toLowerCase()) {
       case 'urgent':
         return AppColors.error;
       case 'high':
         return AppColors.warning;
       case 'low':
-        return AppColors.textMuted;
+        return Theme.of(context).brightness == Brightness.dark
+            ? AppColors.darkTextMuted
+            : AppColors.textMuted;
       default:
         return AppColors.primaryBlue;
     }
@@ -173,10 +175,14 @@ class _NotificationTile extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: _priorityColor.withValues(alpha: 0.12),
+                  color: _priorityColor(context).withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
                 ),
-                child: Icon(_priorityIcon, size: 20, color: _priorityColor),
+                child: Icon(
+                  _priorityIcon,
+                  size: 20,
+                  color: _priorityColor(context),
+                ),
               ),
               const SizedBox(width: AppDimensions.md),
               Expanded(

@@ -61,6 +61,40 @@ class AppColors {
   static const Color inputFocusRing = Color(0x332563EB); // blue-600 with opacity
   static const Color inputPlaceholder = Color(0xFF9CA3AF); // gray-400
   static const Color inputIcon = Color(0xFF9CA3AF); // gray-400
+
+  // Dark mode tokens (slate scale). Use these instead of ad-hoc literals so
+  // every dark surface shares the same palette (see AGENTS.md section 17).
+  static const Color darkBg = Color(0xFF0F172A); // slate-900
+  static const Color darkSurface = Color(0xFF1E293B); // slate-800
+  static const Color darkSurfaceAlt = Color(0xFF243044); // raised slate
+  static const Color darkBorder = Color(0xFF334155); // slate-700
+  static const Color darkBorderLight = Color(0xFF475569); // slate-600
+  static const Color darkTextPrimary = Color(0xFFF8FAFC); // slate-50
+  static const Color darkTextSecondary = Color(0xFFE2E8F0); // slate-200
+  static const Color darkTextMuted = Color(0xFF94A3B8); // slate-400
+  static const Color darkTextLight = Color(0xFF64748B); // slate-500
+  static const Color darkInputPlaceholder = Color(0xFF64748B); // slate-500
+  static const Color darkInputIcon = Color(0xFF94A3B8); // slate-400
+
+  // Dark mode status surfaces (the pastel *Bg tokens above are light-only).
+  static const Color successBgDark = Color(0xFF064E3B); // emerald-900
+  static const Color errorBgDark = Color(0xFF450A0A); // red-950
+  static const Color warningBgDark = Color(0xFF451A03); // amber-950
+
+  static Color successSurface(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? successBgDark
+          : successBg;
+
+  static Color errorSurface(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? errorBgDark
+          : errorBg;
+
+  static Color warningSurface(BuildContext context) =>
+      Theme.of(context).brightness == Brightness.dark
+          ? warningBgDark
+          : warningBg;
   
   // Checkbox
   static const Color checkboxInactive = Color(0xFFD1D5DB); // gray-300
@@ -238,70 +272,110 @@ class AppButtonStyles {
     },
   );
 
-  static ButtonStyle outlinedButton = OutlinedButton.styleFrom(
-    foregroundColor: AppColors.textMuted,
-    side: const BorderSide(color: AppColors.borderMedium),
-    shape: RoundedRectangleBorder(
-      borderRadius: BorderRadius.circular(8),
-    ),
-    padding: const EdgeInsets.symmetric(vertical: 12),
-    minimumSize: const Size(double.infinity, 48),
-  );
+  static ButtonStyle outlinedButtonFor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return OutlinedButton.styleFrom(
+      foregroundColor:
+          isDark ? AppColors.darkTextSecondary : AppColors.textMuted,
+      side: BorderSide(
+        color: isDark ? AppColors.darkBorderLight : AppColors.borderMedium,
+      ),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(8),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      minimumSize: const Size(double.infinity, 48),
+    );
+  }
 
-  static ButtonStyle textButton = TextButton.styleFrom(
-    foregroundColor: AppColors.textMuted,
-    padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
-  );
+  static ButtonStyle textButtonFor(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    return TextButton.styleFrom(
+      foregroundColor:
+          isDark ? AppColors.darkTextSecondary : AppColors.textMuted,
+      padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 12),
+    );
+  }
 }
 
-// Custom Text Styles for Auth
+// Custom Text Styles for Auth.
+//
+// The auth screens render inside a glass card whose background is dark in BOTH
+// themes, so the text colours must follow the brightness. Resolve them through
+// `AuthTextStyles.of(context)` — never use the old static light-only values.
 class AuthTextStyles {
-  static const TextStyle title = TextStyle(
-    fontSize: 28,
-    fontWeight: FontWeight.w700,
-    color: AppColors.textPrimary,
-    letterSpacing: -0.5,
-  );
+  const AuthTextStyles({
+    required this.title,
+    required this.subtitle,
+    required this.label,
+    required this.link,
+    required this.error,
+    required this.success,
+    required this.caption,
+    required this.otpDigit,
+  });
 
-  static const TextStyle subtitle = TextStyle(
-    fontSize: 16,
-    color: AppColors.textMuted,
-    fontWeight: FontWeight.w400,
-  );
+  final TextStyle title;
+  final TextStyle subtitle;
+  final TextStyle label;
+  final TextStyle link;
+  final TextStyle error;
+  final TextStyle success;
+  final TextStyle caption;
+  final TextStyle otpDigit;
 
-  static const TextStyle label = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    color: AppColors.textSecondary,
-  );
+  factory AuthTextStyles.of(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppColors.darkTextPrimary : AppColors.textPrimary;
+    final secondary =
+        isDark ? AppColors.darkTextSecondary : AppColors.textSecondary;
+    final muted = isDark ? AppColors.darkTextMuted : AppColors.textMuted;
+    final link = isDark ? AppColors.primaryLight : AppColors.link;
+    final error = isDark ? AppColors.errorLight : AppColors.error;
+    final success = isDark ? AppColors.successLight : AppColors.success;
 
-  static const TextStyle link = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w600,
-    color: AppColors.link,
-  );
-
-  static const TextStyle error = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w400,
-    color: AppColors.error,
-  );
-
-  static const TextStyle success = TextStyle(
-    fontSize: 14,
-    fontWeight: FontWeight.w500,
-    color: AppColors.success,
-  );
-
-  static const TextStyle caption = TextStyle(
-    fontSize: 12,
-    fontWeight: FontWeight.w400,
-    color: AppColors.textLight,
-  );
-
-  static const TextStyle otpDigit = TextStyle(
-    fontSize: 24,
-    fontWeight: FontWeight.w600,
-    color: AppColors.textPrimary,
-  );
+    return AuthTextStyles(
+      title: TextStyle(
+        fontSize: 28,
+        fontWeight: FontWeight.w700,
+        color: primary,
+        letterSpacing: -0.5,
+      ),
+      subtitle: TextStyle(
+        fontSize: 16,
+        color: muted,
+        fontWeight: FontWeight.w400,
+      ),
+      label: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: secondary,
+      ),
+      link: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w600,
+        color: link,
+      ),
+      error: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w400,
+        color: error,
+      ),
+      success: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        color: success,
+      ),
+      caption: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w400,
+        color: muted,
+      ),
+      otpDigit: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w600,
+        color: primary,
+      ),
+    );
+  }
 }

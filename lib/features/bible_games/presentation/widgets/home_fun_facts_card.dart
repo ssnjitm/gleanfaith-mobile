@@ -299,10 +299,12 @@ class _HomeFunFactsCardState extends ConsumerState<HomeFunFactsCard>
                         Expanded(
                           child: Text(
                             strings.factsTitle,
-                            style: const TextStyle(
+                            style: TextStyle(
                               fontSize: 16,
                               fontWeight: FontWeight.w700,
-                              color: AppColors.textPrimary,
+                              color: isDark
+                                  ? AppColors.darkTextPrimary
+                                  : AppColors.textPrimary,
                             ),
                           ),
                         ),

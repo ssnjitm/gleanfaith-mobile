@@ -95,6 +95,13 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authText = AuthTextStyles.of(context);
+    final mutedColor = isDark ? AppColors.darkTextMuted : AppColors.textMuted;
+    final errorColor = isDark ? AppColors.errorLight : AppColors.error;
+    final otpFill = isDark ? AppColors.darkBorder : AppColors.bgWhite;
+    final otpBorder = isDark ? AppColors.darkBorderLight : AppColors.otpBorder;
+    final otpFocus =
+        isDark ? AppColors.primaryLight : AppColors.otpFocusBorder;
 
     if (_isSuccess) {
       return AuthCard(
@@ -105,20 +112,24 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
             Container(
               width: 64,
               height: 64,
-              decoration: const BoxDecoration(
-                color: AppColors.successBg,
+              decoration: BoxDecoration(
+                color: AppColors.successSurface(context),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.check_circle, size: 32, color: AppColors.success),
+              child: Icon(
+                Icons.check_circle,
+                size: 32,
+                color: isDark ? AppColors.successLight : AppColors.success,
+              ),
             ),
             const SizedBox(height: 16),
-            const Text('Password Reset Successful!', style: AuthTextStyles.title),
+            Text('Password Reset Successful!', style: authText.title),
             const SizedBox(height: 8),
             Text(
               'Your password has been changed successfully.',
               style: TextStyle(
                 fontSize: 14,
-                color: isDark ? Colors.grey[400] : AppColors.textMuted,
+                color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
               ),
               textAlign: TextAlign.center,
             ),
@@ -178,14 +189,14 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                             isDense: true,
                             contentPadding: const EdgeInsets.symmetric(horizontal: 2, vertical: 14),
                             filled: true,
-                            fillColor: isDark ? const Color(0xFF334155) : AppColors.bgWhite,
+                            fillColor: otpFill,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                              borderSide: const BorderSide(color: AppColors.otpBorder),
+                              borderSide: BorderSide(color: otpBorder),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
-                              borderSide: const BorderSide(color: AppColors.otpFocusBorder, width: 2),
+                              borderSide: BorderSide(color: otpFocus, width: 2),
                             ),
                           ),
                           onChanged: (v) => _onOtpChange(i, v),
@@ -197,10 +208,10 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               }),
             ),
             const SizedBox(height: 8),
-            const Center(
+            Center(
               child: Text(
                 'Enter the 6-digit OTP sent to your email',
-                style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                style: TextStyle(fontSize: 11, color: mutedColor),
               ),
             ),
             const SizedBox(height: 24),
@@ -214,18 +225,18 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
             Center(
               child: GestureDetector(
                 onTap: () => context.pushReplacement(RouteNames.forgotPassword),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Icon(Icons.arrow_back, size: 16, color: AppColors.textMuted),
-                    SizedBox(width: 4),
-                    Text('Back to Forgot Password', style: AuthTextStyles.caption),
+                    Icon(Icons.arrow_back, size: 16, color: mutedColor),
+                    const SizedBox(width: 4),
+                    Text('Back to Forgot Password', style: authText.caption),
                   ],
                 ),
               ),
             ),
           ] else ...[
-            Text('New Password', style: AuthTextStyles.label),
+            Text('New Password', style: authText.label),
             const SizedBox(height: 8),
             TextFormField(
               controller: _newPasswordController,
@@ -236,7 +247,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                 suffixIcon: IconButton(
                   icon: Icon(
                     _showNewPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: AppColors.inputIcon,
+                    color: isDark ? AppColors.darkInputIcon : AppColors.inputIcon,
                   ),
                   onPressed: () => setState(() => _showNewPassword = !_showNewPassword),
                 ),
@@ -244,7 +255,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
               onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 16),
-            Text('Confirm New Password', style: AuthTextStyles.label),
+            Text('Confirm New Password', style: authText.label),
             const SizedBox(height: 8),
             TextFormField(
               controller: _confirmPasswordController,
@@ -255,7 +266,7 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                 suffixIcon: IconButton(
                   icon: Icon(
                     _showConfirmPassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: AppColors.inputIcon,
+                    color: isDark ? AppColors.darkInputIcon : AppColors.inputIcon,
                   ),
                   onPressed: () => setState(() => _showConfirmPassword = !_showConfirmPassword),
                 ),
@@ -270,9 +281,12 @@ class _ResetPasswordPageState extends ConsumerState<ResetPasswordPage> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, size: 14, color: AppColors.error),
+                    Icon(Icons.error_outline, size: 14, color: errorColor),
                     const SizedBox(width: 6),
-                    Text(_passwordError, style: const TextStyle(fontSize: 12, color: AppColors.error)),
+                    Text(
+                      _passwordError,
+                      style: TextStyle(fontSize: 12, color: errorColor),
+                    ),
                   ],
                 ),
               ),
@@ -319,19 +333,23 @@ class _ReqRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final metColor = isDark ? AppColors.successLight : AppColors.success;
+    final unmetColor = isDark ? AppColors.darkTextMuted : AppColors.textLight;
+
     return Row(
       children: [
         Icon(
           met ? Icons.check_circle : Icons.circle,
           size: 12,
-          color: met ? AppColors.success : AppColors.textLight,
+          color: met ? metColor : unmetColor,
         ),
         const SizedBox(width: 6),
         Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            color: met ? AppColors.success : AppColors.textMuted,
+            color: met ? metColor : unmetColor,
           ),
         ),
       ],

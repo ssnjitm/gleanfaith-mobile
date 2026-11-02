@@ -154,10 +154,10 @@ class _PositionCard extends StatelessWidget {
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
                 size: 20,
-                color: AppColors.textLight,
+                color: isDark ? AppColors.darkTextMuted : AppColors.textLight,
               ),
             ],
           ),

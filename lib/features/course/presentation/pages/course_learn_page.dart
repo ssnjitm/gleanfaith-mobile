@@ -43,7 +43,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
     });
 
     return Scaffold(
-      backgroundColor: AppColors.bgGray,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       appBar: AppBar(
         title: Text(
           state.detail?.title ?? 'Course',
@@ -990,12 +990,14 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
                   ),
                 ),
                 const SizedBox(height: AppDimensions.paddingMd),
-                const Text(
+                Text(
                   'Course Completed!',
                   style: TextStyle(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.textPrimary,
+                    color: isDark
+                        ? AppColors.darkTextPrimary
+                        : AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: AppDimensions.xs),
@@ -1004,9 +1006,11 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
                       ? 'You finished every step and earned new XP.'
                       : 'You finished every step. Great revision!',
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: AppColors.textMuted,
+                    color: isDark
+                        ? AppColors.darkTextMuted
+                        : AppColors.textMuted,
                   ),
                 ),
                 if (result.newlyAwarded) ...[
@@ -1017,7 +1021,7 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
                       vertical: AppDimensions.sm,
                     ),
                     decoration: BoxDecoration(
-                      color: AppColors.warningBg,
+                      color: AppColors.warningSurface(dialogContext),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Row(
@@ -1062,9 +1066,11 @@ class _CourseLearnPageState extends ConsumerState<CourseLearnPage> {
                         Text(
                           '${level.totalPoints} total points · '
                           '${level.pointsToNextLevel} to next level',
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 11.5,
-                            color: AppColors.textMuted,
+                            color: isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.textMuted,
                           ),
                         ),
                       ],

@@ -248,11 +248,14 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
                           children: [
                             Text(
                               '"${round.fullText}"',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 17,
                                 fontStyle: FontStyle.italic,
                                 height: 1.5,
-                                color: AppColors.textPrimary,
+                                color: Theme.of(context).brightness ==
+                                        Brightness.dark
+                                    ? AppColors.darkTextPrimary
+                                    : AppColors.textPrimary,
                               ),
                             ),
                             // Nepali mode with no catalog entry: say so
@@ -322,10 +325,12 @@ class _GuessBookPageState extends ConsumerState<GuessBookPage>
                           round.referenceLabel,
                         )
                       : strings.guessBookChoose,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
-                    color: AppColors.textSecondary,
+                    color: Theme.of(context).brightness == Brightness.dark
+                        ? AppColors.darkTextSecondary
+                        : AppColors.textSecondary,
                   ),
                 ),
                 const SizedBox(height: 10),

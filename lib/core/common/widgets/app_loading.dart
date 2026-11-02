@@ -8,6 +8,8 @@ class AppLoading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Column(
         mainAxisSize: MainAxisSize.min,
@@ -15,12 +17,15 @@ class AppLoading extends StatelessWidget {
           const CircularProgressIndicator(color: AppColors.primaryBlue),
           if (message != null) ...[
             const SizedBox(height: 16),
-            Text(message!, style: const TextStyle(color: AppColors.textMuted)),
+            Text(
+              message!,
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+              ),
+            ),
           ],
         ],
       ),
     );
   }
 }
-
-

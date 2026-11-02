@@ -363,7 +363,10 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
             ),
             Text(
               label,
-              style: const TextStyle(fontSize: 11, color: AppColors.textMuted),
+              style: TextStyle(
+                fontSize: 11,
+                color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+              ),
             ),
           ],
         ),

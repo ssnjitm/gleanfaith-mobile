@@ -52,6 +52,8 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final authText = AuthTextStyles.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return AuthCard(
       title: 'Join Community',
@@ -64,7 +66,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             AuthErrorBanner(
               message: authState.status == AuthStatus.error ? authState.message : null,
             ),
-            Text('Full Name *', style: AuthTextStyles.label),
+            Text('Full Name *', style: authText.label),
             const SizedBox(height: 8),
             TextFormField(
               controller: _fullNameController,
@@ -76,7 +78,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               validator: (v) => v == null || v.trim().isEmpty ? 'Name is required' : null,
             ),
             const SizedBox(height: 20),
-            Text('Email *', style: AuthTextStyles.label),
+            Text('Email *', style: authText.label),
             const SizedBox(height: 8),
             TextFormField(
               controller: _emailController,
@@ -92,7 +94,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
               },
             ),
             const SizedBox(height: 20),
-            Text('Password *', style: AuthTextStyles.label),
+            Text('Password *', style: authText.label),
             const SizedBox(height: 8),
             TextFormField(
               controller: _passwordController,
@@ -103,7 +105,7 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                 suffixIcon: IconButton(
                   icon: Icon(
                     _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                    color: AppColors.inputIcon,
+                    color: isDark ? AppColors.darkInputIcon : AppColors.inputIcon,
                   ),
                   onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
                 ),
@@ -135,7 +137,9 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
                     'I agree to the Terms of Service and Privacy Policy',
                     style: TextStyle(
                       fontSize: 12,
-                      color: _acceptTerms ? AppColors.textMuted : AppColors.textSecondary,
+                      color: _acceptTerms
+                          ? (isDark ? AppColors.darkTextMuted : AppColors.textMuted)
+                          : (isDark ? AppColors.darkTextSecondary : AppColors.textSecondary),
                     ),
                   ),
                 ),
@@ -153,11 +157,11 @@ class _SignUpPageState extends ConsumerState<SignUpPage> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Text('Already have an account?', style: AuthTextStyles.caption),
+                Text('Already have an account?', style: authText.caption),
                 const SizedBox(width: 4),
                 GestureDetector(
                   onTap: () => context.pushReplacement(RouteNames.signin),
-                  child: const Text('Sign In', style: AuthTextStyles.link),
+                  child: Text('Sign In', style: authText.link),
                 ),
               ],
             ),
@@ -195,19 +199,23 @@ class _RequirementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final metColor = isDark ? AppColors.successLight : AppColors.success;
+    final unmetColor = isDark ? AppColors.darkTextMuted : AppColors.textLight;
+
     return Row(
       children: [
         Icon(
           met ? Icons.check_circle : Icons.circle,
           size: 12,
-          color: met ? AppColors.success : AppColors.textLight,
+          color: met ? metColor : unmetColor,
         ),
         const SizedBox(width: 6),
         Text(
           label,
           style: TextStyle(
             fontSize: 12,
-            color: met ? AppColors.success : AppColors.textMuted,
+            color: met ? metColor : unmetColor,
           ),
         ),
       ],

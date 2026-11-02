@@ -130,6 +130,7 @@ class _DialogBody extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final size = release.readableSize;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return SingleChildScrollView(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,7 +172,8 @@ class _DialogBody extends ConsumerWidget {
               child: LinearProgressIndicator(
                 value: state.progress,
                 minHeight: 6,
-                backgroundColor: AppColors.borderLight,
+                backgroundColor:
+                    isDark ? AppColors.darkBorder : AppColors.borderLight,
               ),
             ),
             const SizedBox(height: 6),

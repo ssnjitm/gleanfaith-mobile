@@ -148,7 +148,7 @@ class StatsCard extends StatelessWidget {
                   label: 'Quizzes',
                   value: '$quizzesCompleted',
                 ),
-                _StatItem(
+                const _StatItem(
                   icon: Icons.local_fire_department_rounded,
                   label: 'Streak',
                   value: '0',

@@ -16,7 +16,7 @@ class CoursesPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Learning Courses')),
-      backgroundColor: AppColors.bgGray,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: const SafeArea(child: CoursesGridBody()),
     );
   }

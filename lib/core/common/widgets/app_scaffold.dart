@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../theme/colors.dart';
 
 class AppScaffold extends StatelessWidget {
   final Widget body;
@@ -26,7 +25,7 @@ class AppScaffold extends StatelessWidget {
       body: body,
       bottomNavigationBar: bottomNavigationBar,
       floatingActionButton: floatingActionButton,
-      backgroundColor: backgroundColor ?? AppColors.bgGray,
+      backgroundColor: backgroundColor ?? Theme.of(context).scaffoldBackgroundColor,
       resizeToAvoidBottomInset: resizeToAvoidBottomInset,
     );
   }

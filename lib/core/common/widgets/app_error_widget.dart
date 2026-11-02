@@ -14,18 +14,27 @@ class AppErrorWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(AppDimensions.paddingLg),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline, size: 48, color: AppColors.error),
+            Icon(
+              Icons.error_outline,
+              size: 48,
+              color: isDark ? AppColors.errorLight : AppColors.error,
+            ),
             const SizedBox(height: 16),
             Text(
               message,
               textAlign: TextAlign.center,
-              style: const TextStyle(color: AppColors.textMuted, fontSize: 16),
+              style: TextStyle(
+                color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
+                fontSize: 16,
+              ),
             ),
             if (onRetry != null) ...[
               const SizedBox(height: 24),

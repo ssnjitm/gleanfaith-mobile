@@ -56,11 +56,13 @@ class LibraryDetailPage extends ConsumerWidget {
       children: [
         Text(
           item.title,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 22,
             fontWeight: FontWeight.w800,
             height: 1.3,
-            color: AppColors.textPrimary,
+            color: Theme.of(context).brightness == Brightness.dark
+                ? AppColors.darkTextPrimary
+                : AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: AppDimensions.sm),
@@ -161,10 +163,10 @@ class LibraryDetailPage extends ConsumerWidget {
         ),
         child: Column(
           children: [
-            const Icon(
+            Icon(
               Icons.article_outlined,
               size: 48,
-              color: AppColors.textLight,
+              color: isDark ? AppColors.darkTextMuted : AppColors.textLight,
             ),
             const SizedBox(height: AppDimensions.paddingMd),
             Text(

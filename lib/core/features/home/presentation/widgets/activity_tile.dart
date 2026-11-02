@@ -41,13 +41,15 @@ class ActivityTile extends StatelessWidget {
             height: 40,
             decoration: BoxDecoration(
               color: passed
-                  ? AppColors.successBg
-                  : AppColors.errorBg,
+                  ? AppColors.successSurface(context)
+                  : AppColors.errorSurface(context),
               borderRadius: BorderRadius.circular(AppDimensions.radiusMd),
             ),
             child: Icon(
               passed ? Icons.check_circle_rounded : Icons.cancel_rounded,
-              color: passed ? AppColors.success : AppColors.error,
+              color: passed
+                  ? (isDark ? AppColors.successLight : AppColors.success)
+                  : (isDark ? AppColors.errorLight : AppColors.error),
               size: 20,
             ),
           ),
@@ -84,8 +86,8 @@ class ActivityTile extends StatelessWidget {
             ),
             decoration: BoxDecoration(
               color: passed
-                  ? AppColors.successBg
-                  : AppColors.errorBg,
+                  ? AppColors.successSurface(context)
+                  : AppColors.errorSurface(context),
               borderRadius: BorderRadius.circular(6),
             ),
             child: Text(
@@ -93,7 +95,9 @@ class ActivityTile extends StatelessWidget {
               style: TextStyle(
                 fontSize: 11,
                 fontWeight: FontWeight.w600,
-                color: passed ? AppColors.success : AppColors.error,
+                color: passed
+                    ? (isDark ? AppColors.successLight : AppColors.success)
+                    : (isDark ? AppColors.errorLight : AppColors.error),
               ),
             ),
           ),

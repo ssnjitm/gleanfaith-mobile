@@ -61,10 +61,10 @@ class _CrossPuzzleMyPuzzlesPageState
         padding: const EdgeInsets.all(AppDimensions.paddingMd),
         children: [
           const SizedBox(height: AppDimensions.xl),
-          const Icon(
+          Icon(
             Icons.collections_bookmark_outlined,
             size: 56,
-            color: AppColors.textLight,
+            color: isDark ? AppColors.darkTextMuted : AppColors.textLight,
           ),
           const SizedBox(height: AppDimensions.paddingMd),
           Text(
@@ -159,17 +159,19 @@ class _ProgressCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       _subtitle(progress),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 12,
-                        color: AppColors.textMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.textMuted,
                       ),
                     ),
                   ],
                 ),
               ),
-              const Icon(
+              Icon(
                 Icons.chevron_right_rounded,
-                color: AppColors.textLight,
+                color: isDark ? AppColors.darkTextMuted : AppColors.textLight,
               ),
             ],
           ),

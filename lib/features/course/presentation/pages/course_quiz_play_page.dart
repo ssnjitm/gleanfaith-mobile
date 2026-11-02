@@ -795,11 +795,13 @@ class _CourseQuizPlayPageState extends ConsumerState<CourseQuizPlayPage> {
                           color: passed ? AppColors.success : AppColors.error,
                         ),
                       ),
-                      const Text(
+                      Text(
                         'Best score',
                         style: TextStyle(
                           fontSize: 11.5,
-                          color: AppColors.textMuted,
+                          color: isDark
+                              ? AppColors.darkTextMuted
+                              : AppColors.textMuted,
                         ),
                       ),
                     ],

@@ -39,11 +39,11 @@ class UpcomingQuizCard extends StatelessWidget {
           border: Border.all(
             color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
           ),
-          boxShadow: [
+          boxShadow: const [
             BoxShadow(
               color: AppColors.shadowLight,
               blurRadius: 8,
-              offset: const Offset(0, 2),
+              offset: Offset(0, 2),
             ),
           ],
         ),
@@ -59,7 +59,7 @@ class UpcomingQuizCard extends StatelessWidget {
                   ),
                   decoration: BoxDecoration(
                     color: isToday
-                        ? AppColors.successBg
+                        ? AppColors.successSurface(context)
                         : AppColors.primaryBlue.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(6),
                   ),
@@ -68,7 +68,11 @@ class UpcomingQuizCard extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
-                      color: isToday ? AppColors.success : AppColors.primaryBlue,
+                      color: isToday
+                          ? (isDark
+                              ? AppColors.successLight
+                              : AppColors.success)
+                          : AppColors.primaryBlue,
                     ),
                   ),
                 ),

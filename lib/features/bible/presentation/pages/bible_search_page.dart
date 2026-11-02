@@ -186,14 +186,18 @@ class _BibleSearchPageState extends ConsumerState<BibleSearchPage> {
             Icon(
               Icons.search_off,
               size: 64,
-              color: Colors.grey[400],
+              color: Theme.of(context).brightness == Brightness.dark
+                  ? AppColors.darkTextMuted
+                  : Colors.grey[400],
             ),
             const SizedBox(height: AppDimensions.md),
             Text(
               'No results found for "${state.currentQuery}"',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[600],
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextSecondary
+                    : Colors.grey[600],
               ),
               textAlign: TextAlign.center,
             ),
@@ -202,7 +206,9 @@ class _BibleSearchPageState extends ConsumerState<BibleSearchPage> {
               'Try a different word, or a reference like "John 3:16" or "Psalm 23".',
               style: TextStyle(
                 fontSize: 14,
-                color: Colors.grey[500],
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? AppColors.darkTextMuted
+                    : Colors.grey[500],
               ),
               textAlign: TextAlign.center,
             ),

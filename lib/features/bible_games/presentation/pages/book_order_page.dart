@@ -365,8 +365,9 @@ class _OrderTile extends StatelessWidget {
         : (isDark ? const Color(0xFF1E293B) : AppColors.bgCard);
     final border =
         isWrongFlash ? AppColors.error : (isDark ? const Color(0xFF334155) : AppColors.borderLight);
-    final foreground =
-        isWrongFlash ? AppColors.error : AppColors.textPrimary;
+    final foreground = isWrongFlash
+        ? (isDark ? Colors.white : AppColors.error)
+        : (isDark ? AppColors.darkTextPrimary : AppColors.textPrimary);
 
     return Material(
       color: Colors.transparent,

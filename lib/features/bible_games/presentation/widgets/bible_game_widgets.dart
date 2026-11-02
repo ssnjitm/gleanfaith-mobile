@@ -40,10 +40,12 @@ class GameRoundCard extends StatelessWidget {
           if (title != null) ...[
             Text(
               title!,
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.textPrimary,
+                color: isDark
+                    ? AppColors.darkTextPrimary
+                    : AppColors.textPrimary,
               ),
             ),
             const SizedBox(height: 12),
@@ -282,10 +284,12 @@ class GameResultCard extends StatelessWidget {
               Text(
                 title,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
+                  color: isDark
+                      ? AppColors.darkTextPrimary
+                      : AppColors.textPrimary,
                 ),
               ),
               const SizedBox(height: 6),
@@ -295,7 +299,7 @@ class GameResultCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 15,
                   color: isDark
-                      ? const Color(0xFF94A3B8)
+                      ? AppColors.darkTextMuted
                       : AppColors.textMuted,
                 ),
               ),
@@ -315,17 +319,21 @@ class GameResultCard extends StatelessWidget {
                   children: [
                     Text(
                       '$score',
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 36,
                         fontWeight: FontWeight.w800,
-                        color: AppColors.textPrimary,
+                        color: isDark
+                            ? AppColors.darkTextPrimary
+                            : AppColors.textPrimary,
                       ),
                     ),
                     Text(
                       strings.correctOutOf(totalAnswered),
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontSize: 13,
-                        color: AppColors.textMuted,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.textMuted,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -340,10 +348,12 @@ class GameResultCard extends StatelessWidget {
                         const SizedBox(width: 4),
                         Text(
                           strings.bestStreak(bestStreak),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.textMuted,
+                            color: isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.textMuted,
                           ),
                         ),
                       ],
@@ -356,7 +366,7 @@ class GameResultCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      style: AppButtonStyles.outlinedButton,
+                      style: AppButtonStyles.outlinedButtonFor(context),
                       onPressed: () => Navigator.of(context).pop(),
                       child: Text(strings.goHome),
                     ),

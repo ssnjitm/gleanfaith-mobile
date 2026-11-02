@@ -40,6 +40,10 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final authText = AuthTextStyles.of(context);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final warningAccent =
+        isDark ? AppColors.warningBorder : AppColors.warning;
 
     return AuthCard(
       title: 'Forgot Password?',
@@ -59,24 +63,31 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                       margin: const EdgeInsets.only(bottom: 16),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: AppColors.warningBg,
-                        border: Border.all(color: AppColors.warningBorder),
+                        color: AppColors.warningSurface(context),
+                        border: Border.all(color: warningAccent),
                         borderRadius: BorderRadius.circular(8),
                       ),
-                      child: const Row(
+                      child: Row(
                         children: [
-                          Icon(Icons.info_outline, size: 16, color: AppColors.warning),
-                          SizedBox(width: 8),
+                          Icon(
+                            Icons.info_outline,
+                            size: 16,
+                            color: warningAccent,
+                          ),
+                          const SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               'If an account exists, you will receive an OTP',
-                              style: TextStyle(fontSize: 13, color: AppColors.warning),
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: warningAccent,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ),
-                  Text('Email Address', style: AuthTextStyles.label),
+                  Text('Email Address', style: authText.label),
                   const SizedBox(height: 8),
                   TextFormField(
                     controller: _emailController,
@@ -92,9 +103,14 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  const Text(
+                  Text(
                     'Enter the email address you used to sign up',
-                    style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: isDark
+                          ? AppColors.darkTextMuted
+                          : AppColors.textLight,
+                    ),
                   ),
                   const SizedBox(height: 24),
                   GradientButton(
@@ -107,21 +123,32 @@ class _ForgotPasswordPageState extends ConsumerState<ForgotPasswordPage> {
                   Center(
                     child: GestureDetector(
                       onTap: () => context.pushReplacement(RouteNames.signin),
-                      child: const Row(
+                      child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Icon(Icons.arrow_back, size: 16, color: AppColors.textMuted),
-                          SizedBox(width: 4),
-                          Text('Back to Login', style: AuthTextStyles.caption),
+                          Icon(
+                            Icons.arrow_back,
+                            size: 16,
+                            color: isDark
+                                ? AppColors.darkTextMuted
+                                : AppColors.textMuted,
+                          ),
+                          const SizedBox(width: 4),
+                          Text('Back to Login', style: authText.caption),
                         ],
                       ),
                     ),
                   ),
                   const SizedBox(height: 12),
-                  const Center(
+                  Center(
                     child: Text(
                       "We'll send a 6-digit OTP to verify your identity",
-                      style: TextStyle(fontSize: 11, color: AppColors.textLight),
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: isDark
+                            ? AppColors.darkTextMuted
+                            : AppColors.textLight,
+                      ),
                     ),
                   ),
                 ],
@@ -139,6 +166,9 @@ class _SuccessContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final authText = AuthTextStyles.of(context);
+    final successAccent =
+        isDark ? AppColors.successLight : AppColors.success;
 
     return Column(
       children: [
@@ -146,28 +176,29 @@ class _SuccessContent extends StatelessWidget {
           width: 64,
           height: 64,
           decoration: BoxDecoration(
-            color: AppColors.successBg,
+            color: AppColors.successSurface(context),
             shape: BoxShape.circle,
           ),
-          child: const Icon(Icons.check_circle, size: 32, color: AppColors.success),
+          child: Icon(Icons.check_circle, size: 32, color: successAccent),
         ),
         const SizedBox(height: 16),
-        const Text('Check Your Email', style: AuthTextStyles.title),
+        Text('Check Your Email', style: authText.title),
         const SizedBox(height: 8),
         Text(
           "We've sent a password reset OTP to",
           style: TextStyle(
             fontSize: 14,
-            color: isDark ? Colors.grey[400] : AppColors.textMuted,
+            color: isDark ? AppColors.darkTextMuted : AppColors.textMuted,
           ),
         ),
         const SizedBox(height: 4),
         Text(
           email,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: AppColors.textPrimary,
+            color:
+                isDark ? AppColors.darkTextPrimary : AppColors.textPrimary,
           ),
         ),
         const SizedBox(height: 8),
@@ -175,7 +206,7 @@ class _SuccessContent extends StatelessWidget {
           'The OTP is valid for 5 minutes',
           style: TextStyle(
             fontSize: 12,
-            color: isDark ? Colors.grey[500] : AppColors.textLight,
+            color: isDark ? AppColors.darkTextLight : AppColors.textLight,
           ),
         ),
         const SizedBox(height: 24),
@@ -190,7 +221,7 @@ class _SuccessContent extends StatelessWidget {
         Center(
           child: GestureDetector(
             onTap: () => context.pushReplacement(RouteNames.signin),
-            child: const Text('Back to Login', style: AuthTextStyles.caption),
+            child: Text('Back to Login', style: authText.caption),
           ),
         ),
       ],

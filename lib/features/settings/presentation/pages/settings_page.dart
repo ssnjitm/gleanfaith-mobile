@@ -91,7 +91,9 @@ class _SettingsContent extends ConsumerWidget {
         style: TextStyle(
           fontSize: 13,
           fontWeight: FontWeight.w600,
-          color: AppColors.textLight,
+          color: Theme.of(context).brightness == Brightness.dark
+              ? AppColors.darkTextMuted
+              : AppColors.textLight,
           letterSpacing: 0.5,
         ),
       ),
