@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -33,7 +33,8 @@ class HomePage extends ConsumerStatefulWidget {
   ConsumerState<HomePage> createState() => _HomePageState();
 }
 
-class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver {
+class _HomePageState extends ConsumerState<HomePage>
+    with WidgetsBindingObserver {
   int _shownUpdateVersionCode = 0;
 
   @override
@@ -120,6 +121,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
     final authState = ref.watch(authProvider);
     final user = authState.user;
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final currentTab = ref.watch(mainTabIndexProvider);
 
     return Scaffold(
       drawer: const ProfileDrawer(),
@@ -142,7 +144,7 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
               const SizedBox(height: AppDimensions.paddingMd),
               _buildLeaderboardPreview(context, isDark),
               const SizedBox(height: AppDimensions.paddingMd),
-              const HomeFunFactsCard(),
+              HomeFunFactsCard(isActive: currentTab == MainTab.home),
             ],
           ),
         ),
@@ -178,7 +180,9 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : AppColors.borderLight,
                   ),
                 ),
                 child: Column(
@@ -220,26 +224,31 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
         title: 'Daily Quiz Challenge',
         subtitle: 'Grow in faith and win points every day.',
         icon: Icons.emoji_events_rounded,
-        onTap: () => ref.read(mainTabIndexProvider.notifier).state = MainTab.quiz,
+        onTap: () =>
+            ref.read(mainTabIndexProvider.notifier).state = MainTab.quiz,
       ),
       PromoSlide(
         title: 'Bible Study Library',
         subtitle: 'Explore articles, videos and podcasts.',
         icon: Icons.auto_stories_rounded,
-        onTap: () => ref.read(mainTabIndexProvider.notifier).state = MainTab.library,
+        onTap: () =>
+            ref.read(mainTabIndexProvider.notifier).state = MainTab.library,
       ),
       PromoSlide(
         title: 'Play Bible Games',
         subtitle: 'Test how well you know your Bible.',
         icon: Icons.sports_esports_rounded,
-        onTap: () => ref.read(mainTabIndexProvider.notifier).state = MainTab.games,
+        onTap: () =>
+            ref.read(mainTabIndexProvider.notifier).state = MainTab.games,
       ),
     ];
   }
 
   Widget _buildGreeting(BuildContext context, String? fullName, bool isDark) {
     final hour = DateTime.now().hour;
-    final greeting = hour < 12 ? 'Good Morning' : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
+    final greeting = hour < 12
+        ? 'Good Morning'
+        : (hour < 17 ? 'Good Afternoon' : 'Good Evening');
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(
@@ -259,7 +268,9 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                   color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
                   borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : AppColors.borderLight,
                   ),
                 ),
                 child: IconButton(
@@ -280,7 +291,9 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
             radius: 22,
             backgroundColor: AppColors.primaryBlue,
             child: Text(
-              (fullName?.isNotEmpty == true) ? fullName!.substring(0, 1).toUpperCase() : 'U',
+              (fullName?.isNotEmpty == true)
+                  ? fullName!.substring(0, 1).toUpperCase()
+                  : 'U',
               style: const TextStyle(
                 color: Colors.white,
                 fontSize: 18,
@@ -419,7 +432,9 @@ class _HomePageState extends ConsumerState<HomePage> with WidgetsBindingObserver
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
                   border: Border.all(
-                    color: isDark ? const Color(0xFF334155) : AppColors.borderLight,
+                    color: isDark
+                        ? const Color(0xFF334155)
+                        : AppColors.borderLight,
                   ),
                 ),
                 child: Column(
@@ -522,10 +537,7 @@ class _HomeLeaderboardTile extends StatelessWidget {
   final LeaderboardEntry entry;
   final bool isDark;
 
-  const _HomeLeaderboardTile({
-    required this.entry,
-    required this.isDark,
-  });
+  const _HomeLeaderboardTile({required this.entry, required this.isDark});
 
   @override
   Widget build(BuildContext context) {
@@ -558,8 +570,9 @@ class _HomeLeaderboardTile extends StatelessWidget {
           CircleAvatar(
             radius: 16,
             backgroundColor: AppColors.primaryBlue.withValues(alpha: 0.12),
-            backgroundImage:
-                (entry.avatar?.isNotEmpty == true) ? NetworkImage(entry.avatar!) : null,
+            backgroundImage: (entry.avatar?.isNotEmpty == true)
+                ? NetworkImage(entry.avatar!)
+                : null,
             child: (entry.avatar?.isNotEmpty != true)
                 ? Text(
                     entry.username.isNotEmpty
@@ -586,9 +599,9 @@ class _HomeLeaderboardTile extends StatelessWidget {
               ),
             ),
           ),
-          Text(
+          const Text(
             '',
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.w800,
               color: AppColors.primaryAmber,
