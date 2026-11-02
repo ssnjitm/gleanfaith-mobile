@@ -89,7 +89,8 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
     var message = (quizState.message ?? '').trim();
 
     if (timedOut) {
-      message = 'The server took too long to respond. Check your connection '
+      message =
+          'The server took too long to respond. Check your connection '
           'and try again.';
     }
 
@@ -406,14 +407,14 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
           const SizedBox(height: AppDimensions.sm),
           _InfoRow(
             icon: Icons.verified_rounded,
-            color: AppColors.success,
+            color: isDark ? AppColors.successLight : AppColors.success,
             text: 'Correct answers earn you points',
             isDark: isDark,
           ),
           const SizedBox(height: AppDimensions.sm),
           _InfoRow(
             icon: Icons.lock_clock_rounded,
-            color: AppColors.error,
+            color: isDark ? AppColors.errorLight : AppColors.error,
             text: scheduleRetryNote,
             isDark: isDark,
           ),
@@ -577,8 +578,13 @@ class _QuizDetailPageState extends ConsumerState<QuizDetailPage> {
           child: OutlinedButton(
             onPressed: _goBack,
             style: OutlinedButton.styleFrom(
-              foregroundColor: AppColors.primaryBlue,
-              side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+              foregroundColor: isDark
+                  ? AppColors.primaryLight
+                  : AppColors.primaryBlue,
+              side: BorderSide(
+                color: isDark ? AppColors.primaryLight : AppColors.primaryBlue,
+                width: 1.5,
+              ),
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               ),
@@ -662,8 +668,13 @@ class _RefreshButton extends StatelessWidget {
         icon: const Icon(Icons.refresh_rounded, size: 18),
         label: Text(label),
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryBlue,
-          side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+          foregroundColor: isDark
+              ? AppColors.primaryLight
+              : AppColors.primaryBlue,
+          side: BorderSide(
+            color: isDark ? AppColors.primaryLight : AppColors.primaryBlue,
+            width: 1.5,
+          ),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
           ),

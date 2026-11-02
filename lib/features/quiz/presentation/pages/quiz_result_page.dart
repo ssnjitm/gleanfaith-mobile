@@ -79,7 +79,7 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
                 child: Column(
                   children: [
                     const SizedBox(height: AppDimensions.paddingMd),
-                    _buildStars(stars),
+                    _buildStars(stars, isDark),
                     const SizedBox(height: AppDimensions.lg),
                     _buildRing(percentage, isDark),
                     const SizedBox(height: AppDimensions.lg),
@@ -90,7 +90,9 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
                         fontSize: 26,
                         fontWeight: FontWeight.w900,
                         color: passed
-                            ? AppColors.success
+                            ? (isDark
+                                  ? AppColors.successLight
+                                  : AppColors.success)
                             : AppColors.primaryAmber,
                       ),
                     ),
@@ -111,7 +113,7 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
                     const SizedBox(height: AppDimensions.xl),
                     _buildPrimaryButton(context, strings.backToHome),
                     const SizedBox(height: AppDimensions.paddingSm),
-                    _buildSecondaryButton(context, strings.moreQuizzes),
+                    _buildSecondaryButton(context, strings.moreQuizzes, isDark),
                   ],
                 ),
               ),
@@ -152,14 +154,15 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
           color: isDark ? const Color(0xFF1E293B) : AppColors.bgCard,
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
           border: Border.all(
-            color: AppColors.primaryBlue.withValues(alpha: 0.4),
+            color: (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
+                .withValues(alpha: 0.4),
           ),
         ),
         child: Row(
           children: [
-            const Icon(
+            Icon(
               Icons.leaderboard_rounded,
-              color: AppColors.primaryBlue,
+              color: isDark ? AppColors.primaryLight : AppColors.primaryBlue,
               size: 24,
             ),
             const SizedBox(width: AppDimensions.paddingMd),
@@ -196,15 +199,19 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
                   vertical: AppDimensions.xs,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                  color:
+                      (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
+                          .withValues(alpha: isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   '#$rank',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primaryBlue,
+                    color: isDark
+                        ? AppColors.primaryLight
+                        : AppColors.primaryBlue,
                   ),
                 ),
               ),
@@ -269,7 +276,14 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
     );
   }
 
-  Widget _buildSecondaryButton(BuildContext context, String label) {
+  Widget _buildSecondaryButton(
+    BuildContext context,
+    String label,
+    bool isDark,
+  ) {
+    // `primaryBlue` (#2563EB) on the dark canvas is roughly 3:1, so the label
+    // and its border wash out. `primaryLight` is the dark-safe accent.
+    final accent = isDark ? AppColors.primaryLight : AppColors.primaryBlue;
     return SizedBox(
       width: double.infinity,
       height: AppDimensions.buttonHeight,
@@ -282,8 +296,8 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
           }
         },
         style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.primaryBlue,
-          side: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
+          foregroundColor: accent,
+          side: BorderSide(color: accent, width: 1.5),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
           ),
@@ -296,7 +310,7 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
     );
   }
 
-  Widget _buildStars(int count) {
+  Widget _buildStars(int count, bool isDark) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: List.generate(3, (index) {
@@ -311,7 +325,9 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
                 )
               : Icon(
                   Icons.star_border_rounded,
-                  color: Colors.grey.withValues(alpha: 0.3),
+                  color: isDark
+                      ? AppColors.darkBorderLight
+                      : Colors.grey.withValues(alpha: 0.3),
                   size: 40,
                 ),
         );
@@ -337,13 +353,16 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
             painter: _ResultRingPainter(
               progress: _ringAnimation.value,
               passed: percentage >= 50,
-              color: percentage >= 50 ? AppColors.success : AppColors.error,
+              isDark: isDark,
+              color: percentage >= 50
+                  ? (isDark ? AppColors.successLight : AppColors.success)
+                  : (isDark ? AppColors.errorLight : AppColors.error),
             ),
             child: Center(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  _buildCountUp(percentage),
+                  _buildCountUp(percentage, isDark),
                   const SizedBox(height: 4),
                   Text(
                     'SCORE',
@@ -363,7 +382,7 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
     );
   }
 
-  Widget _buildCountUp(int target) {
+  Widget _buildCountUp(int target, bool isDark) {
     return TweenAnimationBuilder<double>(
       tween: Tween(begin: 0, end: target.toDouble()),
       duration: const Duration(milliseconds: 1600),
@@ -375,7 +394,9 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
             fontSize: 44,
             fontWeight: FontWeight.w900,
             height: 1,
-            color: target >= 50 ? AppColors.success : AppColors.error,
+            color: target >= 50
+                ? (isDark ? AppColors.successLight : AppColors.success)
+                : (isDark ? AppColors.errorLight : AppColors.error),
           ),
         );
       },
@@ -408,14 +429,14 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
                 icon: Icons.check_circle_rounded,
                 label: strings.correctLabel,
                 value: '${result?.correctAnswers ?? 0}',
-                color: AppColors.success,
+                color: isDark ? AppColors.successLight : AppColors.success,
                 isDark: isDark,
               ),
               _BuildStat(
                 icon: Icons.cancel_rounded,
                 label: strings.wrongLabel,
                 value: '${result?.wrongAnswers ?? 0}',
-                color: AppColors.error,
+                color: isDark ? AppColors.errorLight : AppColors.error,
                 isDark: isDark,
               ),
               _BuildStat(
@@ -442,7 +463,7 @@ class _QuizResultPageState extends ConsumerState<QuizResultPage>
                     : Icons.trending_up_rounded,
                 color: result?.passed == true
                     ? AppColors.primaryAmber
-                    : AppColors.primaryBlue,
+                    : (isDark ? AppColors.primaryLight : AppColors.primaryBlue),
                 size: 20,
               ),
               const SizedBox(width: AppDimensions.sm),
@@ -519,11 +540,13 @@ class _BuildStat extends StatelessWidget {
 class _ResultRingPainter extends CustomPainter {
   final double progress;
   final bool passed;
+  final bool isDark;
   final Color color;
 
   _ResultRingPainter({
     required this.progress,
     required this.passed,
+    required this.isDark,
     required this.color,
   });
 
@@ -534,7 +557,9 @@ class _ResultRingPainter extends CustomPainter {
     const stroke = 12.0;
 
     final bgPaint = Paint()
-      ..color = Colors.grey.withValues(alpha: 0.15)
+      ..color = isDark
+          ? AppColors.darkBorder
+          : Colors.grey.withValues(alpha: 0.15)
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round;
@@ -565,5 +590,7 @@ class _ResultRingPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(_ResultRingPainter oldDelegate) =>
-      oldDelegate.progress != progress || oldDelegate.color != color;
+      oldDelegate.progress != progress ||
+      oldDelegate.color != color ||
+      oldDelegate.isDark != isDark;
 }

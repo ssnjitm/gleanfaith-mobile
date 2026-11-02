@@ -197,7 +197,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     });
     // The control is global: the same switch drives the verse card, the
     // reader and the games.
-    ref.read(contentLanguageProvider.notifier).setLanguage(
+    ref
+        .read(contentLanguageProvider.notifier)
+        .setLanguage(
           next == QuizLanguage.nepali
               ? ContentLanguage.nepali
               : ContentLanguage.english,
@@ -774,7 +776,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                         fontWeight: FontWeight.w600,
                         color: _streak > 1
                             ? AppColors.primaryAmber
-                            : AppColors.textMuted,
+                            : (isDark
+                                  ? AppColors.darkTextMuted
+                                  : AppColors.textMuted),
                       ),
                     ),
                   ],
@@ -867,24 +871,30 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                   vertical: AppDimensions.xs,
                 ),
                 decoration: BoxDecoration(
-                  color: AppColors.primaryBlue.withValues(alpha: 0.1),
+                  color:
+                      (isDark ? AppColors.primaryLight : AppColors.primaryBlue)
+                          .withValues(alpha: isDark ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Icon(
                       Icons.psychology_alt_rounded,
                       size: 14,
-                      color: AppColors.primaryBlue,
+                      color: isDark
+                          ? AppColors.primaryLight
+                          : AppColors.primaryBlue,
                     ),
-                    SizedBox(width: 4),
+                    const SizedBox(width: 4),
                     Text(
                       'QUIZ',
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.w700,
-                        color: AppColors.primaryBlue,
+                        color: isDark
+                            ? AppColors.primaryLight
+                            : AppColors.primaryBlue,
                         letterSpacing: 0.5,
                       ),
                     ),
@@ -927,7 +937,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                     Icon(
                       Icons.info_outline_rounded,
                       size: 13,
-                      color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,
+                      color: isDark
+                          ? const Color(0xFF94A3B8)
+                          : AppColors.textMuted,
                     ),
                   const SizedBox(width: 6),
                   Expanded(
@@ -972,7 +984,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                   Icon(
                     Icons.menu_book_rounded,
                     size: 13,
-                    color: isDark ? const Color(0xFF94A3B8) : AppColors.textMuted,
+                    color: isDark
+                        ? const Color(0xFF94A3B8)
+                        : AppColors.textMuted,
                   ),
                   const SizedBox(width: 4),
                   Text(
@@ -1076,7 +1090,9 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                       color:
                           borderColor ??
                           (isSelected
-                              ? AppColors.primaryBlue
+                              ? (isDark
+                                    ? AppColors.primaryLight
+                                    : AppColors.primaryBlue)
                               : (isDark
                                     ? const Color(0xFF334155)
                                     : AppColors.borderLight)),
@@ -1094,6 +1110,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                             isSelected,
                             isCorrect,
                             isWrong,
+                            isDark: isDark,
                           ),
                           shape: BoxShape.circle,
                         ),
@@ -1103,10 +1120,10 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                             style: TextStyle(
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
-                              color: isCorrect || isWrong
+                              color: isCorrect || isWrong || isSelected
                                   ? Colors.white
-                                  : (isSelected
-                                        ? Colors.white
+                                  : (isDark
+                                        ? AppColors.darkTextSecondary
                                         : AppColors.primaryBlue),
                             ),
                           ),
@@ -1128,15 +1145,19 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                         ),
                       ),
                       if (isCorrect)
-                        const Icon(
+                        Icon(
                           Icons.check_circle_rounded,
-                          color: AppColors.success,
+                          color: isDark
+                              ? AppColors.successLight
+                              : AppColors.success,
                           size: 22,
                         )
                       else if (isWrong)
-                        const Icon(
+                        Icon(
                           Icons.cancel_rounded,
-                          color: AppColors.error,
+                          color: isDark
+                              ? AppColors.errorLight
+                              : AppColors.error,
                           size: 22,
                         ),
                     ],
@@ -1150,11 +1171,21 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     );
   }
 
-  Color _optionBadgeColor(bool isSelected, bool isCorrect, bool isWrong) {
-    if (isCorrect) return AppColors.success;
-    if (isWrong) return AppColors.error;
-    if (isSelected) return AppColors.primaryBlue;
-    return AppColors.primaryBlue.withValues(alpha: 0.12);
+  Color _optionBadgeColor(
+    bool isSelected,
+    bool isCorrect,
+    bool isWrong, {
+    required bool isDark,
+  }) {
+    if (isCorrect) return isDark ? AppColors.successLight : AppColors.success;
+    if (isWrong) return isDark ? AppColors.errorLight : AppColors.error;
+    if (isSelected)
+      return isDark ? AppColors.primaryLight : AppColors.primaryBlue;
+    // A 12% tint of blue on a dark surface is practically invisible, so the
+    // unselected badge gets a solid muted fill in dark mode.
+    return isDark
+        ? AppColors.darkBorder
+        : AppColors.primaryBlue.withValues(alpha: 0.12);
   }
 
   Widget _buildFeedback(
@@ -1163,6 +1194,11 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
     bool isDark,
   ) {
     final strings = _strings;
+    // The feedback card is tinted, not solid, so the accent has to be the
+    // dark-safe variant or it disappears into the dark surface.
+    final correctColor = isDark ? AppColors.successLight : AppColors.success;
+    final wrongColor = isDark ? AppColors.errorLight : AppColors.error;
+    final accent = answer.isCorrect ? correctColor : wrongColor;
     return AnimatedBuilder(
       animation: _feedbackController,
       builder: (context, child) {
@@ -1191,12 +1227,10 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
         padding: const EdgeInsets.all(AppDimensions.paddingMd),
         decoration: BoxDecoration(
           color: answer.isCorrect
-              ? AppColors.success.withValues(alpha: 0.12)
-              : AppColors.error.withValues(alpha: 0.1),
+              ? AppColors.success.withValues(alpha: isDark ? 0.18 : 0.12)
+              : AppColors.error.withValues(alpha: isDark ? 0.16 : 0.1),
           borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
-          border: Border.all(
-            color: answer.isCorrect ? AppColors.success : AppColors.error,
-          ),
+          border: Border.all(color: accent),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -1207,7 +1241,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                   answer.isCorrect
                       ? Icons.check_circle_rounded
                       : Icons.cancel_rounded,
-                  color: answer.isCorrect ? AppColors.success : AppColors.error,
+                  color: accent,
                   size: 22,
                 ),
                 const SizedBox(width: AppDimensions.sm),
@@ -1219,9 +1253,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                     style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.w800,
-                      color: answer.isCorrect
-                          ? AppColors.success
-                          : AppColors.error,
+                      color: accent,
                     ),
                   ),
                 ),
@@ -1268,8 +1300,20 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
 
   Widget _buildBottomBar(BuildContext context) {
     final strings = _strings;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final disabled =
         (_selectedOption == null && _lastAnswer == null) || _submitting;
+    // A disabled CTA must still be legible in dark mode. The old light-grey
+    // gradient with white text was a glaring block of near-white on the dark
+    // page and the label had almost no contrast against it.
+    final disabledGradient = LinearGradient(
+      colors: isDark
+          ? const [AppColors.darkBorder, AppColors.darkBorderLight]
+          : const [Color(0xFFCBD5E1), Color(0xFF94A3B8)],
+    );
+    final labelColor = disabled
+        ? (isDark ? AppColors.darkTextMuted : Colors.white)
+        : Colors.white;
     return SafeArea(
       top: false,
       child: Padding(
@@ -1284,11 +1328,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
           height: AppDimensions.buttonHeight,
           child: DecoratedBox(
             decoration: BoxDecoration(
-              gradient: disabled
-                  ? const LinearGradient(
-                      colors: [Color(0xFFCBD5E1), Color(0xFF94A3B8)],
-                    )
-                  : AppColors.primaryGradient,
+              gradient: disabled ? disabledGradient : AppColors.primaryGradient,
               borderRadius: BorderRadius.circular(AppDimensions.radiusLg),
               boxShadow: disabled
                   ? null
@@ -1309,12 +1349,12 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                     : (_lastAnswer == null ? _submitAnswer : _goNext),
                 child: Center(
                   child: _submitting || _finishing
-                      ? const SizedBox(
+                      ? SizedBox(
                           width: 22,
                           height: 22,
                           child: CircularProgressIndicator(
                             strokeWidth: 2.5,
-                            color: Colors.white,
+                            color: labelColor,
                           ),
                         )
                       : Row(
@@ -1326,8 +1366,8 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                                         ? strings.finishQuiz
                                         : strings.nextQuestion)
                                   : strings.submitAnswer,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: labelColor,
                                 fontSize: 16,
                                 fontWeight: FontWeight.w800,
                               ),
@@ -1339,7 +1379,7 @@ class _QuizPlayPageState extends ConsumerState<QuizPlayPage>
                                         ? Icons.flag_rounded
                                         : Icons.arrow_forward_rounded)
                                   : Icons.bolt_rounded,
-                              color: Colors.white,
+                              color: labelColor,
                               size: 20,
                             ),
                           ],
@@ -1427,12 +1467,16 @@ class _TimerChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final iconColor = isUrgent ? AppColors.error : AppColors.primaryBlue;
+    // The chip sits on a dark surface in dark mode, so the light-mode tokens
+    // (navy text, blue-600 icon) are unreadable there. `errorLight`/`primaryLight`
+    // are the dark-safe accents.
+    final urgentColor = isDark ? AppColors.errorLight : AppColors.error;
+    final iconColor = isUrgent
+        ? urgentColor
+        : (isDark ? AppColors.primaryLight : AppColors.primaryBlue);
     final textColor = isUrgent
-        ? AppColors.error
-        : (isCountdown
-              ? AppColors.textPrimary
-              : (isDark ? Colors.white : AppColors.textPrimary));
+        ? urgentColor
+        : (isDark ? Colors.white : AppColors.textPrimary);
 
     return Container(
       padding: const EdgeInsets.symmetric(
@@ -1442,7 +1486,7 @@ class _TimerChip extends StatelessWidget {
       decoration: BoxDecoration(
         color: color,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isUrgent ? AppColors.error : borderColor),
+        border: Border.all(color: isUrgent ? urgentColor : borderColor),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

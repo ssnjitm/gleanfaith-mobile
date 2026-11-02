@@ -648,12 +648,12 @@ class _StatusBadge extends StatelessWidget {
       background = isDark ? AppColors.darkSurfaceAlt : AppColors.bgGray;
     } else if (badge != null) {
       label = badge!;
-      color = AppColors.primaryBlue;
-      background = AppColors.primaryBlue.withValues(alpha: 0.1);
+      color = isDark ? AppColors.primaryLight : AppColors.primaryBlue;
+      background = color.withValues(alpha: isDark ? 0.2 : 0.1);
     } else {
       label = 'Scheduled';
-      color = AppColors.primaryBlue;
-      background = AppColors.primaryBlue.withValues(alpha: 0.1);
+      color = isDark ? AppColors.primaryLight : AppColors.primaryBlue;
+      background = color.withValues(alpha: isDark ? 0.2 : 0.1);
     }
 
     return Container(
