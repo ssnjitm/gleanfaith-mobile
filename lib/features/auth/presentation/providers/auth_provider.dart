@@ -99,6 +99,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
         user: user,
       ),
     );
+    if (state.status == AuthStatus.authenticated) {
+      // The cache is keyed by URL only, so a second account signing in on the
+      // same device must not inherit the previous account's `/user/me` or
+      // `/leaderboard` payloads.
+      await _ref.read(httpCacheProvider).invalidateAll();
+    }
   }
 
   Future<String?> registerRequest({
@@ -196,6 +202,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   Future<void> logout() async {
     await _ref.read(logoutUseCaseProvider).call().run();
+    await _ref.read(httpCacheProvider).invalidateAll();
     state = const AuthState(status: AuthStatus.unauthenticated);
   }
 

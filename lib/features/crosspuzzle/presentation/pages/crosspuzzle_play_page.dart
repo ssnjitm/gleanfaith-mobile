@@ -10,7 +10,9 @@ import '../../../../core/common/widgets/alert_widget.dart';
 import '../../../../core/router/route_names.dart';
 import '../../../../core/theme/colors.dart';
 import '../../domain/entities/crosspuzzle_entities.dart';
+import '../../domain/usecases/save_progress.dart';
 import '../models/crossword_board.dart';
+import '../models/crossword_timer.dart';
 import '../providers/crosspuzzle_provider.dart';
 import '../widgets/crossword_clue_bar.dart';
 import '../widgets/crossword_grid.dart';
@@ -44,15 +46,20 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
 
   int _mistakes = 0;
   int _hintsUsed = 0;
-  int _timeSpentSeconds = 0;
+  CrosswordTimer _timer = CrosswordTimer();
   Timer? _ticker;
   Timer? _autosaveTimer;
   bool _autosaveInFlight = false;
   bool _disposed = false;
 
+  /// Resolved once in [initState] because the final progress write happens in
+  /// [dispose], where `ref` can no longer be used.
+  SaveProgressUseCase? _saveProgress;
+
   @override
   void initState() {
     super.initState();
+    _saveProgress = ref.read(saveProgressUseCaseProvider);
     _loadDetail();
   }
 
@@ -85,8 +92,15 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       if (detail.progress != null) {
         _mistakes = detail.progress!.mistakes;
         _hintsUsed = detail.progress!.hintsUsed;
-        _timeSpentSeconds = detail.progress!.timeSpentSeconds;
       }
+      // An unfinished attempt resumes where it left off. A completed level is
+      // being replayed, so it starts from zero: the finished run keeps its own
+      // (already frozen) completion time.
+      _timer = CrosswordTimer(
+        initialSeconds: detail.progress?.isCompleted == true
+            ? 0
+            : detail.progress?.timeSpentSeconds ?? 0,
+      );
 
       setState(() {
         _detail = detail;
@@ -94,10 +108,7 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
         _loading = false;
       });
 
-      _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-        if (!mounted || _disposed) return;
-        setState(() => _timeSpentSeconds += 1);
-      });
+      _startTicker();
       _startAutosave();
     } catch (e) {
       if (!mounted) return;
@@ -106,6 +117,38 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
         _error = 'Could not load puzzle: $e';
       });
     }
+  }
+
+  void _startTicker() {
+    _ticker?.cancel();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      // `isFrozen` also guards a callback that was already queued when the
+      // clock was frozen by a submission.
+      if (!mounted || _disposed || _timer.isFrozen) return;
+      setState(_timer.tick);
+    });
+  }
+
+  /// Cancels both timers and freezes the clock, returning the elapsed seconds
+  /// at the moment of submission.
+  ///
+  /// This must run BEFORE the completion request so the timer stops the instant
+  /// the user submits and the value sent to the backend is exactly the value
+  /// that was on screen at that moment.
+  int _stopTimers() {
+    _ticker?.cancel();
+    _ticker = null;
+    _autosaveTimer?.cancel();
+    _autosaveTimer = null;
+    return _timer.freeze();
+  }
+
+  /// Restarts the clock after a failed submission so the attempt can continue
+  /// from the time already spent instead of staying frozen forever.
+  void _resumeTimers() {
+    _timer.resume();
+    _startTicker();
+    _startAutosave();
   }
 
   void _startAutosave() {
@@ -122,12 +165,15 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
         _autosaveInFlight ||
         _saving ||
         _disposed ||
+        // A submitted puzzle is finished: never write progress past the
+        // frozen completion time (issue #19).
+        _timer.isFrozen ||
         !mounted) {
       return;
     }
 
     _autosaveInFlight = true;
-    final snapshotTime = _timeSpentSeconds;
+    final snapshotTime = _timer.seconds;
     final snapshotBoard = board.copy();
     try {
       await ref
@@ -158,16 +204,20 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
   }
 
   void _persistFinalState() {
-    final board = _board!;
-    ref
-        .read(saveProgressUseCaseProvider)
+    final board = _board;
+    final saveProgress = _saveProgress;
+    // `dispose` calls this, and `ref` is already unusable there, so the use
+    // case is the one captured in `initState`.
+    if (board == null || saveProgress == null) return;
+
+    saveProgress
         .call(
           puzzleId: widget.puzzleId,
           gridState: board.toGridState(),
           revealedCells: board.toRevealedCells(),
           mistakes: _mistakes,
           hintsUsed: _hintsUsed,
-          timeSpentSeconds: _timeSpentSeconds,
+          timeSpentSeconds: _timer.seconds,
         )
         .run();
   }
@@ -283,7 +333,7 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
 
   Future<void> _handleComplete() async {
     final board = _board;
-    if (board == null || _saving) return;
+    if (board == null || _saving || _timer.isFrozen) return;
     if (!_canSubmit(board)) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -294,7 +344,12 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       return;
     }
 
+    // Freeze the clock immediately on submit so the UI stops counting and the
+    // completion request carries the exact time the user saw. Both timers are
+    // cancelled here; `_resumeTimers` restarts them if the request fails.
+    final elapsedSeconds = _stopTimers();
     setState(() => _saving = true);
+
     final result = await ref
         .read(completePuzzleUseCaseProvider)
         .call(
@@ -302,7 +357,7 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
           gridState: board.toGridState(),
           mistakes: _mistakes,
           hintsUsed: _hintsUsed,
-          timeSpentSeconds: _timeSpentSeconds,
+          timeSpentSeconds: elapsedSeconds,
         )
         .run();
     if (!mounted) return;
@@ -314,7 +369,12 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
       ).showSnackBar(SnackBar(content: Text(failure.message)));
       return null;
     }, (result) => result);
-    if (completed == null) return;
+    if (completed == null) {
+      // The submission did not go through, so the attempt is still in
+      // progress: let the clock run again rather than leaving it frozen.
+      _resumeTimers();
+      return;
+    }
 
     context.pushReplacement(RouteNames.crossPuzzleResult, extra: completed);
   }
@@ -327,9 +387,10 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
   }
 
   String get _elapsedLabel {
-    final h = _timeSpentSeconds ~/ 3600;
-    final m = (_timeSpentSeconds % 3600) ~/ 60;
-    final s = _timeSpentSeconds % 60;
+    final elapsed = _timer.seconds;
+    final h = elapsed ~/ 3600;
+    final m = (elapsed % 3600) ~/ 60;
+    final s = elapsed % 60;
     String two(int v) => v.toString().padLeft(2, '0');
     return h > 0 ? '$h:${two(m)}:${two(s)}' : '${two(m)}:${two(s)}';
   }
@@ -599,7 +660,12 @@ class _CrossPuzzlePlayPageState extends ConsumerState<CrossPuzzlePlayPage> {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               _HeaderStat(
-                icon: Icons.timer_outlined,
+                // A frozen clock (puzzle submitted) shows a pause glyph so the
+                // stopped time is obvious, not just a number that happens to
+                // stop changing.
+                icon: _timer.isFrozen
+                    ? Icons.pause_circle_outline_rounded
+                    : Icons.timer_outlined,
                 label: _elapsedLabel,
                 color: AppColors.primaryAmber,
               ),

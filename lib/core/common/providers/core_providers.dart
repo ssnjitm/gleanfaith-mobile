@@ -7,6 +7,9 @@ import 'package:talker_flutter/talker_flutter.dart';
 
 import '../../network/dio_client.dart';
 import '../../network/network_info.dart';
+import '../../network/cache/http_cache_interceptor.dart';
+import '../../network/cache/http_cache_store.dart';
+import '../../network/cache/http_cache_store_factory.dart';
 import '../../services/logger_service.dart';
 import '../../services/storage_service.dart';
 import '../../constants/api_constants.dart';
@@ -21,9 +24,26 @@ final storageProvider = Provider<StorageService>((ref) {
   return StorageService(const FlutterSecureStorage());
 });
 
+/// Persistence for [HttpCacheInterceptor] — a JSON file on mobile/desktop, and
+/// memory only on web (there is no `dart:io` in the browser).
+final httpCacheStoreProvider = Provider<HttpCacheStore>((ref) {
+  return createHttpCacheStore();
+});
+
+/// The app's single HTTP response cache.
+///
+/// Exposed as a provider so the auth layer can drop it when the signed-in
+/// identity changes — see `AuthNotifier`.
+final httpCacheProvider = Provider<HttpCacheInterceptor>((ref) {
+  return HttpCacheInterceptor(store: ref.watch(httpCacheStoreProvider));
+});
+
 final dioProvider = Provider<Dio>((ref) {
   final storage = ref.watch(storageProvider);
-  final result = DioClient.create(storageService: storage);
+  final result = DioClient.create(
+    storageService: storage,
+    cacheInterceptor: ref.watch(httpCacheProvider),
+  );
   final talker = ref.watch(talkerProvider);
   result.dio.interceptors.add(TalkerDioLogger(talker: talker));
   ref.onDispose(() => result.dio.close());
